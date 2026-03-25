@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Entry — GR-Transport</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0c10;--bg2:#111418;--bg3:#181c24;--card:#1a1f2b;--border:#252d3d;--accent:#f5a623;--accent2:#e05c1a;--green:#2de08a;--red:#e0443a;--blue:#4a9eff;--purple:#9b72ff;--text:#e8ecf4;--muted:#6b7a96;--label:#9aa4b8;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,166,35,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .wrapper{position:relative;z-index:1;padding:32px;max-width:1100px;margin:0 auto;}
+
+  .header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:16px;}
+  .header-left{display:flex;align-items:center;gap:20px;}
+  .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .logo-mark i{color:#fff;font-size:22px;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-subtitle{color:var(--muted);font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+  .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--label);text-decoration:none;transition:all 0.2s;}
+  .back-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .selectors{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap;align-items:flex-end;}
+  .selector-group{display:flex;flex-direction:column;gap:4px;}
+  .selector-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:600;}
+  select{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;min-width:140px;cursor:pointer;}
+  #weekSelect{min-width:240px;}
+  select:focus{border-color:var(--accent);outline:none;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;animation:fadeUp 0.5s ease both;}
+  .card-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .card-title i{color:var(--accent);}
+
+  .day-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+  .week-field{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:18px;transition:all 0.2s;}
+  .week-field:focus-within{border-color:var(--accent);}
+  .week-field-label{font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:1.5px;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .week-input{width:100%;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:1rem;font-family:'JetBrains Mono',monospace;}
+  .week-input:focus{border-color:var(--accent);outline:none;}
+
+  .totals-bar{display:flex;gap:20px;padding:16px 20px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);flex-wrap:wrap;}
+  .total-item{display:flex;flex-direction:column;}
+  .total-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:600;}
+  .total-value{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:600;}
+  .total-value.gross{color:var(--blue);}
+  .total-value.exp{color:var(--red);}
+  .total-value.net{color:var(--green);}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--label);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .btn-primary:hover{background:#ffb940;}
+  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+
+  .history-table{width:100%;border-collapse:collapse;margin-top:8px;}
+  .history-table th{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+  .history-table td{padding:10px 12px;font-size:0.82rem;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(37,45,61,0.5);}
+  .history-table tr:hover{background:rgba(245,166,35,0.03);}
+  .week-link{color:var(--blue);cursor:pointer;text-decoration:underline;}
+  .week-link:hover{color:var(--accent);}
+
+  .notes-input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;resize:vertical;min-height:44px;}
+  .notes-input:focus{border-color:var(--accent);outline:none;}
+
+  .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
+  .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+  .toast.success{border-color:rgba(45,224,138,0.4);color:var(--green);}
+  .toast.error{border-color:rgba(224,68,58,0.4);color:var(--red);}
+
+  .footer-note{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:28px;letter-spacing:0.5px;}
+  .footer-note i{margin-right:6px;color:var(--accent);}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+  @media(max-width:700px){
+    .wrapper{padding:22px 14px;}
+    .day-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+    .header{flex-direction:column;align-items:flex-start;}
+    .selectors{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark"><i class="fa-solid fa-calendar-week"></i></div>
+      <div>
+        <div class="page-title">Weekly Entry</div>
+        <div class="page-subtitle">Daily Gross &amp; Expense Input</div>
+      </div>
+    </div>
+    <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  </div>
+
+  <!-- Selectors -->
+  <div class="selectors">
+    <div class="selector-group">
+      <span class="selector-label">Truck</span>
+      <select id="truckSelect" onchange="onSelectChange()"></select>
+    </div>
+    <div class="selector-group">
+      <span class="selector-label">Year</span>
+      <select id="yearSelect" onchange="onSelectChange()"></select>
+    </div>
+    <div class="selector-group">
+      <span class="selector-label">Week</span>
+      <select id="weekSelect" onchange="onWeekChange()"></select>
+    </div>
+  </div>
+
+  <!-- Weekly Entry -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-calendar-week"></i>Weekly Entry</div>
+    <div class="day-grid" id="weekEntryGrid">
+      <div class="week-field">
+        <div class="week-field-label"><i class="fa-solid fa-arrow-trend-up"></i>Gross Income (GHS)</div>
+        <input type="number" class="week-input" id="weekGross" placeholder="0" oninput="updateTotals()">
+      </div>
+      <div class="week-field">
+        <div class="week-field-label"><i class="fa-solid fa-arrow-trend-down"></i>Expenses (GHS)</div>
+        <input type="number" class="week-input" id="weekExp" placeholder="0" oninput="updateTotals()">
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <label class="selector-label" style="margin-bottom:6px;display:block;">Notes</label>
+      <textarea class="notes-input" id="weekNotes" placeholder="Optional notes for this week..."></textarea>
+    </div>
+    <div style="margin-top:12px;">
+      <label class="selector-label" style="margin-bottom:6px;display:block;">Remarks</label>
+      <textarea class="notes-input" id="weekRemarks" placeholder="Optional remarks for this week..."></textarea>
+    </div>
+  </div>
+
+  <!-- Totals -->
+  <div class="totals-bar" id="totalsBar">
+    <div class="total-item"><span class="total-label">Gross</span><span class="total-value gross" id="totalGross">GHS 0</span></div>
+    <div class="total-item"><span class="total-label">Expenses</span><span class="total-value exp" id="totalExp">GHS 0</span></div>
+    <div class="total-item"><span class="total-label">Net</span><span class="total-value net" id="totalNet">GHS 0</span></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" onclick="saveWeek()"><i class="fa-solid fa-floppy-disk"></i>Save Week</button>
+    <button class="btn" onclick="nextWeek()"><i class="fa-solid fa-forward"></i>Save &amp; Next Week</button>
+    <button class="btn" onclick="clearEntries()"><i class="fa-solid fa-eraser"></i>Clear</button>
+  </div>
+
+  <!-- History -->
+  <div class="card" style="margin-top:28px;">
+    <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>Week History</div>
+    <div style="overflow-x:auto;">
+      <table class="history-table" id="historyTable"></table>
+    </div>
+  </div>
+
+  <div class="footer-note"><i class="fa-regular fa-copyright"></i>Copyright 2026 All rights reserved.</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="src/api.js"></script>
+<script src="src/auth-modal.js"></script>
+<script src="src/nav.js"></script>
+<script src="src/weekly.js"></script>
+</body>
+</html>

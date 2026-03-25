@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — GR-Transport</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0c10;--bg2:#111418;--bg3:#181c24;--card:#1a1f2b;--border:#252d3d;--accent:#f5a623;--accent2:#e05c1a;--green:#2de08a;--red:#e0443a;--blue:#4a9eff;--purple:#9b72ff;--text:#e8ecf4;--muted:#6b7a96;--label:#9aa4b8;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,166,35,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .wrapper{position:relative;z-index:1;padding:32px;max-width:1000px;margin:0 auto;}
+
+  .header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:16px;}
+  .header-left{display:flex;align-items:center;gap:20px;}
+  .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .logo-mark i{color:#fff;font-size:22px;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-subtitle{color:var(--muted);font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+  .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--label);text-decoration:none;transition:all 0.2s;}
+  .back-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .section{margin-bottom:24px;}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .section-title i{color:var(--accent);}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px;}
+
+  .form-row{display:flex;gap:12px;margin-bottom:14px;align-items:flex-end;flex-wrap:wrap;}
+  .form-group{flex:1;min-width:200px;}
+  .form-label{display:block;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  .form-input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;}
+  .form-input:focus{border-color:var(--accent);outline:none;}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--label);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .btn-primary:hover{background:#ffb940;}
+  .btn-danger{border-color:rgba(224,68,58,0.35);color:var(--red);}
+  .btn-danger:hover{background:rgba(224,68,58,0.1);}
+
+  .driver-table{width:100%;border-collapse:collapse;}
+  .driver-table th{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+  .driver-table td{padding:10px 12px;font-size:0.85rem;border-bottom:1px solid rgba(37,45,61,0.5);}
+  .driver-table input{background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:0.85rem;width:100%;}
+  .driver-table input:focus{border-color:var(--accent);outline:none;}
+
+  .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
+  .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+  .toast.success{border-color:rgba(45,224,138,0.4);color:var(--green);}
+  .toast.error{border-color:rgba(224,68,58,0.4);color:var(--red);}
+
+  .footer-note{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;letter-spacing:0.5px;}
+  .footer-note i{margin-right:6px;color:var(--accent);}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  .card{animation:fadeUp 0.5s ease both;}
+
+  @media(max-width:700px){
+    .wrapper{padding:22px 14px;}
+    .form-row{flex-direction:column;}
+    .header{flex-direction:column;align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark"><i class="fa-solid fa-gear"></i></div>
+      <div>
+        <div class="page-title">Settings</div>
+        <div class="page-subtitle">Manage Truck Configuration</div>
+      </div>
+    </div>
+    <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  </div>
+
+  <!-- PIN Management -->
+  <div class="section">
+    <div class="section-title"><i class="fa-solid fa-lock"></i>Admin PIN</div>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Current PIN</label>
+          <input type="password" class="form-input" id="currentPin" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">New PIN</label>
+          <input type="password" class="form-input" id="newPin" autocomplete="off">
+        </div>
+        <button class="btn btn-primary" onclick="changePin()"><i class="fa-solid fa-key"></i>Change PIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Driver Management -->
+  <div class="section">
+    <div class="section-title"><i class="fa-solid fa-id-badge"></i>Driver Assignments</div>
+    <div class="card">
+      <table class="driver-table" id="driverTable"></table>
+      <div style="margin-top:14px;">
+        <button class="btn btn-primary" onclick="saveDrivers()"><i class="fa-solid fa-floppy-disk"></i>Save Drivers</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Truck Costs -->
+  <div class="section">
+    <div class="section-title"><i class="fa-solid fa-money-bill-trend-up"></i>Truck Costs</div>
+    <div class="card">
+      <table class="driver-table" id="costTable"></table>
+      <div style="margin-top:14px;">
+        <button class="btn btn-primary" onclick="saveCosts()"><i class="fa-solid fa-floppy-disk"></i>Save Costs</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="footer-note"><i class="fa-regular fa-copyright"></i>Copyright 2026 All rights reserved.</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="src/api.js"></script>
+<script src="src/auth-modal.js"></script>
+<script src="src/nav.js"></script>
+<script src="src/settings.js"></script>
+</body>
+</html>

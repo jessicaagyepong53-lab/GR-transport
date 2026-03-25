@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Year Spreadsheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../src/year.css">
+<!--
+  :root {
+    --bg: #0a0c10; --bg2: #111418; --bg3: #181c24;
+    --card: #1a1f2b; --border: #252d3d;
+    --accent: #f5a623; --accent2: #e05c1a;
+    --green: #2de08a; --red: #e0443a;
+    --blue: #4a9eff; --purple: #9b72ff;
+    --text: #e8ecf4; --muted: #6b7a96; --label: #9aa4b8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:'DM Sans',sans-serif; min-height:100vh;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(245,166,35,0.02) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(245,166,35,0.02) 1px,transparent 1px);
+    background-size:40px 40px; pointer-events:none; z-index:0;
+  }
+  .wrapper { position:relative; z-index:1; padding:32px; max-width:1400px; margin:0 auto; }
+
+  /* Header */
+  .header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid var(--border);
+  }
+  .header-left { display:flex; align-items:center; gap:20px; }
+  .back-btn {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 22px; border-radius:8px; font-size:0.85rem; font-weight:600;
+    cursor:pointer; border:1px solid var(--border); background:var(--bg3);
+    color:var(--text); text-decoration:none; transition:all 0.2s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .back-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .page-title {
+    font-family:'Bebas Neue',sans-serif; font-size:2.6rem; letter-spacing:3px;
+    background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);
+    background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    line-height:1;
+  }
+  .page-subtitle { color:var(--muted); font-size:0.85rem; letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
+
+  /* Year Nav */
+  .year-nav { display:flex; gap:8px; flex-wrap:wrap; }
+  .year-nav a {
+    padding:8px 18px; border-radius:6px; font-size:0.85rem; font-weight:600;
+    text-decoration:none; border:1px solid var(--border); background:var(--bg3);
+    color:var(--muted); transition:all 0.2s;
+  }
+  .year-nav a:hover { border-color:var(--accent); color:var(--accent); }
+  .year-nav a.active { background:var(--accent); border-color:var(--accent); color:#0a0c10; }
+
+  /* Cards */
+  .section { margin-bottom:28px; }
+  .card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:24px;
+  }
+  .card-title {
+    font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:2px;
+    color:var(--text); margin-bottom:20px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .card-title .pill {
+    font-size:0.7rem; letter-spacing:1px; text-transform:uppercase;
+    padding:4px 12px; border-radius:20px;
+    background:rgba(245,166,35,0.1); color:var(--accent); border:1px solid rgba(245,166,35,0.2);
+    font-family:'DM Sans',sans-serif;
+  }
+
+  /* Editable Table */
+  .spread {
+    width:100%; border-collapse:collapse;
+  }
+  .spread th {
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:1.2px;
+    color:var(--muted); padding:8px 10px; text-align:left;
+    border-bottom:2px solid var(--border); font-weight:600;
+    position:sticky; top:0; background:var(--card); z-index:1;
+  }
+  .spread th.num { text-align:right; }
+  .spread td {
+    padding:0; border-bottom:1px solid rgba(37,45,61,0.5);
+  }
+  .spread tr:last-child td { border-bottom:none; }
+  .spread tr:hover td { background:rgba(245,166,35,0.03); }
+  .spread td.label-cell {
+    padding:10px; font-family:'JetBrains Mono',monospace; font-size:0.8rem;
+    color:var(--accent); font-weight:600;
+  }
+  .spread td.label-cell a {
+    color:var(--accent); text-decoration:none; transition:color 0.2s;
+  }
+  .spread td.label-cell a:hover { color:#ffb940; text-decoration:underline; }
+  .spread td.computed {
+    padding:10px; text-align:right; font-weight:700; font-size:0.85rem;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .spread td.computed.positive { color:var(--green); }
+  .spread td.computed.negative { color:var(--red); }
+  .spread td.computed.neutral { color:var(--label); }
+  .spread input {
+    width:100%; padding:10px; border:none; background:transparent;
+    color:var(--text); font-size:0.85rem; font-family:'JetBrains Mono',monospace;
+    text-align:right; outline:none; transition:background 0.2s;
+  }
+  .spread input:focus {
+    background:rgba(245,166,35,0.08); outline:2px solid rgba(245,166,35,0.3);
+    border-radius:2px;
+  }
+  .spread input::placeholder { color:var(--muted); opacity:0.5; }
+  .spread .total-row td {
+    border-top:2px solid var(--border); padding:10px;
+    font-weight:700; font-size:0.88rem;
+  }
+  .spread .total-row td.label-cell { color:var(--text); font-family:'DM Sans',sans-serif; }
+
+  /* Action bar */
+  .action-bar {
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    margin-bottom:24px;
+  }
+  .btn {
+    padding:10px 20px; border-radius:8px; font-size:0.82rem; font-weight:600;
+    cursor:pointer; border:1px solid var(--border); transition:all 0.2s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .btn-primary { background:var(--accent); border-color:var(--accent); color:#0a0c10; }
+  .btn-primary:hover { background:#ffb940; }
+  .btn-secondary { background:var(--bg3); border-color:var(--border); color:var(--text); }
+  .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-danger { background:rgba(224,68,58,0.15); border-color:var(--red); color:var(--red); }
+  .btn-danger:hover { background:rgba(224,68,58,0.3); }
+  .btn-sm { padding:6px 14px; font-size:0.75rem; }
+  .save-status {
+    font-size:0.78rem; color:var(--green); margin-left:auto;
+    opacity:0; transition:opacity 0.3s;
+  }
+  .save-status.show { opacity:1; }
+
+  /* Toast */
+  .toast {
+    position:fixed; bottom:32px; right:32px; background:var(--card);
+    border:1px solid var(--green); border-radius:10px; padding:14px 24px;
+    color:var(--green); font-size:0.85rem; font-weight:600; z-index:2000;
+    transform:translateY(100px); opacity:0; transition:all 0.3s ease;
+    pointer-events:none;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.error { border-color:var(--red); color:var(--red); }
+
+  .footer-note {
+    text-align:center; color:var(--muted); font-size:0.75rem; margin-top:32px;
+    letter-spacing:0.5px;
+  }
+
+  /* Add row button */
+  .add-row-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    margin-top:12px; padding:6px 14px; border-radius:6px;
+    font-size:0.78rem; font-weight:600; cursor:pointer;
+    border:1px dashed var(--border); background:transparent;
+    color:var(--muted); transition:all 0.2s;
+  }
+  .add-row-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  .delete-btn {
+    background:none; border:none; color:var(--muted); cursor:pointer;
+    font-size:1rem; padding:4px 8px; border-radius:4px; transition:color 0.2s;
+  }
+  .delete-btn:hover { color:var(--red); }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  .card { animation:fadeUp 0.5s ease both; }
+
+  /* Responsive */
+  .table-wrap { overflow-x:auto; }
+-->
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <a href="/index.html" class="back-btn">← Dashboard</a>
+      <div>
+        <div class="page-title" id="pageTitle">—</div>
+        <div class="page-subtitle" id="pageSubtitle">Spreadsheet Editor</div>
+      </div>
+    </div>
+    <div class="year-nav" id="yearNav"></div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar" data-admin-only>
+    <button class="btn btn-primary" onclick="saveAll()">💾 Save All Changes</button>
+    <button class="btn btn-secondary" onclick="resetYear()">↩ Reset to Saved</button>
+    <span class="save-status" id="saveStatus">✓ All changes saved</span>
+    <span id="lastSaved" style="margin-left:auto;font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;"></span>
+  </div>
+
+  <!-- TRUCK DATA -->
+  <div class="section">
+    <div class="card">
+      <div class="card-title">
+        Truck Performance Data
+        <span class="pill" id="truckCount">0 trucks</span>
+      </div>
+      <div class="table-wrap">
+        <table class="spread" id="truckTable"></table>
+      </div>
+      <button class="add-row-btn" data-admin-only onclick="addTruckRow()">+ Add Truck Entry</button>
+    </div>
+  </div>
+
+  <!-- MONTHLY DATA -->
+  <div class="section">
+    <div class="card">
+      <div class="card-title">
+        Monthly Revenue &amp; Expenditure
+        <span class="pill">12 months</span>
+      </div>
+      <div class="table-wrap">
+        <table class="spread" id="monthlyTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPENSE BREAKDOWN -->
+  <div class="section">
+    <div class="card">
+      <div class="card-title">
+        Expense Breakdown
+        <span class="pill">Categories</span>
+      </div>
+      <div class="table-wrap">
+        <table class="spread" id="expTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <a href="/pages/recover.html" style="color:var(--muted);text-decoration:none;font-size:0.75rem;display:inline-flex;align-items:center;gap:5px;margin-bottom:8px;transition:color 0.2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+      <i class="fa-solid fa-trash-can-arrow-up"></i> Recovery
+    </a>
+    <br><i class="fa-regular fa-copyright"></i> 2026 All Rights Reserved
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="../src/auth.js"></script>
+<script src="../src/year.js"></script>
+</body>
+</html>

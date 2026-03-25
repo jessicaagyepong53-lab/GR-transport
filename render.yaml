@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: gr-transport
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        fromGroup: gr-transport-env
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_PIN
+        fromGroup: gr-transport-env
+
+envVarGroups:
+  - name: gr-transport-env
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: ADMIN_PIN
+        sync: false

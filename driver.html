@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Driver Performance — GR-Transport</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0c10;--bg2:#111418;--bg3:#181c24;--card:#1a1f2b;--border:#252d3d;
+    --accent:#f5a623;--accent2:#e05c1a;--green:#2de08a;--red:#e0443a;
+    --blue:#4a9eff;--purple:#9b72ff;--text:#e8ecf4;--muted:#6b7a96;--label:#9aa4b8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,166,35,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .wrapper{position:relative;z-index:1;padding:32px;max-width:1400px;margin:0 auto;}
+
+  .header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:16px;}
+  .header-left{display:flex;align-items:center;gap:20px;}
+  .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--purple),var(--blue));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .logo-mark i{color:#fff;font-size:22px;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--purple) 0%,#fff 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-subtitle{color:var(--muted);font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+  .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--label);text-decoration:none;transition:all 0.2s;}
+  .back-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;position:relative;overflow:hidden;}
+  .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .kpi:nth-child(1)::after{background:linear-gradient(90deg,var(--purple),var(--blue));}
+  .kpi:nth-child(2)::after{background:linear-gradient(90deg,var(--green),#1ab870);}
+  .kpi:nth-child(3)::after{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+  .kpi:nth-child(4)::after{background:linear-gradient(90deg,var(--blue),var(--purple));}
+  .kpi-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+  .kpi-value{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:2px;line-height:1;}
+  .kpi:nth-child(1) .kpi-value{color:var(--purple);}
+  .kpi:nth-child(2) .kpi-value{color:var(--green);}
+  .kpi:nth-child(3) .kpi-value{color:var(--accent);}
+  .kpi:nth-child(4) .kpi-value{color:var(--blue);}
+  .kpi-sub{font-size:0.8rem;color:var(--muted);margin-top:6px;}
+
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;}
+  .chart-card.wide{grid-column:1/-1;}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  .card-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--text);}
+  .card-title i{margin-right:8px;color:var(--purple);}
+
+  .year-table{width:100%;border-collapse:collapse;}
+  .year-table th{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+  .year-table td{padding:10px 12px;font-size:0.85rem;border-bottom:1px solid rgba(37,45,61,0.5);}
+
+  .footer-note{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;letter-spacing:0.5px;}
+  .footer-note i{margin-right:6px;color:var(--accent);}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  .kpi,.chart-card{animation:fadeUp 0.5s ease both;}
+
+  @media(max-width:900px){
+    .wrapper{padding:22px 14px;}
+    .kpi-strip{grid-template-columns:repeat(2,1fr);}
+    .chart-grid{grid-template-columns:1fr;}
+    .header{flex-direction:column;align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark"><i class="fa-solid fa-id-badge"></i></div>
+      <div>
+        <div class="page-title" id="driverName">Driver</div>
+        <div class="page-subtitle" id="driverSubtitle">Driver Performance</div>
+      </div>
+    </div>
+    <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  </div>
+
+  <div class="kpi-strip" id="kpiStrip"></div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-chart-column"></i>Yearly Performance</span>
+      </div>
+      <canvas id="yearlyChart" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-gauge-high"></i>Efficiency by Year</span>
+      </div>
+      <canvas id="effChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card wide" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-table"></i>Year-by-Year Breakdown</span>
+    </div>
+    <table class="year-table" id="yearTable"></table>
+  </div>
+
+  <div class="footer-note"><i class="fa-regular fa-copyright"></i>Copyright 2026 All rights reserved.</div>
+</div>
+
+<script src="src/api.js"></script>
+<script src="src/nav.js"></script>
+<script src="src/driver.js"></script>
+</body>
+</html>
