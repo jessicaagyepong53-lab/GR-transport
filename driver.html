@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Driver Performance — GR-Transport</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Driver Performance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -22,7 +22,7 @@
   .header-left{display:flex;align-items:center;gap:20px;}
   .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--purple),var(--blue));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .logo-mark i{color:#fff;font-size:22px;}
-  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--purple) 0%,#fff 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--purple) 0%,#fff 60%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
   .page-subtitle{color:var(--muted);font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
   .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--label);text-decoration:none;transition:all 0.2s;}
   .back-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -64,6 +64,12 @@
     .kpi-strip{grid-template-columns:repeat(2,1fr);}
     .chart-grid{grid-template-columns:1fr;}
     .header{flex-direction:column;align-items:flex-start;}
+  }
+  @media (max-width:600px) {
+    .kpi-strip { grid-template-columns: 1fr; }
+    .wrapper { padding: 8px 2px; }
+    .header { gap: 12px; }
+    .footer-note { font-size: 0.68rem; }
   }
 </style>
 </head>
@@ -108,6 +114,7 @@
 </div>
 
 <script src="src/api.js"></script>
+<script src="src/auth-modal.js"></script>
 <script src="src/nav.js"></script>
 <script src="src/driver.js"></script>
 </body>

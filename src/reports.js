@@ -10,10 +10,10 @@ function fmt(n) {
 
 async function init() {
   // Populate year selector
+  const sel = document.getElementById('yearSelect');
   try {
     const ytData = await API.get('/api/dashboard/yearly-totals');
     const years = Object.keys(ytData).map(Number).sort();
-    const sel = document.getElementById('yearSelect');
     years.forEach(y => {
       const opt = document.createElement('option');
       opt.value = y;
@@ -21,6 +21,17 @@ async function init() {
       sel.appendChild(opt);
     });
   } catch { /* ignore */ }
+
+  // If no years from API, add a fallback range so the dropdown isn't empty
+  if (sel.options.length <= 1) {
+    const cur = new Date().getFullYear();
+    for (let y = 2024; y <= cur; y++) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      sel.appendChild(opt);
+    }
+  }
 
   await loadReport();
 }

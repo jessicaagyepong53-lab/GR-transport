@@ -916,5 +916,5 @@ function populateTruckSelect() {
 }
 
 function openAddEntry() {
-  populateTruckSelect();
-  const thisYear = 
+  populateTruckSelect(); }
+  // const thisYear = new Date().getFullYear(); // Removed duplicate or stray line 

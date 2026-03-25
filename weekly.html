@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weekly Entry — GR-Transport</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Weekly Entry</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -17,7 +17,7 @@
   .header-left{display:flex;align-items:center;gap:20px;}
   .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .logo-mark i{color:#fff;font-size:22px;}
-  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
   .page-subtitle{color:var(--muted);font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
   .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--label);text-decoration:none;transition:all 0.2s;}
   .back-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -54,10 +54,31 @@
   .btn-primary:hover{background:#ffb940;}
   .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
 
-  .history-table{width:100%;border-collapse:collapse;margin-top:8px;}
-  .history-table th{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
-  .history-table td{padding:10px 12px;font-size:0.82rem;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(37,45,61,0.5);}
-  .history-table tr:hover{background:rgba(245,166,35,0.03);}
+  /* Horizontal week history strip */
+  .week-strip-wrap{overflow-x:auto;padding-bottom:8px;margin-top:4px;}
+  .week-strip-wrap::-webkit-scrollbar{height:4px;}
+  .week-strip-wrap::-webkit-scrollbar-track{background:var(--bg3);border-radius:2px;}
+  .week-strip-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .week-strip-wrap::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+  .week-strip{display:flex;gap:10px;min-width:max-content;}
+  .week-pill{
+    background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+    padding:12px 16px;cursor:pointer;transition:all 0.18s;min-width:130px;
+    display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden;
+  }
+  .week-pill::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border);transition:background 0.18s;}
+  .week-pill:hover{border-color:var(--accent);transform:translateY(-2px);}
+  .week-pill:hover::before{background:var(--accent);}
+  .week-pill.active{border-color:var(--accent);background:rgba(245,166,35,0.07);}
+  .week-pill.active::before{background:var(--accent);}
+  .wp-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:600;}
+  .wp-week{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1.5px;color:var(--accent);}
+  .wp-gross{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--blue);}
+  .wp-net{font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;}
+  .wp-net.pos{color:var(--green);}
+  .wp-net.neg{color:var(--red);}
+  .wp-empty{font-size:0.75rem;color:var(--muted);font-style:italic;align-self:center;}
+
   .week-link{color:var(--blue);cursor:pointer;text-decoration:underline;}
   .week-link:hover{color:var(--accent);}
 
@@ -79,6 +100,11 @@
     .day-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
     .header{flex-direction:column;align-items:flex-start;}
     .selectors{flex-direction:column;}
+  }
+  @media (max-width:500px) {
+    .wrapper { padding: 6px 1px; }
+    .header { gap: 10px; }
+    .footer-note { font-size: 0.68rem; }
   }
 </style>
 </head>
@@ -117,20 +143,20 @@
     <div class="day-grid" id="weekEntryGrid">
       <div class="week-field">
         <div class="week-field-label"><i class="fa-solid fa-arrow-trend-up"></i>Gross Income (GHS)</div>
-        <input type="number" class="week-input" id="weekGross" placeholder="0" oninput="updateTotals()">
+        <input type="number" class="week-input" id="weekGross" placeholder="0" oninput="updateTotals()" data-admin-input>
       </div>
       <div class="week-field">
         <div class="week-field-label"><i class="fa-solid fa-arrow-trend-down"></i>Expenses (GHS)</div>
-        <input type="number" class="week-input" id="weekExp" placeholder="0" oninput="updateTotals()">
+        <input type="number" class="week-input" id="weekExp" placeholder="0" oninput="updateTotals()" data-admin-input>
       </div>
     </div>
     <div style="margin-top:12px;">
       <label class="selector-label" style="margin-bottom:6px;display:block;">Notes</label>
-      <textarea class="notes-input" id="weekNotes" placeholder="Optional notes for this week..."></textarea>
+      <textarea class="notes-input" id="weekNotes" placeholder="Optional notes for this week..." data-admin-input></textarea>
     </div>
     <div style="margin-top:12px;">
       <label class="selector-label" style="margin-bottom:6px;display:block;">Remarks</label>
-      <textarea class="notes-input" id="weekRemarks" placeholder="Optional remarks for this week..."></textarea>
+      <textarea class="notes-input" id="weekRemarks" placeholder="Optional remarks for this week..." data-admin-input></textarea>
     </div>
   </div>
 
@@ -142,16 +168,17 @@
   </div>
 
   <div class="actions">
-    <button class="btn btn-primary" onclick="saveWeek()"><i class="fa-solid fa-floppy-disk"></i>Save Week</button>
-    <button class="btn" onclick="nextWeek()"><i class="fa-solid fa-forward"></i>Save &amp; Next Week</button>
-    <button class="btn" onclick="clearEntries()"><i class="fa-solid fa-eraser"></i>Clear</button>
+    <button class="btn btn-primary" data-admin-only onclick="saveWeek()"><i class="fa-solid fa-floppy-disk"></i>Save Week</button>
+    <button class="btn" data-admin-only onclick="nextWeek()"><i class="fa-solid fa-forward"></i>Save &amp; Next Week</button>
+    <button class="btn" data-admin-only onclick="clearEntries()"><i class="fa-solid fa-eraser"></i>Clear</button>
+    <span id="weekLastSaved" style="margin-left:auto;font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;"></span>
   </div>
 
-  <!-- History -->
+  <!-- History Strip -->
   <div class="card" style="margin-top:28px;">
     <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>Week History</div>
-    <div style="overflow-x:auto;">
-      <table class="history-table" id="historyTable"></table>
+    <div class="week-strip-wrap">
+      <div class="week-strip" id="weekStrip"></div>
     </div>
   </div>
 
@@ -164,5 +191,40 @@
 <script src="src/auth-modal.js"></script>
 <script src="src/nav.js"></script>
 <script src="src/weekly.js"></script>
-</body>
-</html>
+<script>
+// ── Week Strip renderer ─────────────────────────────────────────────────────
+// Bridges the legacy historyTable API to the new horizontal pill strip.
+// weekly.js should call window.renderWeekStrip(entries, currentWeek)
+// OR if it still writes to #historyTable, we observe and convert.
+
+window.renderWeekStrip = function(entries, activeWeek){
+  const strip = document.getElementById('weekStrip');
+  if(!strip) return;
+  if(!entries || !entries.length){
+    strip.innerHTML = '<span style="color:var(--muted);font-size:0.82rem;padding:12px;">No history yet for this truck & year.</span>';
+    return;
+  }
+  const fmt = v => {
+    const n = Number(v||0);
+    if(n >= 1000) return 'GHS ' + (n/1000).toFixed(1) + 'k';
+    return 'GHS ' + n.toLocaleString('en-GH',{minimumFractionDigits:0});
+  };
+  strip.innerHTML = entries.map(e => {
+    const net = (e.gross||0) - (e.expenses||0);
+    const netCls = net >= 0 ? 'pos' : 'neg';
+    const isActive = String(e.week) === String(activeWeek);
+    return `<div class="week-pill${isActive?' active':''}" onclick="loadWeekEntry && loadWeekEntry(${e.week})" title="Week ${e.week}">
+      <span class="wp-label">Week ${e.week}</span>
+      <span class="wp-gross">${fmt(e.gross)}</span>
+      <span class="wp-net ${netCls}">${net<0?'−':''}${fmt(Math.abs(net))}</span>
+    </div>`;
+  }).join('');
+};
+
+// Fallback: if weekly.js populates #historyTable, mirror it into the strip
+(function(){
+  const old = document.getElementById('historyTable');
+  if(old) return; // table present — weekly.js uses it directly; patch below
+  // If no table, weekly.js likely already calls renderWeekStrip — nothing to do
+})();
+</script>

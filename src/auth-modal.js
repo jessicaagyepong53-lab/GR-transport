@@ -21,7 +21,27 @@ function updateAdminUI() {
   document.querySelectorAll('[data-admin-only]').forEach(el => {
     el.style.display = admin ? '' : 'none';
   });
+  // Disable/enable editable inputs for view-only mode
+  document.querySelectorAll('[data-admin-input]').forEach(el => {
+    el.disabled = !admin;
+    el.style.opacity = admin ? '' : '0.5';
+  });
 
+  // Update nav sidebar auth button
+  const navBtn = document.getElementById('navAuthBtn');
+  if (navBtn) {
+    if (admin) {
+      navBtn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>';
+      navBtn.classList.add('logged-in');
+      navBtn.onclick = handleLogout;
+    } else {
+      navBtn.innerHTML = '<i class="fa-solid fa-lock"></i><span>Login</span>';
+      navBtn.classList.remove('logged-in');
+      navBtn.onclick = showPinModal;
+    }
+  }
+
+  // Legacy header button (if present)
   const lockBtn = document.getElementById('adminLockBtn');
   if (lockBtn) {
     lockBtn.innerHTML = admin
@@ -36,7 +56,7 @@ async function handleLogout() {
   try {
     await API.post('/api/auth/logout', {});
     window._isAdminCached = false;
-    updateAdminUI();
+    location.reload();
   } catch { /* ignore */ }
 }
 
@@ -72,7 +92,7 @@ function showPinModal() {
         #pinModal .pin-error { color:#e0443a; font-size:0.8rem; margin-top:8px; min-height:1.2em; }
       </style>
       <div class="pin-card">
-        <h3><i class="fa-solid fa-lock" style="margin-right:8px"></i>Admin Login</h3>
+        <h3><i class="fa-solid fa-lock" style="margin-right:8px"></i>Enter PIN</h3>
         <input type="password" id="pinInput" maxlength="20" placeholder="Enter PIN" autocomplete="off">
         <div class="pin-btns">
           <button class="pin-btn pin-submit" onclick="submitPin()">Unlock</button>
@@ -106,7 +126,7 @@ async function submitPin() {
     await verifyPin(pin);
     window._isAdminCached = true;
     closePinModal();
-    updateAdminUI();
+    location.reload();
   } catch (err) {
     error.textContent = err.message || 'Invalid PIN';
     input.value = '';
@@ -124,16 +144,4 @@ document.addEventListener('keydown', e => {
 // Init: check admin status on load
 document.addEventListener('DOMContentLoaded', async () => {
   await refreshAdminStatus();
-
-  // Inject admin lock button into header if not already present
-  if (!document.getElementById('adminLockBtn')) {
-    const header = document.querySelector('.header');
-    if (header) {
-      const btn = document.createElement('button');
-      btn.id = 'adminLockBtn';
-      btn.style.cssText = 'padding:8px 16px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid #252d3d;background:#181c24;color:#9aa4b8;transition:all 0.2s;display:flex;align-items:center;gap:6px;';
-      header.appendChild(btn);
-      updateAdminUI();
-    }
-  }
 });

@@ -190,6 +190,7 @@ async function saveWeek() {
   try {
     await API.put(`/api/weekly/${encodeURIComponent(truckId)}/${year}/${week}`, { days, notes, remarks });
     showToast(`Week ${week} saved for ${truckId}`, 'success');
+    updateWeekTimestamp();
     loadHistory();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
@@ -258,6 +259,15 @@ function jumpToWeek(w) {
   document.getElementById('weekSelect').value = w;
   onWeekChange();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateWeekTimestamp() {
+  const el = document.getElementById('weekLastSaved');
+  if (!el) return;
+  const now = new Date();
+  const day = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const time = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  el.innerHTML = `<i class="fa-regular fa-clock" style="color:#f5a623"></i>Saved: ${day} at ${time}`;
 }
 
 document.addEventListener('DOMContentLoaded', init);

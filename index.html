@@ -2,313 +2,304 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Truck Performance Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0c10;
-    --bg2: #111418;
-    --bg3: #181c24;
-    --card: #1a1f2b;
-    --border: #252d3d;
-    --accent: #f5a623;
-    --accent2: #e05c1a;
-    --green: #2de08a;
-    --red: #e0443a;
-    --blue: #4a9eff;
-    --purple: #9b72ff;
-    --text: #e8ecf4;
-    --muted: #6b7a96;
-    --label: #9aa4b8;
+    --bg:#0a0c10;--bg2:#111418;--bg3:#181c24;--card:#1a1f2b;--border:#252d3d;
+    --accent:#f5a623;--accent2:#e05c1a;--green:#2de08a;--red:#e0443a;
+    --blue:#4a9eff;--purple:#9b72ff;--text:#e8ecf4;--muted:#6b7a96;--label:#9aa4b8;
   }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,166,35,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .wrapper{position:relative;z-index:1;padding:32px 32px 48px;max-width:1600px;margin:0 auto;}
 
-  * { margin:0; padding:0; box-sizing:border-box; }
+  /* ── HEADER ── */
+  .header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:40px;padding-bottom:28px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:16px;}
+  .header-left{display:flex;align-items:center;gap:20px;}
+  .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .logo-mark i{color:#fff;font-size:22px;}
+  .header-text h1{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .header-text p{color:var(--muted);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+  .year-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .year-tab{padding:8px 20px;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted);transition:all 0.2s;letter-spacing:0.5px;}
+  .year-tab:hover{border-color:var(--accent);color:var(--accent);}
+  .year-tab.active{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .year-tab[data-year="all"]{border-color:var(--purple);}
+  .year-tab[data-year="all"].active{background:var(--purple);border-color:var(--purple);}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+  /* ── KPI STRIP ── */
+  .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;position:relative;overflow:hidden;transition:transform 0.2s,border-color 0.2s;}
+  .kpi:hover{transform:translateY(-2px);border-color:var(--accent);}
+  .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .kpi:nth-child(1)::after{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+  .kpi:nth-child(2)::after{background:linear-gradient(90deg,var(--green),#1ab870);}
+  .kpi:nth-child(3)::after{background:linear-gradient(90deg,var(--red),#c03030);}
+  .kpi:nth-child(4)::after{background:linear-gradient(90deg,var(--blue),var(--purple));}
+  .kpi-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+  .kpi-value{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:2px;line-height:1;}
+  .kpi:nth-child(1) .kpi-value{color:var(--accent);}
+  .kpi:nth-child(2) .kpi-value{color:var(--green);}
+  .kpi:nth-child(3) .kpi-value{color:var(--red);}
+  .kpi:nth-child(4) .kpi-value{color:var(--blue);}
+  .kpi-sub{font-size:0.8rem;color:var(--muted);margin-top:6px;}
+  .kpi-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:600;margin-top:6px;}
+  .badge-up{background:rgba(45,224,138,0.15);color:var(--green);}
+  .badge-down{background:rgba(224,68,58,0.15);color:var(--red);}
 
-  /* Grid noise texture */
-  body::before {
-    content:'';
-    position:fixed; inset:0;
-    background-image:
-      linear-gradient(rgba(245,166,35,0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(245,166,35,0.02) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events:none; z-index:0;
-  }
+  /* ── CHART CARDS ── */
+  .main-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;position:relative;}
+  .chart-card.wide{grid-column:1/-1;}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
+  .card-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--text);}
+  .card-title i{margin-right:8px;color:var(--accent);}
+  .card-pill{font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:20px;background:rgba(245,166,35,0.1);color:var(--accent);border:1px solid rgba(245,166,35,0.2);}
+  .card-pill i{margin-right:6px;}
+  canvas{width:100% !important;}
 
-  .wrapper { position:relative; z-index:1; padding: 32px 32px 48px; max-width: 1600px; margin:0 auto; }
+  /* ── BOTTOM GRID ── */
+  .bottom-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px;}
 
-  /* ── HEADER ─────────────────────────────── */
-  .header {
-    display: flex; align-items: flex-end; justify-content: space-between;
-    margin-bottom: 40px; padding-bottom: 28px;
-    border-bottom: 1px solid var(--border);
-  }
-  .header-left { display:flex; align-items:center; gap:20px; }
-  .logo-mark {
-    width:52px; height:52px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0;
-  }
-  .logo-mark i { color:#fff; font-size:22px; line-height:1; }
-  .header-text h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.8rem; letter-spacing: 3px;
-    background: linear-gradient(135deg, var(--accent) 0%, #fff 60%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    line-height:1;
-  }
-  .header-text p { color: var(--muted); font-size:0.85rem; letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
+  /* ── BREAKEVEN SECTION ── */
+  .breakeven-section{margin-bottom:20px;}
+  .breakeven-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .be-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+  .be-card:hover{border-color:var(--accent);}
+  .be-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .be-card.broken::before{background:var(--green);}
+  .be-card.not-broken::before{background:var(--red);}
+  .be-card.unknown::before{background:var(--muted);}
+  .be-truck-id{font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;color:var(--accent);margin-bottom:4px;}
+  .be-driver{font-size:0.73rem;color:var(--muted);margin-bottom:14px;}
+  .be-status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;}
+  .be-status-badge.broken{background:rgba(45,224,138,0.15);color:var(--green);border:1px solid rgba(45,224,138,0.3);}
+  .be-status-badge.not-broken{background:rgba(224,68,58,0.12);color:var(--red);border:1px solid rgba(224,68,58,0.3);}
+  .be-status-badge.unknown{background:rgba(107,122,150,0.12);color:var(--muted);border:1px solid rgba(107,122,150,0.2);}
+  .be-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .be-row-label{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .be-row-val{font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:600;}
+  .be-progress-wrap{margin-top:12px;}
+  .be-progress-label{display:flex;justify-content:space-between;font-size:0.68rem;color:var(--muted);margin-bottom:5px;}
+  .be-progress-track{height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;}
+  .be-progress-fill{height:100%;border-radius:4px;transition:width 1s ease;}
+  .be-progress-fill.broken{background:linear-gradient(90deg,var(--green),#1ab870);}
+  .be-progress-fill.not-broken{background:linear-gradient(90deg,#e05c1a,var(--red));}
+  .be-surplus{margin-top:10px;padding:8px 10px;border-radius:6px;font-size:0.76rem;font-weight:600;}
+  .be-surplus.pos{background:rgba(45,224,138,0.1);color:var(--green);}
+  .be-surplus.neg{background:rgba(224,68,58,0.1);color:var(--red);}
 
-  .year-tabs { display:flex; gap:8px; }
-  .year-tab {
-    padding: 8px 20px; border-radius:6px; font-size:0.85rem; font-weight:600;
-    cursor:pointer; border: 1px solid var(--border);
-    background: var(--bg3); color: var(--muted);
-    transition: all 0.2s; letter-spacing:0.5px;
-  }
-  .year-tab:hover { border-color: var(--accent); color: var(--accent); }
-  .year-tab.active { background: var(--accent); border-color: var(--accent); color: #0a0c10; }
-  .year-tab[data-year="all"] { border-color: var(--purple); }
-  .year-tab[data-year="all"].active { background: var(--purple); border-color: var(--purple); }
+  /* ── P&L GRAPH ── */
+  .pnl-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .pnl-controls select{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.8rem;font-family:'DM Sans',sans-serif;cursor:pointer;}
+  .pnl-controls select:focus{border-color:var(--accent);outline:none;}
+  .pnl-toggle{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+  .pnl-toggle.active{border-color:var(--accent);color:var(--accent);background:rgba(245,166,35,0.08);}
 
-  /* ── KPI STRIP ───────────────────────────── */
-  .kpi-strip {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
-    margin-bottom: 28px;
-  }
-  .kpi {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 22px 24px;
-    position:relative; overflow:hidden;
-    transition: transform 0.2s, border-color 0.2s;
-  }
-  .kpi:hover { transform:translateY(-2px); border-color: var(--accent); }
-  .kpi::after {
-    content:''; position:absolute; top:0; left:0; right:0; height:3px;
-  }
-  .kpi:nth-child(1)::after { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
-  .kpi:nth-child(2)::after { background: linear-gradient(90deg, var(--green), #1ab870); }
-  .kpi:nth-child(3)::after { background: linear-gradient(90deg, var(--red), #c03030); }
-  .kpi:nth-child(4)::after { background: linear-gradient(90deg, var(--blue), var(--purple)); }
-  .kpi-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:10px; }
-  .kpi-value {
-    font-family:'Bebas Neue', sans-serif; font-size: 2.4rem; letter-spacing:2px; line-height:1;
-  }
-  .kpi:nth-child(1) .kpi-value { color: var(--accent); }
-  .kpi:nth-child(2) .kpi-value { color: var(--green); }
-  .kpi:nth-child(3) .kpi-value { color: var(--red); }
-  .kpi:nth-child(4) .kpi-value { color: var(--blue); }
-  .kpi-sub { font-size:0.8rem; color:var(--muted); margin-top:6px; }
-  .kpi-badge {
-    display:inline-block; padding:2px 8px; border-radius:4px;
-    font-size:0.72rem; font-weight:600; margin-top:6px;
-  }
-  .badge-up { background:rgba(45,224,138,0.15); color:var(--green); }
-  .badge-down { background:rgba(224,68,58,0.15); color:var(--red); }
+  /* ── TRUCK TABLE ── */
+  .truck-table{width:100%;border-collapse:collapse;}
+  .truck-table th{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+  .truck-table td{padding:10px 12px;font-size:0.85rem;border-bottom:1px solid rgba(37,45,61,0.5);}
+  .truck-table tr:last-child td{border-bottom:none;}
+  .truck-table tr:hover td{background:rgba(245,166,35,0.04);}
+  .truck-id{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--accent);font-weight:600;text-decoration:none;transition:color 0.2s;}
+  .truck-id:hover{color:#fff;}
+  .bar-cell{display:flex;align-items:center;gap:8px;}
+  .mini-bar-bg{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+  .mini-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),#1ab870);transition:width 0.8s ease;}
+  .rank-badge{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;}
+  .r1{background:rgba(245,166,35,0.2);color:var(--accent);}
+  .r2{background:rgba(74,158,255,0.2);color:var(--blue);}
+  .r3{background:rgba(155,114,255,0.2);color:var(--purple);}
+  .r4,.r5,.r6{background:rgba(107,122,150,0.2);color:var(--muted);}
+  .be-table-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:0.66rem;font-weight:700;white-space:nowrap;}
+  .be-table-badge.yes{background:rgba(45,224,138,0.15);color:var(--green);}
+  .be-table-badge.no{background:rgba(224,68,58,0.12);color:var(--red);}
+  .be-table-badge.na{background:rgba(107,122,150,0.12);color:var(--muted);}
 
-  /* ── MAIN GRID ───────────────────────────── */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
-  .chart-card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 24px;
-    position:relative;
-  }
-  .chart-card.wide { grid-column: 1 / -1; }
-  .card-header {
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom: 20px;
-  }
-  .card-title {
-    font-family:'Bebas Neue', sans-serif; font-size:1.2rem; letter-spacing:2px; color:var(--text);
-  }
-  .card-title i { margin-right:8px; color:var(--accent); }
-  .card-pill {
-    font-size:0.7rem; letter-spacing:1px; text-transform:uppercase;
-    padding:4px 12px; border-radius:20px;
-    background:rgba(245,166,35,0.1); color:var(--accent); border:1px solid rgba(245,166,35,0.2);
-  }
-  .card-pill i { margin-right:6px; }
-  canvas { width:100% !important; }
+  /* ── ACTION BUTTONS (leaderboard) ── */
+  .truck-actions{display:flex;gap:4px;align-items:center;justify-content:center;}
+  .tbl-act{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);display:inline-flex;align-items:center;justify-content:center;font-size:0.68rem;cursor:pointer;transition:all 0.15s;}
+  .tbl-act:hover{border-color:var(--accent);color:var(--accent);background:rgba(245,166,35,0.08);}
+  .tbl-act.eot{color:var(--accent);}
+  .tbl-act.eot:hover{border-color:var(--accent);background:rgba(245,166,35,0.12);}
+  .tbl-act.eot.active{background:rgba(245,166,35,0.18);border-color:var(--accent);color:var(--accent);}
+  .tbl-act.del:hover{border-color:var(--red);color:var(--red);background:rgba(224,68,58,0.08);}
+  .tbl-act.edit:hover{border-color:var(--blue);color:var(--blue);background:rgba(74,158,255,0.08);}
+  .eot-row td{opacity:0.45;}
+  .eot-row td:last-child{opacity:1;}
+  .eot-label{display:inline-block;font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--accent);background:rgba(245,166,35,0.12);padding:1px 6px;border-radius:4px;margin-left:6px;}
 
-  /* ── BOTTOM GRID ─────────────────────────── */
-  .bottom-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
+  /* ── CONFIRM OVERLAY ── */
+  .confirm-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.65);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .confirm-overlay.open{display:flex;}
+  .confirm-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 32px;max-width:380px;width:90%;text-align:center;}
+  .confirm-box h3{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;margin-bottom:8px;}
+  .confirm-box p{color:var(--muted);font-size:0.82rem;margin-bottom:20px;}
+  .confirm-btns{display:flex;gap:10px;justify-content:center;}
+  .confirm-btns button{padding:8px 22px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;border:1px solid var(--border);transition:all 0.15s;}
+  .confirm-btns .cbtn-cancel{background:var(--bg3);color:var(--muted);}
+  .confirm-btns .cbtn-cancel:hover{border-color:var(--accent);color:var(--text);}
+  .confirm-btns .cbtn-danger{background:rgba(224,68,58,0.15);color:var(--red);border-color:rgba(224,68,58,0.3);}
+  .confirm-btns .cbtn-danger:hover{background:rgba(224,68,58,0.3);}
+
+  /* ── MGMT PANEL ── */
+  .mgmt-panel{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden;}
+  .mgmt-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(245,166,35,0.04);}
+  .mgmt-title{font-size:0.88rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px;}
+  .mgmt-title i{color:var(--accent);font-size:1rem;}
+  .mgmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:16px 18px;}
+  .mgmt-btn{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.15s;text-decoration:none;}
+  .mgmt-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(245,166,35,0.05);}
+  .mgmt-btn i{font-size:0.9rem;width:18px;text-align:center;}
+  .mgmt-btn.accent i{color:var(--accent);}
+  .mgmt-btn.green i{color:var(--green);}
+  .mgmt-btn.blue i{color:var(--blue);}
+  .mgmt-btn.purple i{color:var(--purple);}
+  .mgmt-btn.red i{color:var(--red);}
+  .mgmt-btn.red:hover{border-color:var(--red);color:var(--red);background:rgba(224,68,58,0.06);}
+  .mgmt-divider{grid-column:1/-1;border-top:1px solid var(--border);margin:4px 0;}
+  .mgmt-btn.wide{grid-column:1/-1;justify-content:center;background:rgba(245,166,35,0.06);border-color:rgba(245,166,35,0.25);color:var(--accent);}
+  .mgmt-btn.wide:hover{background:rgba(245,166,35,0.12);}
+
+  /* ── MODAL ── */
+  .modal-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--card);border:1px solid var(--border);border-radius:14px;width:92%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
+  .modal-head h3{font-size:0.92rem;font-weight:700;color:var(--text);margin:0;display:flex;align-items:center;gap:8px;}
+  .modal-head h3 i{color:var(--accent);}
+  .modal-close{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:4px 8px;border-radius:6px;}
+  .modal-close:hover{color:var(--text);background:rgba(255,255,255,0.05);}
+  .modal-body{padding:20px;}
+  .modal-body label{display:block;font-size:0.76rem;color:var(--label);font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;margin-top:14px;}
+  .modal-body label:first-child{margin-top:0;}
+  .modal-body input,.modal-body select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:0.84rem;font-family:'DM Sans',sans-serif;outline:none;}
+  .modal-body input:focus,.modal-body select:focus{border-color:var(--accent);}
+  .modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border);}
+  .modal-foot button{padding:8px 18px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid var(--border);}
+  .modal-foot .btn-cancel{background:var(--bg3);color:var(--text);}
+  .modal-foot .btn-cancel:hover{border-color:var(--muted);}
+  .modal-foot .btn-save{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .modal-foot .btn-save:hover{filter:brightness(1.1);}
+  .modal-foot .btn-danger{background:rgba(224,68,58,0.15);border-color:var(--red);color:var(--red);}
+  .modal-foot .btn-danger:hover{background:rgba(224,68,58,0.25);}
+
+  /* ── WEEKS STRIP ── */
+  .weeks-strip{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px;}
+  .weeks-chip{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:140px;flex:1 1 140px;max-width:220px;transition:border-color 0.2s;}
+  .weeks-chip:hover{border-color:var(--accent);}
+  .weeks-chip-id{font-family:'JetBrains Mono',monospace;font-size:0.76rem;font-weight:700;color:var(--accent);margin-bottom:2px;}
+  .weeks-chip-driver{font-size:0.68rem;color:var(--muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .weeks-chip-val{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--blue);line-height:1;}
+  .weeks-chip-label{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+  .weeks-chip.total{border-color:var(--accent);background:rgba(245,166,35,0.06);}
+  .weeks-chip.total .weeks-chip-id{color:var(--accent);}
+  .weeks-chip.total .weeks-chip-val{color:var(--accent);}
+
+  /* ── SPREADSHEET ── */
+  .sheet-wrap{display:grid;grid-template-columns:1fr;gap:18px;}
+  .sheet-block{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg2);}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(245,166,35,0.06);}
+  .sheet-title{font-size:0.78rem;color:var(--label);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+  .sheet-title i{margin-right:6px;color:var(--accent);}
+  .sheet-scroll{overflow:auto;}
+  .xls{width:100%;border-collapse:collapse;min-width:700px;font-family:'JetBrains Mono','DM Sans',monospace;font-size:0.78rem;}
+  .xls th{position:sticky;top:0;z-index:2;background:var(--bg3);color:var(--muted);font-size:0.66rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;padding:7px 10px;border:1px solid var(--border);text-align:center;user-select:none;}
+  .xls td{padding:0;border:1px solid var(--border);position:relative;height:32px;}
+  .xls td.row-num{width:36px;min-width:36px;text-align:center;color:var(--muted);font-size:0.68rem;background:var(--bg3);user-select:none;cursor:default;padding:4px;}
+  .xls td.cell{cursor:cell;padding:5px 8px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background 0.08s;}
+  .xls td.cell:hover{background:rgba(245,166,35,0.04);}
+  .xls td.cell.selected{outline:2px solid var(--accent);outline-offset:-2px;background:rgba(245,166,35,0.07);z-index:1;}
+  .xls td.cell.editing{padding:0;}
+  .xls td.cell.editing input{width:100%;height:100%;border:none;outline:none;background:var(--bg);color:var(--accent);font-family:inherit;font-size:inherit;padding:5px 8px;box-sizing:border-box;}
+  .xls td.cell.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .xls td.act{width:38px;min-width:38px;text-align:center;padding:0;}
+  .xls td.act button{background:none;border:none;color:var(--red);cursor:pointer;font-size:0.78rem;opacity:0.5;padding:6px;}
+  .xls td.act button:hover{opacity:1;}
+  .formula-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.15);min-height:32px;}
+  .formula-cell-ref{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--accent);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;min-width:50px;text-align:center;user-select:none;}
+  .formula-value{flex:1;font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text);padding:3px 6px;}
+  .sheet-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .sheet-btn{border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.74rem;font-weight:600;letter-spacing:0.4px;padding:6px 10px;border-radius:6px;cursor:pointer;}
+  .sheet-btn i{margin-right:6px;}
+  .sheet-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .sheet-btn.primary{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .sheet-help{color:var(--muted);font-size:0.76rem;line-height:1.5;margin-top:6px;}
+  .add-row-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 14px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px dashed var(--border);background:transparent;color:var(--muted);transition:all 0.2s;}
+  .add-row-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px 8px;border-radius:4px;transition:color 0.2s;}
+  .delete-btn:hover{color:var(--red);}
+
+  /* ── LEGEND ── */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--label);}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+  /* ── FOOTER ── */
+  .footer-note{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;letter-spacing:0.5px;}
+  .footer-note i{margin-right:6px;color:var(--accent);}
+
+  /* ── SECTION HEADING ── */
+  .section-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .section-heading h2{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--text);}
+  .section-heading::after{content:'';flex:1;height:1px;background:var(--border);}
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  .kpi,.chart-card,.be-card{animation:fadeUp 0.5s ease both;}
+  .kpi:nth-child(1){animation-delay:0.05s;}.kpi:nth-child(2){animation-delay:0.10s;}
+  .kpi:nth-child(3){animation-delay:0.15s;}.kpi:nth-child(4){animation-delay:0.20s;}
+
+  /* ── RESPONSIVE ── */
+  @media (max-width:1100px){
+    .breakeven-grid{grid-template-columns:repeat(2,1fr);}
+    .bottom-grid{grid-template-columns:1fr 1fr;}
+    .weeks-strip{gap:8px;}
+    .weeks-chip{min-width:120px;padding:10px 14px;}
   }
-
-  /* ── TRUCK TABLE ─────────────────────────── */
-  .truck-table {
-    width:100%; border-collapse:collapse;
+  @media (max-width:900px){
+    .wrapper{padding:18px 14px 32px;}
+    .main-grid{grid-template-columns:1fr;}
+    .bottom-grid{grid-template-columns:1fr;}
+    .kpi-strip{grid-template-columns:1fr 1fr;}
+    .header{flex-direction:column;align-items:flex-start;gap:14px;}
+    .breakeven-grid{grid-template-columns:1fr 1fr;}
+    .truck-table th:nth-child(7),.truck-table td:nth-child(7){display:none;}
+    .truck-table th:nth-child(9),.truck-table td:nth-child(9){display:none;}
+    .truck-table th:nth-child(10),.truck-table td:nth-child(10){display:none;}
+    .mgmt-grid{grid-template-columns:repeat(2,1fr);}
+    .weeks-chip{min-width:110px;max-width:none;}
+    .confirm-box{max-width:90vw;}
   }
-  .truck-table th {
-    font-size:0.68rem; text-transform:uppercase; letter-spacing:1.2px;
-    color:var(--muted); padding:8px 12px; text-align:left;
-    border-bottom:1px solid var(--border);
+  @media (max-width:620px){
+    .wrapper{padding:10px 6px 24px;}
+    .kpi-strip{grid-template-columns:1fr;}
+    .breakeven-grid{grid-template-columns:1fr;}
+    .header-text h1{font-size:2rem;}
+    .main-grid,.bottom-grid{gap:12px;}
+    .chart-card{padding:16px;}
+    .modal-box{width:98%;max-width:98vw;}
+    .footer-note{font-size:0.68rem;}
+    .truck-table th:nth-child(4),.truck-table td:nth-child(4){display:none;}
+    .truck-table th:nth-child(5),.truck-table td:nth-child(5){display:none;}
+    .truck-table th:nth-child(8),.truck-table td:nth-child(8){display:none;}
+    .truck-table th:nth-child(10),.truck-table td:nth-child(10){display:none;}
+    .year-tabs{gap:5px;}
+    .year-tab{padding:6px 12px;font-size:0.75rem;}
+    .weeks-strip{gap:6px;}
+    .weeks-chip{min-width:100px;padding:8px 10px;}
+    .weeks-chip-val{font-size:1.3rem;}
+    .truck-actions{gap:2px;}
+    .tbl-act{width:22px;height:22px;font-size:0.6rem;}
+    .mgmt-grid{grid-template-columns:1fr;}
+    .confirm-box{max-width:95vw;padding:20px;}
   }
-  .truck-table td {
-    padding:10px 12px; font-size:0.85rem;
-    border-bottom:1px solid rgba(37,45,61,0.5);
-  }
-  .truck-table tr:last-child td { border-bottom:none; }
-  .truck-table tr:hover td { background:rgba(245,166,35,0.04); }
-  .truck-id {
-    font-family:'JetBrains Mono', monospace; font-size:0.78rem;
-    color:var(--accent); font-weight:600; text-decoration:none; transition:color 0.2s;
-  }
-  .truck-id:hover { color:#fff; }
-  .bar-cell { display:flex; align-items:center; gap:8px; }
-  .mini-bar-bg { flex:1; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; }
-  .mini-bar-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--green),#1ab870); transition:width 0.8s ease; }
-  .rank-badge {
-    width:22px; height:22px; border-radius:50%; display:inline-flex;
-    align-items:center; justify-content:center; font-size:0.72rem; font-weight:700;
-  }
-  .r1 { background:rgba(245,166,35,0.2); color:var(--accent); }
-  .r2 { background:rgba(74,158,255,0.2); color:var(--blue); }
-  .r3 { background:rgba(155,114,255,0.2); color:var(--purple); }
-  .r4, .r5, .r6 { background:rgba(107,122,150,0.2); color:var(--muted); }
-
-  .efficiency-ring { position:relative; display:inline-block; }
-
-  /* ── MANAGEMENT PANEL ───────────────────────── */
-  .mgmt-panel { border:1px solid var(--border); border-radius:12px; background:var(--card); overflow:hidden; }
-  .mgmt-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); background:rgba(245,166,35,0.04); }
-  .mgmt-title { font-size:0.88rem; font-weight:700; color:var(--text); display:flex; align-items:center; gap:10px; }
-  .mgmt-title i { color:var(--accent); font-size:1rem; }
-  .mgmt-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:10px; padding:16px 18px; }
-  .mgmt-btn {
-    display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:8px;
-    border:1px solid var(--border); background:var(--bg3); color:var(--text);
-    font-size:0.8rem; font-weight:600; cursor:pointer; transition:all 0.15s; text-decoration:none;
-  }
-  .mgmt-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(245,166,35,0.05); }
-  .mgmt-btn i { font-size:0.9rem; width:18px; text-align:center; }
-  .mgmt-btn.accent i { color:var(--accent); }
-  .mgmt-btn.green i { color:var(--green); }
-  .mgmt-btn.blue i { color:var(--blue); }
-  .mgmt-btn.purple i { color:var(--purple); }
-  .mgmt-btn.red i { color:var(--red); }
-  .mgmt-btn.red:hover { border-color:var(--red); color:var(--red); background:rgba(224,68,58,0.06); }
-  .mgmt-divider { grid-column:1/-1; border-top:1px solid var(--border); margin:4px 0; }
-  .mgmt-btn.wide { grid-column:1/-1; justify-content:center; background:rgba(245,166,35,0.06); border-color:rgba(245,166,35,0.25); color:var(--accent); }
-  .mgmt-btn.wide:hover { background:rgba(245,166,35,0.12); }
-
-  /* ── MODAL ──────────────────────────────────── */
-  .modal-overlay { position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
-  .modal-overlay.open { display:flex; }
-  .modal-box { background:var(--card); border:1px solid var(--border); border-radius:14px; width:92%; max-width:520px; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
-  .modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); }
-  .modal-head h3 { font-size:0.92rem; font-weight:700; color:var(--text); margin:0; display:flex; align-items:center; gap:8px; }
-  .modal-head h3 i { color:var(--accent); }
-  .modal-close { background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer; padding:4px 8px; border-radius:6px; }
-  .modal-close:hover { color:var(--text); background:rgba(255,255,255,0.05); }
-  .modal-body { padding:20px; }
-  .modal-body label { display:block; font-size:0.76rem; color:var(--label); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; margin-top:14px; }
-  .modal-body label:first-child { margin-top:0; }
-  .modal-body input, .modal-body select { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg3); color:var(--text); font-size:0.84rem; font-family:'DM Sans',sans-serif; outline:none; }
-  .modal-body input:focus, .modal-body select:focus { border-color:var(--accent); }
-  .modal-foot { display:flex; gap:10px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border); }
-  .modal-foot button { padding:8px 18px; border-radius:8px; font-size:0.8rem; font-weight:600; cursor:pointer; border:1px solid var(--border); }
-  .modal-foot .btn-cancel { background:var(--bg3); color:var(--text); }
-  .modal-foot .btn-cancel:hover { border-color:var(--muted); }
-  .modal-foot .btn-save { background:var(--accent); border-color:var(--accent); color:#0a0c10; }
-  .modal-foot .btn-save:hover { filter:brightness(1.1); }
-  .modal-foot .btn-danger { background:rgba(224,68,58,0.15); border-color:var(--red); color:var(--red); }
-  .modal-foot .btn-danger:hover { background:rgba(224,68,58,0.25); }
-
-  /* ── WEEKS BREAKDOWN TABLE ──────────────────── */
-  .weeks-table { width:100%; border-collapse:collapse; margin-top:10px; font-size:0.78rem; }
-  .weeks-table th { padding:8px 10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; font-size:0.66rem; font-weight:600; border-bottom:1px solid var(--border); text-align:left; }
-  .weeks-table td { padding:7px 10px; border-bottom:1px solid rgba(37,45,61,0.4); }
-  .weeks-table tr:last-child td { border-bottom:none; }
-  .weeks-table .total-row td { font-weight:700; border-top:2px solid var(--accent); color:var(--accent); }
-
-  /* ── SPREADSHEET EDITOR ─────────────────────── */
-  .sheet-wrap { display:grid; grid-template-columns:1fr; gap:18px; }
-  .sheet-block { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg2); }
-  .sheet-head {
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:10px 14px; border-bottom:1px solid var(--border); background:rgba(245,166,35,0.06);
-  }
-  .sheet-title { font-size:0.78rem; color:var(--label); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
-  .sheet-title i { margin-right:6px; color:var(--accent); }
-  .sheet-scroll { overflow:auto; }
-
-  /* Excel-like grid */
-  .xls { width:100%; border-collapse:collapse; min-width:700px; font-family:'JetBrains Mono','DM Sans',monospace; font-size:0.78rem; }
-  .xls th { position:sticky; top:0; z-index:2; background:var(--bg3); color:var(--muted); font-size:0.66rem; font-weight:600;
-    text-transform:uppercase; letter-spacing:1px; padding:7px 10px; border:1px solid var(--border); text-align:center; user-select:none; }
-  .xls td { padding:0; border:1px solid var(--border); position:relative; height:32px; }
-  .xls td.row-num { width:36px; min-width:36px; text-align:center; color:var(--muted); font-size:0.68rem; background:var(--bg3); user-select:none; cursor:default; padding:4px; }
-  .xls td.cell { cursor:cell; padding:5px 8px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:background 0.08s; }
-  .xls td.cell:hover { background:rgba(245,166,35,0.04); }
-  .xls td.cell.selected { outline:2px solid var(--accent); outline-offset:-2px; background:rgba(245,166,35,0.07); z-index:1; }
-  .xls td.cell.editing { padding:0; }
-  .xls td.cell.editing input { width:100%; height:100%; border:none; outline:none; background:var(--bg); color:var(--accent);
-    font-family:inherit; font-size:inherit; padding:5px 8px; box-sizing:border-box; }
-  .xls td.cell.num { text-align:right; font-variant-numeric:tabular-nums; }
-  .xls td.act { width:38px; min-width:38px; text-align:center; padding:0; }
-  .xls td.act button { background:none; border:none; color:var(--red); cursor:pointer; font-size:0.78rem; opacity:0.5; padding:6px; }
-  .xls td.act button:hover { opacity:1; }
-
-  /* Formula bar */
-  .formula-bar { display:flex; align-items:center; gap:8px; padding:6px 12px; border-bottom:1px solid var(--border); background:rgba(0,0,0,0.15); min-height:32px; }
-  .formula-cell-ref { font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--accent); background:var(--bg3);
-    border:1px solid var(--border); border-radius:4px; padding:3px 8px; min-width:50px; text-align:center; user-select:none; }
-  .formula-value { flex:1; font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--text); padding:3px 6px; }
-
-  /* Toolbar buttons */
-  .sheet-btns { display:flex; gap:8px; flex-wrap:wrap; }
-  .sheet-btn { border:1px solid var(--border); background:var(--bg3); color:var(--text); font-size:0.74rem; font-weight:600;
-    letter-spacing:0.4px; padding:6px 10px; border-radius:6px; cursor:pointer; }
-  .sheet-btn i { margin-right:6px; }
-  .sheet-btn:hover { border-color:var(--accent); color:var(--accent); }
-  .sheet-btn.primary { background:var(--accent); border-color:var(--accent); color:#0a0c10; }
-  .sheet-help { color:var(--muted); font-size:0.76rem; line-height:1.5; margin-top:6px;
-  }
-
-  /* ── LEGEND ──────────────────────────────── */
-  .legend { display:flex; gap:16px; flex-wrap:wrap; }
-  .legend-item { display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--label); }
-  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-
-  /* ── FOOTER ──────────────────────────────── */
-  .footer-note {
-    text-align:center; color:var(--muted); font-size:0.75rem; margin-top:32px;
-    letter-spacing:0.5px;
-  }
-  .footer-note i { margin-right:6px; color: var(--accent); }
-
-  /* animate in */
-  @keyframes fadeUp {
-    from { opacity:0; transform:translateY(20px); }
-    to { opacity:1; transform:translateY(0); }
-  }
-  .kpi, .chart-card { animation: fadeUp 0.5s ease both; }
-  .kpi:nth-child(1){ animation-delay:0.05s; }
-  .kpi:nth-child(2){ animation-delay:0.10s; }
-  .kpi:nth-child(3){ animation-delay:0.15s; }
-  .kpi:nth-child(4){ animation-delay:0.20s; }
 </style>
 </head>
 <body>
@@ -317,12 +308,11 @@
   <!-- HEADER -->
   <div class="header">
     <div class="header-left">
-      <div class="logo-mark">
-        <i class="fa-solid fa-truck-fast" aria-hidden="true"></i>
-      </div>
+      <div class="logo-mark"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i></div>
       <div class="header-text">
         <h1>Truck Performance</h1>
         <p id="headerSubtitle">Truck Transport Business · All Trucks</p>
+        <span id="dashTimestamp" style="font-size:0.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:5px;margin-top:4px;"></span>
       </div>
     </div>
     <div class="year-tabs" id="yearTabs"></div>
@@ -330,35 +320,33 @@
 
   <!-- KPI STRIP -->
   <div class="kpi-strip" id="kpiStrip"></div>
+  <!-- WEEKS STRIP -->
+  <div class="weeks-strip" id="weeksBreakdown"></div>
 
-  <!-- MANAGEMENT PANEL (moved up) -->
-
-  <!-- MAIN CHARTS -->
+  <!-- MONTHLY CHART -->
   <div class="main-grid">
     <div class="chart-card wide">
       <div class="card-header">
-        <span class="card-title"><i class="fa-solid fa-chart-column" aria-hidden="true"></i>Monthly Revenue vs Expenditure</span>
+        <span class="card-title"><i class="fa-solid fa-chart-column"></i>Monthly Revenue vs Expenditure</span>
         <div class="legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i>Gross Income</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div><i class="fa-solid fa-arrow-trend-down" aria-hidden="true"></i>Total Expenditure</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><i class="fa-solid fa-coins" aria-hidden="true"></i>Net Income</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Gross Income</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Expenditure</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Net Income</div>
         </div>
       </div>
       <canvas id="monthlyChart" height="100"></canvas>
     </div>
-
     <div class="chart-card">
       <div class="card-header">
-        <span class="card-title"><i class="fa-solid fa-truck" aria-hidden="true"></i>Income by Truck</span>
-        <span class="card-pill"><i class="fa-regular fa-clock" aria-hidden="true"></i>All Time</span>
+        <span class="card-title"><i class="fa-solid fa-truck"></i>Income by Truck</span>
+        <span class="card-pill"><i class="fa-regular fa-clock"></i>All Time</span>
       </div>
       <canvas id="truckIncomeChart" height="220"></canvas>
     </div>
-
     <div class="chart-card">
       <div class="card-header">
-        <span class="card-title"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>Expenditure Breakdown</span>
-        <span class="card-pill"><i class="fa-solid fa-gears" aria-hidden="true"></i>Maintenance vs Parts</span>
+        <span class="card-title"><i class="fa-solid fa-screwdriver-wrench"></i>Expenditure Breakdown</span>
+        <span class="card-pill"><i class="fa-solid fa-gears"></i>Maintenance vs Parts</span>
       </div>
       <canvas id="expBreakdownChart" height="220"></canvas>
     </div>
@@ -368,52 +356,67 @@
   <div class="bottom-grid">
     <div class="chart-card">
       <div class="card-header">
-        <span class="card-title"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i>Yearly Overview</span>
-        <span class="card-pill"><i class="fa-solid fa-coins" aria-hidden="true"></i>GHS</span>
+        <span class="card-title"><i class="fa-solid fa-calendar-days"></i>Yearly Overview</span>
+        <span class="card-pill"><i class="fa-solid fa-coins"></i>GHS</span>
       </div>
       <canvas id="yearlyChart" height="200"></canvas>
     </div>
-
     <div class="chart-card">
       <div class="card-header">
-        <span class="card-title"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i>Efficiency Ratio</span>
-        <span class="card-pill"><i class="fa-solid fa-percent" aria-hidden="true"></i>Net / Gross %</span>
+        <span class="card-title"><i class="fa-solid fa-gauge-high"></i>Efficiency Ratio</span>
+        <span class="card-pill"><i class="fa-solid fa-percent"></i>Net / Gross %</span>
       </div>
       <canvas id="efficiencyChart" height="200"></canvas>
     </div>
-
     <div class="chart-card">
       <div class="card-header">
-        <span class="card-title"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>Truck × Year Heatmap</span>
-        <span class="card-pill"><i class="fa-solid fa-coins" aria-hidden="true"></i>Net Income</span>
+        <span class="card-title"><i class="fa-solid fa-table-cells-large"></i>Truck × Year Heatmap</span>
+        <span class="card-pill"><i class="fa-solid fa-coins"></i>Net Income</span>
       </div>
-      <div id="heatmapContainer" style="padding-top:8px;"></div>
+      <div id="heatmapContainer" style="padding-top:8px;overflow-x:auto;"></div>
     </div>
   </div>
 
-  <!-- TRUCK TABLE -->
-  <div class="chart-card">
-    <div class="card-header">
-      <span class="card-title"><i class="fa-solid fa-ranking-star" aria-hidden="true"></i>Truck Leaderboard</span>
-      <span class="card-pill" id="tableYearPill"><i class="fa-solid fa-layer-group" aria-hidden="true"></i>All Years Combined</span>
+  <!-- ══════════════════════════════════════════════ -->
+  <!--   BREAKEVEN TRACKER                           -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="breakeven-section">
+    <div class="section-heading">
+      <h2><i class="fa-solid fa-scale-balanced" style="color:var(--accent);margin-right:8px;font-size:1rem;"></i>Breakeven Tracker</h2>
     </div>
-    <table class="truck-table" id="truckTable"></table>
+    <div class="breakeven-grid" id="breakevenGrid"></div>
   </div>
 
-  <!-- WEEKS BREAKDOWN -->
-  <div class="chart-card" id="weeksCard">
+  <!-- ══════════════════════════════════════════════ -->
+  <!--   PROFIT & LOSS GRAPH                         -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="chart-card wide" style="margin-bottom:20px;">
     <div class="card-header">
-      <span class="card-title"><i class="fa-solid fa-calendar-week" aria-hidden="true"></i>Weeks Operated Breakdown</span>
-      <span class="card-pill" id="weeksPill"><i class="fa-solid fa-layer-group"></i>All Years</span>
+      <span class="card-title"><i class="fa-solid fa-chart-line"></i>Profit &amp; Loss — Cumulative per Truck</span>
+      <div class="pnl-controls">
+        <select id="pnlTruckSelect" onchange="renderPnL()">
+          <option value="all">All Trucks</option>
+        </select>
+        <button class="pnl-toggle active" id="pnlModeBtn" onclick="togglePnLMode()">Cumulative</button>
+      </div>
     </div>
-    <div id="weeksBreakdown"></div>
+    <canvas id="pnlChart" height="110"></canvas>
+  </div>
+
+  <!-- TRUCK LEADERBOARD -->
+  <div class="chart-card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-ranking-star"></i>Truck Leaderboard</span>
+      <span class="card-pill" id="tableYearPill"><i class="fa-solid fa-layer-group"></i>All Years Combined</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="truck-table" id="truckTable"></table>
+    </div>
   </div>
 
   <!-- MANAGEMENT PANEL -->
-  <div class="mgmt-panel" id="mgmtPanel">
-    <div class="mgmt-header">
-      <div class="mgmt-title"><i class="fa-solid fa-sliders"></i>Data Management</div>
-    </div>
+  <div class="mgmt-panel" id="mgmtPanel" style="margin-bottom:20px;display:none;">
+    <div class="mgmt-header"><div class="mgmt-title"><i class="fa-solid fa-sliders"></i>Data Management</div></div>
     <div class="mgmt-grid">
       <button class="mgmt-btn accent" onclick="openModal('addTruckModal')"><i class="fa-solid fa-truck-medical"></i>Add New Truck</button>
       <button class="mgmt-btn green" onclick="openModal('addYearModal')"><i class="fa-solid fa-calendar-plus"></i>Add Year Data</button>
@@ -424,47 +427,37 @@
       <button class="mgmt-btn accent" onclick="openModal('editExpensesModal')"><i class="fa-solid fa-receipt"></i>Edit Expenses</button>
       <button class="mgmt-btn red" onclick="openModal('deleteYearModal')"><i class="fa-solid fa-trash-can"></i>Delete Year</button>
       <div class="mgmt-divider"></div>
-      <button class="mgmt-btn wide" onclick="toggleSpreadsheet()"><i class="fa-solid fa-table-cells-large"></i>Edit in Spreadsheet</button>
+      <button class="mgmt-btn wide" id="spreadsheetBtn" onclick="toggleSpreadsheet()"><i class="fa-solid fa-table-cells-large"></i>Edit in Spreadsheet</button>
     </div>
   </div>
 
-  <!-- ═══ MODALS ═══ -->
-
-  <!-- Add New Truck -->
+  <!-- MODALS -->
   <div class="modal-overlay" id="addTruckModal">
     <div class="modal-box">
       <div class="modal-head"><h3><i class="fa-solid fa-truck-medical"></i>Add New Truck</h3><button class="modal-close" onclick="closeModal('addTruckModal')">&times;</button></div>
       <div class="modal-body">
-        <label>Truck ID (e.g. GN 1234-25)</label>
-        <input type="text" id="m_truckId" placeholder="GN 0000-00">
-        <label>Driver Name</label>
-        <input type="text" id="m_truckDriver" placeholder="Driver name">
-        <label>Starting Year</label>
-        <input type="number" id="m_truckYear" value="2026">
-        <label>Initial Weeks</label>
-        <input type="number" id="m_truckWeeks" value="52">
+        <label>Truck ID</label><input type="text" id="m_truckId" placeholder="GN 0000-00">
+        <label>Driver Name</label><input type="text" id="m_truckDriver" placeholder="Driver name">
+        <label>Starting Year</label><input type="number" id="m_truckYear" value="2026">
+        <label>Purchase Price (GHS) — used for breakeven</label><input type="number" id="m_truckPurchase" value="0">
+        <label>Initial Weeks</label><input type="number" id="m_truckWeeks" value="52">
       </div>
       <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('addTruckModal')">Cancel</button><button class="btn-save" onclick="doAddTruck()">Add Truck</button></div>
     </div>
   </div>
 
-  <!-- Add Year Data -->
   <div class="modal-overlay" id="addYearModal">
     <div class="modal-box">
       <div class="modal-head"><h3><i class="fa-solid fa-calendar-plus"></i>Add Year Data</h3><button class="modal-close" onclick="closeModal('addYearModal')">&times;</button></div>
       <div class="modal-body">
-        <label>Year</label>
-        <input type="number" id="m_addYear" value="2027" min="2024" max="2040">
-        <label>Total Gross (GHS)</label>
-        <input type="number" id="m_addYearGross" value="0">
-        <label>Total Expenditure (GHS)</label>
-        <input type="number" id="m_addYearExp" value="0">
+        <label>Year</label><input type="number" id="m_addYear" value="2027" min="2024" max="2040">
+        <label>Total Gross (GHS)</label><input type="number" id="m_addYearGross" value="0">
+        <label>Total Expenditure (GHS)</label><input type="number" id="m_addYearExp" value="0">
       </div>
       <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('addYearModal')">Cancel</button><button class="btn-save" onclick="doAddYear()">Add Year</button></div>
     </div>
   </div>
 
-  <!-- Manage Year Data -->
   <div class="modal-overlay" id="manageYearsModal">
     <div class="modal-box" style="max-width:600px;">
       <div class="modal-head"><h3><i class="fa-solid fa-calendar-days"></i>Manage Year Data</h3><button class="modal-close" onclick="closeModal('manageYearsModal')">&times;</button></div>
@@ -473,78 +466,81 @@
     </div>
   </div>
 
-  <!-- Manage Drivers -->
   <div class="modal-overlay" id="manageDriversModal">
     <div class="modal-box" style="max-width:600px;">
       <div class="modal-head"><h3><i class="fa-solid fa-id-card"></i>Manage Drivers</h3><button class="modal-close" onclick="closeModal('manageDriversModal')">&times;</button></div>
       <div class="modal-body" id="manageDriversBody"></div>
-      <div style="margin:18px 0 0 0; border-top:1px solid var(--border); padding-top:14px;">
+      <div style="margin:18px 0 0;border-top:1px solid var(--border);padding-top:14px;">
         <label style="margin-bottom:4px;">Assign New Driver to Truck</label>
         <select id="newDriverTruck" style="margin-bottom:8px;"></select>
         <input type="text" id="newDriverName" placeholder="Driver name" style="margin-bottom:8px;">
-        <button class="btn-save" style="margin-bottom:0;" onclick="addNewDriverToTruck()"><i class="fa-solid fa-plus"></i> Assign Driver</button>
+        <button class="btn-save" onclick="addNewDriverToTruck()"><i class="fa-solid fa-plus"></i> Assign Driver</button>
       </div>
       <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('manageDriversModal')">Close</button><button class="btn-save" onclick="doSaveDrivers()">Save</button></div>
     </div>
   </div>
 
-  <!-- Edit Monthly Data -->
   <div class="modal-overlay" id="editMonthlyModal">
     <div class="modal-box" style="max-width:650px;">
       <div class="modal-head"><h3><i class="fa-solid fa-chart-line"></i>Edit Monthly Data</h3><button class="modal-close" onclick="closeModal('editMonthlyModal')">&times;</button></div>
       <div class="modal-body">
-        <label>Year</label>
-        <select id="m_monthlyYear" onchange="populateMonthlyEditor()"></select>
+        <label>Year</label><select id="m_monthlyYear" onchange="populateMonthlyEditor()"></select>
         <div id="monthlyEditorBody" style="margin-top:14px;"></div>
       </div>
       <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('editMonthlyModal')">Close</button><button class="btn-save" onclick="doSaveMonthly()">Save</button></div>
     </div>
   </div>
 
-  <!-- Edit Expenses -->
   <div class="modal-overlay" id="editExpensesModal">
     <div class="modal-box">
       <div class="modal-head"><h3><i class="fa-solid fa-receipt"></i>Edit Expenses</h3><button class="modal-close" onclick="closeModal('editExpensesModal')">&times;</button></div>
       <div class="modal-body">
-        <label>Year</label>
-        <select id="m_expYear" onchange="populateExpEditor()"></select>
+        <label>Year</label><select id="m_expYear" onchange="populateExpEditor()"></select>
         <div id="expEditorBody" style="margin-top:14px;"></div>
       </div>
       <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('editExpensesModal')">Close</button><button class="btn-save" onclick="doSaveExpenses()">Save</button></div>
     </div>
   </div>
 
-  <!-- Delete Year -->
   <div class="modal-overlay" id="deleteYearModal">
     <div class="modal-box">
       <div class="modal-head"><h3><i class="fa-solid fa-trash-can" style="color:var(--red)"></i>Delete Year</h3><button class="modal-close" onclick="closeModal('deleteYearModal')">&times;</button></div>
       <div class="modal-body">
-        <label>Select year to delete</label>
-        <select id="m_deleteYear"></select>
-        <p style="color:var(--red);font-size:0.78rem;margin-top:12px;"><i class="fa-solid fa-triangle-exclamation"></i> This will remove all data for the selected year (yearly totals, monthly data, truck entries). This action is recoverable from the Recovery Bin.</p>
+        <label>Select year to delete</label><select id="m_deleteYear"></select>
+        <p style="color:var(--red);font-size:0.78rem;margin-top:12px;"><i class="fa-solid fa-triangle-exclamation"></i> This will remove all data for the selected year. Recoverable from Recovery Bin.</p>
       </div>
       <div class="modal-foot"><button class="btn-cancel" onclick="closeModal('deleteYearModal')">Cancel</button><button class="btn-danger" onclick="doDeleteYear()">Delete Year</button></div>
     </div>
   </div>
 
-  <div class="chart-card" id="spreadsheetCard" style="display:none">
+  <div class="chart-card" id="spreadsheetCard" style="display:none;margin-bottom:20px;">
     <div class="card-header">
-      <span class="card-title"><i class="fa-solid fa-table" aria-hidden="true"></i>Data Spreadsheet</span>
+      <span class="card-title"><i class="fa-solid fa-table"></i>Data Spreadsheet</span>
       <span id="dashLastSaved" style="font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;"></span>
-      <span class="card-pill"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>Edit Data Without Code</span>
+      <span class="card-pill"><i class="fa-solid fa-pen-to-square"></i>Edit Data Without Code</span>
     </div>
     <div id="spreadsheetEditor"></div>
   </div>
 
   <div style="text-align:center;margin-top:24px;">
     <a href="recovery.html" style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;background:rgba(224,68,58,0.08);border:1px solid rgba(224,68,58,0.25);color:var(--red);text-decoration:none;font-size:0.82rem;font-weight:600;letter-spacing:0.4px;transition:all 0.2s;" onmouseover="this.style.background='rgba(224,68,58,0.16)'" onmouseout="this.style.background='rgba(224,68,58,0.08)'">
-      <i class="fa-solid fa-trash-can-arrow-up" aria-hidden="true"></i>Recovery Bin
+      <i class="fa-solid fa-trash-can-arrow-up"></i>Recovery Bin
     </a>
   </div>
 
-  <div class="footer-note">
-    <i class="fa-regular fa-copyright" aria-hidden="true"></i>Copyright 2026 All rights reserved.
+  <!-- CONFIRM MODAL -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <h3 id="confirmTitle">Confirm</h3>
+      <p id="confirmMsg">Are you sure?</p>
+      <div class="confirm-btns">
+        <button class="cbtn-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="cbtn-danger" id="confirmAction">Confirm</button>
+      </div>
+    </div>
   </div>
+
+  <div class="footer-note"><i class="fa-regular fa-copyright"></i>Copyright 2026 All rights reserved.</div>
 </div>
 
 <script>
@@ -552,1035 +548,646 @@
 const DATA = {
   monthly: {
     all: {
-      labels: [
-        'Apr 2024','May 2024','Jun 2024','Jul 2024','Aug 2024','Sep 2024','Oct 2024','Nov 2024','Dec 2024',
-        'Jan 2025','Feb 2025','Mar 2025','Apr 2025','May 2025','Jun 2025','Jul 2025','Aug 2025','Sep 2025','Oct 2025','Nov 2025','Dec 2025',
-        'Jan 2026','Feb 2026','Mar 2026'
-      ],
-      gross:  [18000,24000,23000,23000,22000,51000,56000,82000,86000,66000,73000,83500,60000,60000,97000,81000,104000,109000,130000,180500,155500,128500,140000,43000],
-      exp:    [120,4300,3500,9120,9500,32600,3120,9020,46550,5310,76500,30300,30540,3300,5600,7310,16950,0,14960,51020,9250,8550,37600,0],
+      labels:['Apr 2024','May 2024','Jun 2024','Jul 2024','Aug 2024','Sep 2024','Oct 2024','Nov 2024','Dec 2024','Jan 2025','Feb 2025','Mar 2025','Apr 2025','May 2025','Jun 2025','Jul 2025','Aug 2025','Sep 2025','Oct 2025','Nov 2025','Dec 2025','Jan 2026','Feb 2026','Mar 2026'],
+      gross: [18000,24000,23000,23000,22000,51000,56000,82000,86000,66000,73000,83500,60000,60000,97000,81000,104000,109000,130000,180500,155500,128500,140000,43000],
+      exp:   [120,4300,3500,9120,9500,32600,3120,9020,46550,5310,76500,30300,30540,3300,5600,7310,16950,0,14960,51020,9250,8550,37600,0],
     },
-    2024: {
-      labels: ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-      gross:  [18000,24000,23000,23000,22000,51000,56000,82000,86000],
-      exp:    [120,4300,3500,9120,9500,32600,3120,9020,46550],
-    },
-    2025: {
-      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-      gross:  [66000,73000,83500,60000,60000,97000,81000,104000,109000,130000,180500,155500],
-      exp:    [5310,76500,30300,30540,3300,5600,7310,16950,0,14960,51020,9250],
-    },
-    2026: {
-      labels: ['Jan','Feb','Mar'],
-      gross:  [128500,140000,43000],
-      exp:    [8550,37600,0],
-    },
+    2024:{ labels:['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], gross:[18000,24000,23000,23000,22000,51000,56000,82000,86000], exp:[120,4300,3500,9120,9500,32600,3120,9020,46550] },
+    2025:{ labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], gross:[66000,73000,83500,60000,60000,97000,81000,104000,109000,130000,180500,155500], exp:[5310,76500,30300,30540,3300,5600,7310,16950,0,14960,51020,9250] },
+    2026:{ labels:['Jan','Feb','Mar'], gross:[128500,140000,43000], exp:[8550,37600,0] },
   },
-  yearlyTotals: {
-    2024: { gross:385000, exp:117830, net:267170 },
-    2025: { gross:1199500, exp:251040, net:948460 },
-    2026: { gross:311500, exp:46150, net:265350 },
+  yearlyTotals:{
+    2024:{ gross:385000, exp:117830, net:267170 },
+    2025:{ gross:1199500, exp:251040, net:948460 },
+    2026:{ gross:311500, exp:46150, net:265350 },
   },
-  trucks: {
-    'GT 6350-19': {
+  trucks:{
+    'GT 6350-19':{
+      purchasePrice: 330000,
       2024:{ gross:219000, exp:81260, net:137740, weeks:38 },
       2025:{ gross:29000,  exp:6270,  net:22730,  weeks:6  },
     },
-    'GN 4106-18': {
+    'GN 4106-18':{
+      purchasePrice: 270000,
       2024:{ gross:101000, exp:19720, net:81280,  weeks:17 },
       2025:{ gross:329000, exp:77930, net:251070, weeks:52 },
       2026:{ gross:59000,  exp:1770,  net:57230,  weeks:52 },
     },
-    'GW 1568-22': {
+    'GW 1568-22':{
+      purchasePrice: 550000,
       2024:{ gross:65000,  exp:16850, net:48150,  weeks:10 },
       2025:{ gross:372000, exp:86130, net:285870, weeks:51 },
       2026:{ gross:14500,  exp:1470,  net:13030,  weeks:52 },
     },
-    'GN 1674-21': {
+    'GN 1674-21':{
+      purchasePrice: 650000,
       2025:{ gross:257000, exp:71490, net:185510, weeks:41 },
       2026:{ gross:73000,  exp:1770,  net:71230,  weeks:52 },
     },
-    'GN 4394-25': {
+    'GN 4394-25':{
+      purchasePrice: 856000,
       2025:{ gross:166500, exp:5070,  net:161430, weeks:16 },
       2026:{ gross:92000,  exp:37770, net:54230,  weeks:52 },
     },
-    'GX 4502-22': {
+    'GX 4502-22':{
+      purchasePrice: 500000,
       2025:{ gross:46000,  exp:4150,  net:41850,  weeks:6  },
       2026:{ gross:73000,  exp:3370,  net:69630,  weeks:52 },
     },
   },
-  expBreakdown: {
-    all:  { maint:46200+12000, other:105830+318040 },
-    2024: { maint:12000,  other:105830 },
-    2025: { maint:46200,  other:204840 },
-    2026: { maint:6600,   other:39550  },
+  expBreakdown:{
+    all:{ maint:58200, other:423870 },
+    2024:{ maint:12000, other:105830 },
+    2025:{ maint:46200, other:204840 },
+    2026:{ maint:6600,  other:39550  },
   },
+  drivers:{
+    'GT 6350-19':'Paapa','GN 4106-18':'Isaac / Alfred',
+    'GW 1568-22':'Oliver','GN 1674-21':'JAT',
+    'GN 4394-25':'ATL Isaac','GX 4502-22':'Agoe'
+  }
 };
 
 // ─── CHART DEFAULTS ──────────────────────────────────────────────────────────
 Chart.defaults.color = '#6b7a96';
 Chart.defaults.font.family = 'DM Sans';
 Chart.defaults.plugins.legend.display = false;
-
-const COLORS = {
-  accent:  '#f5a623',
-  accent2: '#e05c1a',
-  green:   '#2de08a',
-  red:     '#e0443a',
-  blue:    '#4a9eff',
-  purple:  '#9b72ff',
-  cyan:    '#22d3ee',
-  pink:    '#f472b6',
-};
+const COLORS = { accent:'#f5a623',green:'#2de08a',red:'#e0443a',blue:'#4a9eff',purple:'#9b72ff' };
 const TRUCK_COLORS = ['#f5a623','#4a9eff','#2de08a','#9b72ff','#e0443a','#22d3ee'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 let currentYear = 'all';
 let charts = {};
+let pnlCumulative = true;
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function fmt(n) {
-  if(n >= 1000000) return 'GHS ' + (n/1000000).toFixed(2) + 'M';
-  if(n >= 1000) return 'GHS ' + (n/1000).toFixed(0) + 'K';
-  return 'GHS ' + n.toLocaleString();
+  if(n >= 1000000) return 'GHS '+(n/1000000).toFixed(2)+'M';
+  if(n >= 1000)    return 'GHS '+(n/1000).toFixed(0)+'K';
+  return 'GHS '+n.toLocaleString();
 }
-
-function updateHeaderSubtitle() {
-  const subtitle = document.getElementById('headerSubtitle');
-  if(!subtitle) return;
-
-  const years = Object.keys(DATA.yearlyTotals)
-    .map(Number)
-    .filter(y => Number.isFinite(y))
-    .sort((a,b) => a - b);
-
-  if(!years.length) {
-    subtitle.textContent = 'Truck Transport Business · All Trucks';
-    return;
-  }
-
-  const yearRange = years.length === 1
-    ? String(years[0])
-    : `${years[0]} – ${years[years.length - 1]}`;
-
-  subtitle.textContent = `Truck Transport Business · ${yearRange} · All Trucks`;
-}
-
 function getSortedYears() {
   const years = new Set();
   Object.keys(DATA.yearlyTotals).forEach(y => years.add(Number(y)));
-  Object.keys(DATA.monthly).forEach(y => {
-    if(y !== 'all') years.add(Number(y));
-  });
-  Object.values(DATA.trucks).forEach(truck => {
-    Object.keys(truck).forEach(y => years.add(Number(y)));
-  });
-  return Array.from(years)
-    .filter(y => Number.isFinite(y))
-    .sort((a,b) => a - b);
+  Object.keys(DATA.monthly).forEach(y => { if(y!=='all') years.add(Number(y)); });
+  Object.values(DATA.trucks).forEach(t => { Object.keys(t).filter(k=>!isNaN(k)).forEach(y=>years.add(Number(y))); });
+  return Array.from(years).filter(y=>Number.isFinite(y)).sort((a,b)=>a-b);
 }
-
-function monthToIndex(monthLabel) {
-  const m = String(monthLabel || '').trim().slice(0,3);
-  const idx = MONTH_ORDER.indexOf(m);
-  return idx === -1 ? 99 : idx;
-}
-
+function monthToIndex(m) { const i=MONTH_ORDER.indexOf(String(m||'').trim().slice(0,3)); return i===-1?99:i; }
 function rebuildAllMonthlyData() {
-  const years = getSortedYears();
-  const labels = [];
-  const gross = [];
-  const exp = [];
-
-  years.forEach(y => {
-    const ym = DATA.monthly[String(y)] || { labels: [], gross: [], exp: [] };
-    const rows = ym.labels.map((month, i) => ({
-      month,
-      gross: Number(ym.gross[i] || 0),
-      exp: Number(ym.exp[i] || 0)
-    })).sort((a,b) => monthToIndex(a.month) - monthToIndex(b.month));
-
-    rows.forEach(r => {
-      labels.push(`${r.month} ${y}`);
-      gross.push(r.gross);
-      exp.push(r.exp);
-    });
+  const years=getSortedYears(); const labels=[],gross=[],exp=[];
+  years.forEach(y=>{
+    const ym=DATA.monthly[String(y)]||{labels:[],gross:[],exp:[]};
+    const rows=ym.labels.map((m,i)=>({m,g:Number(ym.gross[i]||0),e:Number(ym.exp[i]||0)})).sort((a,b)=>monthToIndex(a.m)-monthToIndex(b.m));
+    rows.forEach(r=>{ labels.push(`${r.m} ${y}`); gross.push(r.g); exp.push(r.e); });
   });
-
-  DATA.monthly.all = { labels, gross, exp };
+  DATA.monthly.all={labels,gross,exp};
 }
-
 function syncExpBreakdownYears() {
-  const existing = DATA.expBreakdown || {};
-  const next = {};
-  let allMaint = 0;
-  let allOther = 0;
-
-  getSortedYears().forEach(y => {
-    const yearKey = String(y);
-    const exp = Number(DATA.yearlyTotals[yearKey]?.exp || 0);
-    const prev = existing[yearKey];
-    const maint = Number(prev?.maint || 0);
-    const other = prev ? Number(prev.other || Math.max(exp - maint, 0)) : exp;
-    next[yearKey] = { maint, other };
-    allMaint += maint;
-    allOther += other;
+  const ex=DATA.expBreakdown||{}; const next={};let am=0,ao=0;
+  getSortedYears().forEach(y=>{
+    const yKey=String(y); const e=Number(DATA.yearlyTotals[yKey]?.exp||0); const p=ex[yKey];
+    const maint=Number(p?.maint||0); const other=p?Number(p.other||Math.max(e-maint,0)):e;
+    next[yKey]={maint,other}; am+=maint; ao+=other;
   });
-
-  next.all = { maint: allMaint, other: allOther };
-  DATA.expBreakdown = next;
+  next.all={maint:am,other:ao}; DATA.expBreakdown=next;
 }
-
 function renderYearTabs() {
-  const tabs = document.getElementById('yearTabs');
-  if(!tabs) return;
-
-  const years = getSortedYears();
-  if(currentYear !== 'all' && !years.includes(Number(currentYear))) {
-    currentYear = 'all';
-  }
-
-  let html = `<div class="year-tab ${currentYear === 'all' ? 'active' : ''}" data-year="all" onclick="setYear('all')"><i class="fa-solid fa-calendar"></i> All Years</div>`;
-  years.forEach(y => {
-    const active = String(y) === String(currentYear) ? 'active' : '';
-    html += `<div class="year-tab ${active}" data-year="${y}" onclick="setYear('${y}')">${y}</div>`;
-  });
-  tabs.innerHTML = html;
+  const tabs=document.getElementById('yearTabs'); if(!tabs) return;
+  const years=getSortedYears();
+  if(currentYear!=='all'&&!years.includes(Number(currentYear))) currentYear='all';
+  let html=`<div class="year-tab ${currentYear==='all'?'active':''}" data-year="all" onclick="setYear('all')"><i class="fa-solid fa-calendar"></i> All Years</div>`;
+  years.forEach(y=>{ html+=`<div class="year-tab ${String(y)===String(currentYear)?'active':''}" data-year="${y}" onclick="setYear('${y}')">${y}</div>`; });
+  tabs.innerHTML=html;
 }
-
-function getMonthlyRows() {
-  const rows = [];
-  Object.keys(DATA.monthly)
-    .filter(y => y !== 'all')
-    .forEach(y => {
-      const d = DATA.monthly[y] || { labels: [], gross: [], exp: [] };
-      d.labels.forEach((month, i) => {
-        rows.push({
-          year: Number(y),
-          month: String(month).trim().slice(0,3),
-          gross: Number(d.gross[i] || 0),
-          exp: Number(d.exp[i] || 0)
-        });
-      });
-    });
-  return rows.sort((a,b) => a.year - b.year || monthToIndex(a.month) - monthToIndex(b.month));
+function updateHeaderSubtitle() {
+  const el=document.getElementById('headerSubtitle'); if(!el) return;
+  const years=getSortedYears();
+  el.textContent=years.length?`Truck Transport Business · ${years[0]}–${years[years.length-1]} · All Trucks`:'Truck Transport Business · All Trucks';
 }
-
-function getTruckRows() {
-  const rows = [];
-  Object.keys(DATA.trucks).forEach(truckId => {
-    Object.keys(DATA.trucks[truckId]).forEach(y => {
-      const d = DATA.trucks[truckId][y];
-      rows.push({
-        truckId,
-        year: Number(y),
-        gross: Number(d.gross || 0),
-        exp: Number(d.exp || 0),
-        weeks: Number(d.weeks || 0)
-      });
-    });
-  });
-  return rows.sort((a,b) => a.truckId.localeCompare(b.truckId) || a.year - b.year);
-}
-
-function renderSpreadsheetEditor() {
-  const holder = document.getElementById('spreadsheetEditor');
-  if(!holder) return;
-  const filterYear = currentYear !== 'all' ? String(currentYear) : null;
-
-  // ── Build data arrays ────────────────────────────
-  const yearData = getSortedYears()
-    .filter(y => !filterYear || String(y) === filterYear)
-    .map(y => {
-      const d = DATA.yearlyTotals[String(y)] || { gross:0, exp:0 };
-      return [String(y), Number(d.gross||0), Number(d.exp||0)];
-    });
-
-  const monthData = getMonthlyRows()
-    .filter(r => !filterYear || String(r.year) === filterYear)
-    .map(r => [String(r.year), r.month, r.gross, r.exp]);
-
-  // Add truck cost fields: initial cost, amount paid, maintenance/repairs
-  const truckDataWithCosts = getTruckRows()
-    .filter(r => !filterYear || String(r.year) === filterYear)
-    .map(r => {
-      const truck = DATA.trucks[r.truckId]?.[r.year] || {};
-      return [
-        r.truckId,
-        String(r.year),
-        r.gross,
-        r.exp,
-        r.weeks,
-        truck.initialCost || 0,
-        truck.amountPaid || 0,
-        truck.maintenanceSpent || 0
-      ];
-    });
-
-  function colLetter(i) { return String.fromCharCode(65 + i); }
-
-  function buildTable(id, cols, rows, colTypes) {
-    const ths = `<th style="width:36px">#</th>` + cols.map((c,i) => `<th>${c}</th>`).join('') + `<th style="width:38px"></th>`;
-    const trs = rows.map((row, ri) => {
-      const tds = row.map((val, ci) => {
-        const isNum = colTypes[ci] === 'num';
-        return `<td class="cell${isNum ? ' num' : ''}" data-col="${ci}" data-row="${ri}" data-type="${colTypes[ci]}">${isNum ? Number(val).toLocaleString() : val}</td>`;
-      }).join('');
-      return `<tr data-ri="${ri}"><td class="row-num">${ri+1}</td>${tds}<td class="act"><button onclick="xlsRemoveRow(this,'${id}')" title="Delete row"><i class="fa-solid fa-trash-can"></i></button></td></tr>`;
-    }).join('');
-    return `<table class="xls" id="${id}"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
-  }
-
-  // Calculate sums for cost columns
-  function sumCol(rows, idx) {
-    return rows.reduce((sum, row) => sum + Number(row[idx] || 0), 0);
-  }
-
-  holder.innerHTML = `
-    <div class="sheet-wrap">
-      <div class="sheet-block">
-        <div class="sheet-head">
-          <div class="sheet-title"><i class="fa-solid fa-calendar-days"></i>Yearly Totals${filterYear ? ' — ' + filterYear : ''}</div>
-          <div class="sheet-btns">
-            <button class="sheet-btn" onclick="xlsAddRow('yearXls',['${Math.max(...getSortedYears(),new Date().getFullYear())+1}','0','0'],['text','num','num'])"><i class="fa-solid fa-plus"></i>Add Year</button>
-          </div>
-        </div>
-        <div class="formula-bar" id="yearXls_fb"><span class="formula-cell-ref">—</span><span class="formula-value" style="color:var(--muted)">Click a cell to edit</span></div>
-        <div class="sheet-scroll">${buildTable('yearXls',['Year','Gross','Expenditure'], yearData, ['text','num','num'])}</div>
-      </div>
-
-      <div class="sheet-block">
-        <div class="sheet-head">
-          <div class="sheet-title"><i class="fa-solid fa-chart-line"></i>Monthly Data${filterYear ? ' — ' + filterYear : ''}</div>
-          <div class="sheet-btns">
-            <button class="sheet-btn" onclick="xlsAddRow('monthlyXls',['${getSortedYears().slice(-1)[0]||new Date().getFullYear()}','Jan','0','0'],['text','text','num','num'])"><i class="fa-solid fa-plus"></i>Add Row</button>
-          </div>
-        </div>
-        <div class="formula-bar" id="monthlyXls_fb"><span class="formula-cell-ref">—</span><span class="formula-value" style="color:var(--muted)">Click a cell to edit</span></div>
-        <div class="sheet-scroll">${buildTable('monthlyXls',['Year','Month','Gross','Expenditure'], monthData, ['text','text','num','num'])}</div>
-      </div>
-
-      <div class="sheet-block">
-        <div class="sheet-head">
-          <div class="sheet-title"><i class="fa-solid fa-truck"></i>Truck Data${filterYear ? ' — ' + filterYear : ''}</div>
-          <div class="sheet-btns">
-            <button class="sheet-btn" onclick="xlsAddRow('truckXls',['NEW TRUCK','${getSortedYears().slice(-1)[0]||new Date().getFullYear()}','0','0','52','0','0','0'],['text','text','num','num','num','num','num','num'])"><i class="fa-solid fa-plus"></i>Add Row</button>
-          </div>
-        </div>
-        <div class="formula-bar" id="truckXls_fb"><span class="formula-cell-ref">—</span><span class="formula-value" style="color:var(--muted)">Click a cell to edit</span></div>
-        <div class="sheet-scroll">${buildTable('truckXls',['Truck ID','Year','Gross','Expenditure','Weeks','Initial Cost','Amount Paid','Maintenance/Repairs'], truckDataWithCosts, ['text','text','num','num','num','num','num','num'])}</div>
-        <div style="margin-top:8px;font-size:0.85em;color:var(--label);display:flex;gap:24px;">
-          <span><b>Σ Initial Cost:</b> GHS ${sumCol(truckDataWithCosts,5).toLocaleString()}</span>
-          <span><b>Σ Amount Paid:</b> GHS ${sumCol(truckDataWithCosts,6).toLocaleString()}</span>
-          <span><b>Σ Maintenance/Repairs:</b> GHS ${sumCol(truckDataWithCosts,7).toLocaleString()}</span>
-        </div>
-      </div>
-
-      <div class="sheet-btns" style="margin-top:4px">
-        <button class="sheet-btn primary" onclick="applySpreadsheetData()"><i class="fa-solid fa-check"></i>Apply Changes</button>
-      </div>
-      <div class="sheet-help">
-        Click any cell to edit · Tab / Enter to move forward · Arrow keys to navigate · Esc to cancel<br>
-        Use 3-letter month names (Jan, Feb, Mar). Apply to save changes to the dashboard.
-      </div>
-    </div>
-  `;
-  // Attach cell click listeners
-  holder.querySelectorAll('.xls').forEach(tbl => xlsInit(tbl));
-  loadDashLastSaved();
-}
-
-/* ─── EXCEL-LIKE CELL ENGINE ──────────────────────────────────────────────── */
-let xlsActive = null; // { cell, tableId }
-
-function xlsInit(tbl) {
-  tbl.addEventListener('click', e => {
-    const cell = e.target.closest('td.cell');
-    if(!cell) return;
-    xlsSelect(cell, tbl.id);
-  });
-}
-
-function xlsSelect(cell, tableId) {
-  // Deselect previous
-  if(xlsActive) {
-    xlsCommit();
-    xlsActive.cell.classList.remove('selected');
-  }
-  cell.classList.add('selected');
-  xlsActive = { cell, tableId };
-
-  // Update formula bar
-  const fb = document.getElementById(tableId + '_fb');
-  if(fb) {
-    const col = parseInt(cell.dataset.col);
-    const row = parseInt(cell.dataset.row);
-    const ref = String.fromCharCode(65 + col) + (row + 1);
-    const raw = cell.dataset.raw !== undefined ? cell.dataset.raw : cell.textContent;
-    fb.querySelector('.formula-cell-ref').textContent = ref;
-    fb.querySelector('.formula-value').textContent = raw;
-    fb.querySelector('.formula-value').style.color = 'var(--text)';
-  }
-}
-
-function xlsEdit(cell) {
-  if(cell.classList.contains('editing')) return;
-  const raw = cell.dataset.raw !== undefined ? cell.dataset.raw : cell.textContent.replace(/,/g, '');
-  cell.dataset.raw = raw;
-  cell.classList.add('editing');
-  const input = document.createElement('input');
-  input.type = cell.dataset.type === 'num' ? 'number' : 'text';
-  input.value = raw;
-  cell.textContent = '';
-  cell.appendChild(input);
-  input.focus();
-  input.select();
-
-  input.addEventListener('keydown', e => {
-    if(e.key === 'Enter')  { e.preventDefault(); xlsCommit(); xlsMove(0, 1); }
-    if(e.key === 'Tab')    { e.preventDefault(); xlsCommit(); xlsMove(e.shiftKey ? -1 : 1, 0); }
-    if(e.key === 'Escape') { cell.dataset.raw = raw; xlsCommit(); }
-    if(e.key === 'ArrowDown')  { e.preventDefault(); xlsCommit(); xlsMove(0, 1); }
-    if(e.key === 'ArrowUp')    { e.preventDefault(); xlsCommit(); xlsMove(0, -1); }
-    if(e.key === 'ArrowRight' && input.selectionStart === input.value.length) { e.preventDefault(); xlsCommit(); xlsMove(1, 0); }
-    if(e.key === 'ArrowLeft'  && input.selectionStart === 0) { e.preventDefault(); xlsCommit(); xlsMove(-1, 0); }
-  });
-  input.addEventListener('blur', () => { setTimeout(() => { if(cell.classList.contains('editing')) xlsCommit(); }, 100); });
-}
-
-function xlsCommit() {
-  if(!xlsActive) return;
-  const cell = xlsActive.cell;
-  if(!cell.classList.contains('editing')) return;
-  const input = cell.querySelector('input');
-  if(!input) return;
-  const val = input.value;
-  cell.dataset.raw = val;
-  cell.classList.remove('editing');
-  if(cell.dataset.type === 'num') {
-    cell.textContent = Number(val || 0).toLocaleString();
-  } else {
-    cell.textContent = val;
-  }
-  // Update formula bar
-  const fb = document.getElementById(xlsActive.tableId + '_fb');
-  if(fb) fb.querySelector('.formula-value').textContent = val;
-}
-
-function xlsMove(dc, dr) {
-  if(!xlsActive) return;
-  const cell = xlsActive.cell;
-  const tbl = cell.closest('table');
-  const col = parseInt(cell.dataset.col) + dc;
-  const row = parseInt(cell.dataset.row) + dr;
-  const next = tbl.querySelector(`td.cell[data-col="${col}"][data-row="${row}"]`);
-  if(next) {
-    xlsSelect(next, xlsActive.tableId);
-    xlsEdit(next);
-  }
-}
-
-// Start editing on double-click or typing
-document.addEventListener('dblclick', e => {
-  const cell = e.target.closest('td.cell');
-  if(cell && xlsActive && xlsActive.cell === cell) xlsEdit(cell);
-});
-document.addEventListener('keydown', e => {
-  if(!xlsActive) return;
-  const cell = xlsActive.cell;
-  if(cell.classList.contains('editing')) return;
-  // Arrow keys when not editing
-  if(e.key === 'ArrowDown')  { e.preventDefault(); xlsMove(0, 1); }
-  if(e.key === 'ArrowUp')    { e.preventDefault(); xlsMove(0, -1); }
-  if(e.key === 'ArrowRight') { e.preventDefault(); xlsMove(1, 0); }
-  if(e.key === 'ArrowLeft')  { e.preventDefault(); xlsMove(-1, 0); }
-  if(e.key === 'Tab')        { e.preventDefault(); xlsMove(e.shiftKey ? -1 : 1, 0); }
-  if(e.key === 'Enter')      { e.preventDefault(); xlsEdit(cell); }
-  if(e.key === 'Delete' || e.key === 'Backspace') {
-    e.preventDefault();
-    cell.dataset.raw = cell.dataset.type === 'num' ? '0' : '';
-    cell.textContent = cell.dataset.type === 'num' ? '0' : '';
-    const fb = document.getElementById(xlsActive.tableId + '_fb');
-    if(fb) fb.querySelector('.formula-value').textContent = cell.dataset.raw;
-  }
-  // Start typing to edit
-  if(e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    cell.dataset.raw = '';
-    xlsEdit(cell);
-    const input = cell.querySelector('input');
-    if(input) { input.value = e.key; }
-  }
-});
-
-function xlsRemoveRow(btn, tableId) {
-  const tr = btn.closest('tr');
-  if(!tr) return;
-  const tbl = tr.closest('table');
-
-  // Capture data for recovery
-  const cells = tr.querySelectorAll('td.cell');
-  const rowData = {};
-  cells.forEach(c => { rowData['col'+c.dataset.col] = c.dataset.raw !== undefined ? c.dataset.raw : c.textContent.replace(/,/g,''); });
-
-  let type = null;
-  if(tableId === 'yearXls') { type = 'year'; rowData._mapped = { year:rowData.col0, gross:rowData.col1, exp:rowData.col2 }; }
-  else if(tableId === 'monthlyXls') { type = 'monthly'; rowData._mapped = { year:rowData.col0, month:rowData.col1, gross:rowData.col2, exp:rowData.col3 }; }
-  else if(tableId === 'truckXls') { type = 'truck'; rowData._mapped = { truckId:rowData.col0, year:rowData.col1, gross:rowData.col2, exp:rowData.col3, weeks:rowData.col4 }; }
-
-  if(type) {
-    const recovery = JSON.parse(localStorage.getItem('truck_recovery') || '[]');
-    recovery.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2), type, data:rowData._mapped, deletedAt:new Date().toISOString() });
-    localStorage.setItem('truck_recovery', JSON.stringify(recovery));
-  }
-
-  tr.remove();
-  // Re-index row numbers
-  tbl.querySelectorAll('tbody tr').forEach((r, i) => {
-    r.dataset.ri = i;
-    r.querySelector('.row-num').textContent = i + 1;
-    r.querySelectorAll('td.cell').forEach(c => { c.dataset.row = i; });
-  });
-  if(xlsActive && xlsActive.cell.closest('tr') === null) xlsActive = null;
-}
-
-function xlsAddRow(tableId, values, types) {
-  const tbl = document.getElementById(tableId);
-  if(!tbl) return;
-  const tbody = tbl.querySelector('tbody');
-  const ri = tbody.querySelectorAll('tr').length;
-  const tds = values.map((v, ci) => {
-    const isNum = types[ci] === 'num';
-    const display = isNum ? Number(v).toLocaleString() : v;
-    return `<td class="cell${isNum ? ' num' : ''}" data-col="${ci}" data-row="${ri}" data-type="${types[ci]}" data-raw="${v}">${display}</td>`;
-  }).join('');
-  tbody.insertAdjacentHTML('beforeend', `<tr data-ri="${ri}"><td class="row-num">${ri+1}</td>${tds}<td class="act"><button onclick="xlsRemoveRow(this,'${tableId}')" title="Delete row"><i class="fa-solid fa-trash-can"></i></button></td></tr>`);
-  // Select first cell of new row
-  const newCell = tbody.lastElementChild.querySelector('td.cell');
-  if(newCell) { xlsSelect(newCell, tableId); xlsEdit(newCell); }
-}
-
-function xlsReadTable(tableId) {
-  const tbl = document.getElementById(tableId);
-  if(!tbl) return [];
-  const rows = [];
-  tbl.querySelectorAll('tbody tr').forEach(tr => {
-    const cells = tr.querySelectorAll('td.cell');
-    const row = [];
-    cells.forEach(c => { row.push(c.dataset.raw !== undefined ? c.dataset.raw : c.textContent.replace(/,/g,'')); });
-    rows.push(row);
-  });
-  return rows;
-}
-
-function applySpreadsheetData() {
-  // Yearly
-  const nextYearly = {};
-  xlsReadTable('yearXls').forEach(r => {
-    const year = Number(r[0]);
-    const gross = Number(r[1] || 0);
-    const exp = Number(r[2] || 0);
-    if(Number.isFinite(year) && year > 0) nextYearly[String(year)] = { gross, exp, net: gross - exp };
-  });
-  DATA.yearlyTotals = nextYearly;
-
-  // Monthly
-  const nextMonthly = {};
-  xlsReadTable('monthlyXls').forEach(r => {
-    const year = Number(r[0]);
-    const month = String(r[1] || '').trim().slice(0,3);
-    const gross = Number(r[2] || 0);
-    const exp = Number(r[3] || 0);
-    if(!Number.isFinite(year) || year <= 0 || !MONTH_ORDER.includes(month)) return;
-    const yKey = String(year);
-    if(!nextMonthly[yKey]) nextMonthly[yKey] = [];
-    nextMonthly[yKey].push({ month, gross, exp });
-  });
-  DATA.monthly = { all: { labels:[], gross:[], exp:[] } };
-  Object.keys(nextMonthly).forEach(y => {
-    const rows = nextMonthly[y].sort((a,b) => monthToIndex(a.month) - monthToIndex(b.month));
-    DATA.monthly[y] = { labels:rows.map(r=>r.month), gross:rows.map(r=>r.gross), exp:rows.map(r=>r.exp) };
-  });
-
-  // Trucks (with cost fields)
-  const nextTrucks = {};
-  xlsReadTable('truckXls').forEach(r => {
-    const id = String(r[0] || '').trim();
-    const year = Number(r[1]);
-    const gross = Number(r[2] || 0);
-    const exp = Number(r[3] || 0);
-    const weeks = Number(r[4] || 0);
-    const initialCost = Number(r[5] || 0);
-    const amountPaid = Number(r[6] || 0);
-    const maintenanceSpent = Number(r[7] || 0);
-    if(!id || !Number.isFinite(year) || year <= 0) return;
-    if(!nextTrucks[id]) nextTrucks[id] = {};
-    nextTrucks[id][String(year)] = { gross, exp, net: gross - exp, weeks, initialCost, amountPaid, maintenanceSpent };
-  });
-  DATA.trucks = nextTrucks;
-
-  getSortedYears().forEach(y => {
-    const yKey = String(y);
-    if(!DATA.monthly[yKey]) DATA.monthly[yKey] = { labels:[], gross:[], exp:[] };
-    if(!DATA.yearlyTotals[yKey]) DATA.yearlyTotals[yKey] = { gross:0, exp:0, net:0 };
-  });
-
-  rebuildAllMonthlyData();
-  syncExpBreakdownYears();
-  renderYearTabs();
-  updateHeaderSubtitle();
-  setYear(currentYear);
-  renderYearly();
-  renderHeatmap();
-  renderSpreadsheetEditor();
-
-  const now = new Date();
-  const yearKey = currentYear !== 'all' ? currentYear : 'dashboard';
-  localStorage.setItem('dash_lastSaved_' + yearKey, now.toISOString());
-  updateDashLastSaved(now);
-}
-
-function updateDashLastSaved(date) {
-  const el = document.getElementById('dashLastSaved');
-  if (!el) return;
-  if (!date) { el.innerHTML = ''; return; }
-  const d = new Date(date);
-  const day = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-  const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-  el.innerHTML = '<i class="fa-regular fa-clock" style="color:var(--accent)"></i>Last saved: ' + day + ' at ' + time;
-}
-
-function loadDashLastSaved() {
-  const yearKey = currentYear !== 'all' ? currentYear : 'dashboard';
-  const raw = localStorage.getItem('dash_lastSaved_' + yearKey);
-  updateDashLastSaved(raw ? new Date(raw) : null);
-}
-
 function getTruckData(year) {
-  const trucks = DATA.trucks;
-  return Object.keys(trucks).map(id => {
+  return Object.keys(DATA.trucks).map(id=>{
+    const t=DATA.trucks[id];
+    if(year!=='all'&&!t[String(year)]) return null;
+    const years=year==='all'?Object.keys(t).filter(k=>!isNaN(k)):[String(year)];
     let gross=0,exp=0,net=0,weeks=0;
-    const years = year === 'all' ? Object.keys(trucks[id]) : [String(year)];
-    years.forEach(y => {
-      if(trucks[id][y]) {
-        gross  += trucks[id][y].gross;
-        exp    += trucks[id][y].exp;
-        net    += trucks[id][y].net;
-        weeks  += trucks[id][y].weeks;
-      }
-    });
-    return { id, gross, exp, net, weeks, eff: gross ? Math.round(net/gross*100) : 0 };
-  }).filter(t => t.gross > 0).sort((a,b) => b.net - a.net);
+    years.forEach(y=>{ if(t[y]){gross+=t[y].gross;exp+=t[y].exp;net+=t[y].net;weeks+=t[y].weeks;} });
+    return {id,gross,exp,net,weeks,eff:gross?Math.round(net/gross*100):0};
+  }).filter(t=>t&&(t.gross>0||t.exp>0||t.weeks>0)).sort((a,b)=>b.net-a.net);
 }
-
-function getTruckWeeksForYear(year) {
-  let total = 0;
-  Object.values(DATA.trucks).forEach(truck => {
-    if(year === 'all') {
-      Object.values(truck).forEach(d => { total += (d.weeks || 0); });
-    } else if(truck[year]) {
-      total += truck[year].weeks || 0;
-    }
-  });
-  return total;
-}
-
 function getYearlyKPIs(year) {
-  if(year === 'all') {
-    const gross = Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.gross,0);
-    const exp   = Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.exp,0);
-    const net   = gross - exp;
-    const weeks = getTruckWeeksForYear('all');
-    return { gross, exp, net, weeks };
+  if(year==='all'){
+    const gross=Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.gross,0);
+    const exp=Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.exp,0);
+    const weeks=Object.values(DATA.trucks).reduce((s,t)=>s+Object.values(t).filter(v=>typeof v==='object'&&v.weeks).reduce((ss,y)=>ss+(y.weeks||0),0),0);
+    return {gross,exp,net:gross-exp,weeks};
   }
-  const y = DATA.yearlyTotals[year];
-  return { gross:y.gross, exp:y.exp, net:y.gross-y.exp, weeks:getTruckWeeksForYear(year) };
+  const y=DATA.yearlyTotals[year];
+  const weeks=Object.values(DATA.trucks).reduce((s,t)=>s+(t[year]?.weeks||0),0);
+  return {gross:y.gross,exp:y.exp,net:y.gross-y.exp,weeks};
 }
 
-// ─── KPIs ────────────────────────────────────────────────────────────────────
+// ─── KPIs ──────────────────────────────────────────────────────────────────
 function renderKPIs(year) {
-  const {gross,exp,net,weeks} = getYearlyKPIs(year);
-  const eff = Math.round(net/gross*100);
-  const avgWeek = Math.round(gross/weeks);
-  const el = document.getElementById('kpiStrip');
-  el.innerHTML = `
-    <div class="kpi">
-      <div class="kpi-label">Total Gross Income</div>
-      <div class="kpi-value">${fmt(gross)}</div>
-      <div class="kpi-sub">${weeks} operational weeks</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Total Net Income</div>
-      <div class="kpi-value">${fmt(net)}</div>
-      <span class="kpi-badge badge-up">▲ ${eff}% efficiency</span>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Total Expenditure</div>
-      <div class="kpi-value">${fmt(exp)}</div>
-      <div class="kpi-sub">${Math.round(exp/gross*100)}% of gross income</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Avg Weekly Gross</div>
-      <div class="kpi-value">${fmt(avgWeek)}</div>
-      <div class="kpi-sub">Per week across all trucks</div>
-    </div>
+  const {gross,exp,net,weeks}=getYearlyKPIs(year);
+  const eff=Math.round(net/gross*100);
+  const avgWeek=Math.round(gross/Math.max(weeks,1));
+  document.getElementById('kpiStrip').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total Gross Income</div><div class="kpi-value">${fmt(gross)}</div><div class="kpi-sub">${weeks} operational weeks</div></div>
+    <div class="kpi"><div class="kpi-label">Total Net Income</div><div class="kpi-value">${fmt(net)}</div><span class="kpi-badge badge-up">▲ ${eff}% efficiency</span></div>
+    <div class="kpi"><div class="kpi-label">Total Expenditure</div><div class="kpi-value">${fmt(exp)}</div><div class="kpi-sub">${Math.round(exp/gross*100)}% of gross income</div></div>
+    <div class="kpi"><div class="kpi-label">Avg Weekly Gross</div><div class="kpi-value">${fmt(avgWeek)}</div><div class="kpi-sub">Per week across all trucks</div></div>
   `;
 }
 
 // ─── MONTHLY CHART ────────────────────────────────────────────────────────────
 function renderMonthly(year) {
-  const d = DATA.monthly[year] || DATA.monthly.all;
-  const net = d.gross.map((g,i) => g - (d.exp[i]||0));
-  const ctx = document.getElementById('monthlyChart').getContext('2d');
+  const d=DATA.monthly[year]||DATA.monthly.all;
+  const net=d.gross.map((g,i)=>g-(d.exp[i]||0));
+  const ctx=document.getElementById('monthlyChart').getContext('2d');
   if(charts.monthly) charts.monthly.destroy();
-  charts.monthly = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: d.labels,
-      datasets: [
-        {
-          label:'Gross Income', data:d.gross,
-          backgroundColor:'rgba(245,166,35,0.75)', borderColor:'#f5a623',
-          borderWidth:1, borderRadius:4, order:2,
-        },
-        {
-          label:'Expenditure', data:d.exp,
-          backgroundColor:'rgba(224,68,58,0.65)', borderColor:'#e0443a',
-          borderWidth:1, borderRadius:4, order:2,
-        },
-        {
-          label:'Net Income', data:net,
-          type:'line', borderColor:'#2de08a', backgroundColor:'rgba(45,224,138,0.1)',
-          borderWidth:2.5, pointBackgroundColor:'#2de08a', pointRadius:4,
-          tension:0.4, fill:true, order:1,
-        },
-      ]
-    },
-    options: {
-      responsive:true, interaction:{mode:'index',intersect:false},
-      plugins:{
-        tooltip:{
-          backgroundColor:'#1a1f2b', borderColor:'#252d3d', borderWidth:1,
-          callbacks:{
-            label: ctx => ` ${ctx.dataset.label}: GHS ${ctx.parsed.y.toLocaleString()}`
-          }
-        }
-      },
-      scales:{
-        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7a96'} },
-        y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7a96',
-          callback: v => 'GHS '+(v/1000)+'K' } }
-      }
-    }
+  charts.monthly=new Chart(ctx,{
+    type:'bar',
+    data:{labels:d.labels,datasets:[
+      {label:'Gross Income',data:d.gross,backgroundColor:'rgba(245,166,35,0.75)',borderColor:'#f5a623',borderWidth:1,borderRadius:4,order:2},
+      {label:'Expenditure',data:d.exp,backgroundColor:'rgba(224,68,58,0.65)',borderColor:'#e0443a',borderWidth:1,borderRadius:4,order:2},
+      {label:'Net Income',data:net,type:'line',borderColor:'#2de08a',backgroundColor:'rgba(45,224,138,0.1)',borderWidth:2.5,pointBackgroundColor:'#2de08a',pointRadius:4,tension:0.4,fill:true,order:1},
+    ]},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{tooltip:{backgroundColor:'#1a1f2b',borderColor:'#252d3d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.dataset.label}: GHS ${ctx.parsed.y.toLocaleString()}`}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7a96',maxRotation:45}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7a96',callback:v=>'GHS '+(v/1000)+'K'}}}}
   });
 }
 
 // ─── TRUCK INCOME CHART ───────────────────────────────────────────────────────
 function renderTruckIncome(year) {
-  const trucks = getTruckData(year);
-  const ctx = document.getElementById('truckIncomeChart').getContext('2d');
+  const trucks=getTruckData(year);
+  const ctx=document.getElementById('truckIncomeChart').getContext('2d');
   if(charts.truckIncome) charts.truckIncome.destroy();
-  charts.truckIncome = new Chart(ctx, {
+  charts.truckIncome=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels: trucks.map(t=>t.id),
-      datasets:[
-        { label:'Gross', data:trucks.map(t=>t.gross),
-          backgroundColor: TRUCK_COLORS.map(c=>c+'99'), borderColor:TRUCK_COLORS,
-          borderWidth:1.5, borderRadius:5 },
-        { label:'Net', data:trucks.map(t=>t.net),
-          backgroundColor: TRUCK_COLORS.map(c=>c+'44'), borderColor:TRUCK_COLORS.map(c=>c+'88'),
-          borderWidth:1, borderRadius:5 },
-      ]
-    },
-    options:{
-      responsive:true, indexAxis:'y',
-      onClick(e, elements) {
-        if(elements.length) {
-          const idx = elements[0].index;
-          const truckId = trucks[idx].id;
-          window.location.href = 'truck.html?id=' + encodeURIComponent(truckId);
-        }
-      },
-      plugins:{ tooltip:{ backgroundColor:'#1a1f2b', borderColor:'#252d3d', borderWidth:1,
-        callbacks:{ label: ctx => ` ${ctx.dataset.label}: GHS ${ctx.parsed.x.toLocaleString()}` }
-      }},
-      scales:{
-        x:{ stacked:false, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7a96',callback:v=>'GHS '+(v/1000)+'K'} },
-        y:{ grid:{display:false}, ticks:{color:'#9aa4b8', font:{family:'JetBrains Mono',size:11}, cursor:'pointer'} }
-      }
-    }
+    data:{labels:trucks.map(t=>t.id),datasets:[
+      {label:'Gross',data:trucks.map(t=>t.gross),backgroundColor:TRUCK_COLORS.map(c=>c+'99'),borderColor:TRUCK_COLORS,borderWidth:1.5,borderRadius:5},
+      {label:'Net',data:trucks.map(t=>t.net),backgroundColor:TRUCK_COLORS.map(c=>c+'44'),borderColor:TRUCK_COLORS.map(c=>c+'88'),borderWidth:1,borderRadius:5},
+    ]},
+    options:{responsive:true,indexAxis:'y',
+      plugins:{tooltip:{backgroundColor:'#1a1f2b',borderColor:'#252d3d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.dataset.label}: GHS ${ctx.parsed.x.toLocaleString()}`}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7a96',callback:v=>'GHS '+(v/1000)+'K'}},y:{grid:{display:false},ticks:{color:'#9aa4b8',font:{family:'JetBrains Mono',size:11}}}}}
   });
-  // Make chart cursor pointer on hover
-  document.getElementById('truckIncomeChart').style.cursor = 'pointer';
 }
 
-// ─── EXPENDITURE BREAKDOWN ────────────────────────────────────────────────────
+// ─── EXP BREAKDOWN ────────────────────────────────────────────────────────────
 function renderExpBreakdown(year) {
-  const d = DATA.expBreakdown[year] || DATA.expBreakdown.all;
-  const ctx = document.getElementById('expBreakdownChart').getContext('2d');
+  const d=DATA.expBreakdown[year]||DATA.expBreakdown.all;
+  const ctx=document.getElementById('expBreakdownChart').getContext('2d');
   if(charts.expBreak) charts.expBreak.destroy();
-  charts.expBreak = new Chart(ctx, {
+  charts.expBreak=new Chart(ctx,{
     type:'doughnut',
-    data:{
-      labels:['Maintenance (Oil Changes)','Other Expenses (Parts)'],
-      datasets:[{
-        data:[d.maint, d.other],
-        backgroundColor:['rgba(45,224,138,0.8)','rgba(224,68,58,0.8)'],
-        borderColor:['#2de08a','#e0443a'],
-        borderWidth:2, hoverOffset:8
-      }]
-    },
-    options:{
-      responsive:true, cutout:'68%',
-      plugins:{
-        legend:{ display:true, position:'bottom',
-          labels:{color:'#9aa4b8', padding:16, usePointStyle:true} },
-        tooltip:{ backgroundColor:'#1a1f2b', borderColor:'#252d3d', borderWidth:1,
-          callbacks:{ label: ctx => ` GHS ${ctx.parsed.toLocaleString()} (${Math.round(ctx.parsed/(d.maint+d.other)*100)}%)` }
-        }
-      }
-    }
+    data:{labels:['Maintenance (Oil Changes)','Other Expenses (Parts)'],datasets:[{data:[d.maint,d.other],backgroundColor:['rgba(45,224,138,0.8)','rgba(224,68,58,0.8)'],borderColor:['#2de08a','#e0443a'],borderWidth:2,hoverOffset:8}]},
+    options:{responsive:true,cutout:'68%',plugins:{legend:{display:true,position:'bottom',labels:{color:'#9aa4b8',padding:16,usePointStyle:true}},tooltip:{backgroundColor:'#1a1f2b',borderColor:'#252d3d',borderWidth:1,callbacks:{label:ctx=>` GHS ${ctx.parsed.toLocaleString()} (${Math.round(ctx.parsed/(d.maint+d.other)*100)}%)`}}}}
   });
 }
 
 // ─── YEARLY CHART ─────────────────────────────────────────────────────────────
 function renderYearly() {
-  const years = getSortedYears();
-  const ctx = document.getElementById('yearlyChart').getContext('2d');
+  const years=getSortedYears();
+  const ctx=document.getElementById('yearlyChart').getContext('2d');
   if(charts.yearly) charts.yearly.destroy();
-  charts.yearly = new Chart(ctx, {
+  charts.yearly=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels: years,
-      datasets:[
-        { label:'Gross', data:years.map(y=>DATA.yearlyTotals[y].gross),
-          backgroundColor:'rgba(245,166,35,0.7)', borderColor:'#f5a623', borderWidth:1.5, borderRadius:5 },
-        { label:'Net', data:years.map(y=>DATA.yearlyTotals[y].gross-DATA.yearlyTotals[y].exp),
-          backgroundColor:'rgba(45,224,138,0.6)', borderColor:'#2de08a', borderWidth:1.5, borderRadius:5 },
-        { label:'Exp', data:years.map(y=>DATA.yearlyTotals[y].exp),
-          backgroundColor:'rgba(224,68,58,0.6)', borderColor:'#e0443a', borderWidth:1.5, borderRadius:5 },
-      ]
-    },
-    options:{
-      responsive:true,
-      plugins:{ legend:{display:true,position:'bottom',labels:{color:'#9aa4b8',padding:12,usePointStyle:true}},
-        tooltip:{ backgroundColor:'#1a1f2b', borderColor:'#252d3d', borderWidth:1,
-          callbacks:{label:ctx=>` ${ctx.dataset.label}: GHS ${ctx.parsed.y.toLocaleString()}`} }
-      },
-      scales:{
-        x:{ grid:{display:false}, ticks:{color:'#9aa4b8'} },
-        y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7a96',callback:v=>'GHS '+(v/1000)+'K'} }
-      }
-    }
+    data:{labels:years,datasets:[
+      {label:'Gross',data:years.map(y=>DATA.yearlyTotals[y].gross),backgroundColor:'rgba(245,166,35,0.7)',borderColor:'#f5a623',borderWidth:1.5,borderRadius:5},
+      {label:'Net',data:years.map(y=>DATA.yearlyTotals[y].gross-DATA.yearlyTotals[y].exp),backgroundColor:'rgba(45,224,138,0.6)',borderColor:'#2de08a',borderWidth:1.5,borderRadius:5},
+      {label:'Exp',data:years.map(y=>DATA.yearlyTotals[y].exp),backgroundColor:'rgba(224,68,58,0.6)',borderColor:'#e0443a',borderWidth:1.5,borderRadius:5},
+    ]},
+    options:{responsive:true,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9aa4b8',padding:12,usePointStyle:true}},tooltip:{backgroundColor:'#1a1f2b',borderColor:'#252d3d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.dataset.label}: GHS ${ctx.parsed.y.toLocaleString()}`}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#9aa4b8'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7a96',callback:v=>'GHS '+(v/1000)+'K'}}}}
   });
 }
 
-// ─── EFFICIENCY RADAR / BAR ───────────────────────────────────────────────────
+// ─── EFFICIENCY ───────────────────────────────────────────────────────────────
 function renderEfficiency(year) {
-  const trucks = getTruckData(year);
-  const ctx = document.getElementById('efficiencyChart').getContext('2d');
+  const trucks=getTruckData(year);
+  const ctx=document.getElementById('efficiencyChart').getContext('2d');
   if(charts.eff) charts.eff.destroy();
-  charts.eff = new Chart(ctx, {
+  charts.eff=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels: trucks.map(t=>t.id),
-      datasets:[{
-        label:'Efficiency %',
-        data: trucks.map(t=>t.eff),
-        backgroundColor: trucks.map(t =>
-          t.eff > 80 ? 'rgba(45,224,138,0.75)' :
-          t.eff > 60 ? 'rgba(245,166,35,0.75)' :
-          'rgba(224,68,58,0.75)'
-        ),
-        borderColor: trucks.map(t =>
-          t.eff > 80 ? '#2de08a' : t.eff > 60 ? '#f5a623' : '#e0443a'
-        ),
-        borderWidth:1.5, borderRadius:5
-      }]
-    },
-    options:{
-      responsive:true, indexAxis:'y',
-      onClick(e, elements) {
-        if(elements.length) {
-          const idx = elements[0].index;
-          const truckId = trucks[idx].id;
-          window.location.href = 'truck.html?id=' + encodeURIComponent(truckId);
-        }
-      },
-      plugins:{ tooltip:{ backgroundColor:'#1a1f2b', borderColor:'#252d3d', borderWidth:1,
-        callbacks:{ label: ctx => ` Net efficiency: ${ctx.parsed.x}%` }
-      }},
-      scales:{
-        x:{ max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7a96',callback:v=>v+'%'} },
-        y:{ grid:{display:false}, ticks:{color:'#9aa4b8',font:{family:'JetBrains Mono',size:11}} }
-      }
-    }
+    data:{labels:trucks.map(t=>t.id),datasets:[{label:'Efficiency %',data:trucks.map(t=>t.eff),
+      backgroundColor:trucks.map(t=>t.eff>80?'rgba(45,224,138,0.75)':t.eff>60?'rgba(245,166,35,0.75)':'rgba(224,68,58,0.75)'),
+      borderColor:trucks.map(t=>t.eff>80?'#2de08a':t.eff>60?'#f5a623':'#e0443a'),borderWidth:1.5,borderRadius:5}]},
+    options:{responsive:true,indexAxis:'y',plugins:{tooltip:{backgroundColor:'#1a1f2b',borderColor:'#252d3d',borderWidth:1,callbacks:{label:ctx=>` Net efficiency: ${ctx.parsed.x}%`}}},
+      scales:{x:{max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7a96',callback:v=>v+'%'}},y:{grid:{display:false},ticks:{color:'#9aa4b8',font:{family:'JetBrains Mono',size:11}}}}}
   });
-  document.getElementById('efficiencyChart').style.cursor = 'pointer';
 }
 
 // ─── HEATMAP ──────────────────────────────────────────────────────────────────
 function renderHeatmap() {
-  const trucks = Object.keys(DATA.trucks);
-  const years  = getSortedYears();
-  const allNets = trucks.flatMap(t => years.map(y => DATA.trucks[t][y]?.net || 0));
-  const maxNet  = Math.max(...allNets);
-
-  let html = `<div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
-      <tr>
-        <th style="padding:6px 8px;color:var(--muted);text-align:left;font-weight:500;font-size:0.68rem;text-transform:uppercase;letter-spacing:1px">Truck</th>
-        ${years.map(y=>`<th style="padding:6px 10px;color:var(--muted);text-align:center;font-weight:500;font-size:0.68rem;letter-spacing:1px">${y}</th>`).join('')}
-      </tr>`;
-  trucks.forEach(t => {
-    html += `<tr>
-      <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;white-space:nowrap"><a href="truck.html?id=${encodeURIComponent(t)}" style="color:var(--accent);text-decoration:none;font-weight:600;transition:color 0.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--accent)'">${t}</a></td>`;
-    years.forEach(y => {
-      const d = DATA.trucks[t][y];
-      const net = d?.net || 0;
-      const ratio = maxNet ? net/maxNet : 0;
-      const alpha = net > 0 ? (0.15 + ratio * 0.75).toFixed(2) : '0.08';
-      const textColor = net > 0 ? (ratio > 0.5 ? '#fff' : '#e8ecf4') : 'var(--muted)';
-      const bg = net > 0
-        ? `rgba(45,224,138,${alpha})`
-        : net < 0
-          ? `rgba(224,68,58,0.3)`
-          : `rgba(255,255,255,0.04)`;
-      const label = net > 0 ? `GHS ${(net/1000).toFixed(0)}K` : (d ? `GHS ${(net/1000).toFixed(0)}K` : '—');
-      html += `<td style="padding:7px 8px;text-align:center;background:${bg};color:${textColor};border-radius:4px;font-weight:600;letter-spacing:0.3px">${label}</td>`;
+  const truckIds=Object.keys(DATA.trucks);
+  const years=getSortedYears();
+  const allNets=truckIds.flatMap(t=>years.map(y=>DATA.trucks[t][y]?.net||0));
+  const maxNet=Math.max(...allNets);
+  let html=`<table style="width:100%;border-collapse:collapse;font-size:0.78rem;"><tr><th style="padding:6px 8px;color:var(--muted);text-align:left;font-weight:500;font-size:0.68rem;text-transform:uppercase;letter-spacing:1px">Truck</th>${years.map(y=>`<th style="padding:6px 10px;color:var(--muted);text-align:center;font-weight:500;font-size:0.68rem;letter-spacing:1px">${y}</th>`).join('')}</tr>`;
+  truckIds.forEach(t=>{
+    html+=`<tr><td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:0.72rem;white-space:nowrap;color:var(--accent);font-weight:600">${t}</td>`;
+    years.forEach(y=>{
+      const d=DATA.trucks[t][y]; const net=d?.net||0;
+      const ratio=maxNet?net/maxNet:0; const alpha=net>0?(0.15+ratio*0.75).toFixed(2):'0.08';
+      const textColor=net>0?(ratio>0.5?'#fff':'#e8ecf4'):'var(--muted)';
+      const bg=net>0?`rgba(45,224,138,${alpha})`:net<0?`rgba(224,68,58,0.3)`:`rgba(255,255,255,0.04)`;
+      html+=`<td style="padding:7px 8px;text-align:center;background:${bg};color:${textColor};border-radius:4px;font-weight:600;letter-spacing:0.3px">${net?(net/1000).toFixed(0)+'K':'—'}</td>`;
     });
-    html += `</tr>`;
+    html+=`</tr>`;
   });
-  html += `</table></div>`;
-  document.getElementById('heatmapContainer').innerHTML = html;
+  html+=`</table>`;
+  document.getElementById('heatmapContainer').innerHTML=html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//   BREAKEVEN TRACKER
+// ─────────────────────────────────────────────────────────────────────────────
+function getTruckTotalCost(truckId) {
+  // Sum all cost components: initialValue + pricePaid + maintenanceCost
+  const c = DATA.truckCost?.[truckId];
+  if (c) return (Number(c.initialValue || 0) + Number(c.pricePaid || 0) + Number(c.maintenanceCost || 0));
+  // Fallback to legacy purchasePrice
+  return Number(DATA.trucks[truckId]?.purchasePrice || 0);
+}
+function getTruckCumulativeNet(truckId) {
+  const t = DATA.trucks[truckId];
+  const years = getSortedYears();
+  let cum = 0;
+  years.forEach(y => {
+    const d = t[y];
+    if (d) cum += (d.net || 0);
+  });
+  return cum;
+}
+
+function renderBreakeven(year) {
+  year = year || 'all';
+  const grid = document.getElementById('breakevenGrid');
+  const truckIds = Object.keys(DATA.trucks).filter(id => year === 'all' || DATA.trucks[id]?.[String(year)]);
+  const drivers = DATA.drivers || {};
+  let html = '';
+
+  truckIds.forEach(id => {
+    const t = DATA.trucks[id];
+    const totalCost = getTruckTotalCost(id);
+    const cumulativeNet = getTruckCumulativeNet(id);
+    const driver = drivers[id] || '—';
+
+    if (!totalCost) {
+      // No cost set
+      html += `
+        <div class="be-card unknown">
+          <div class="be-truck-id">${id}</div>
+          <div class="be-driver"><i class="fa-solid fa-user" style="margin-right:5px;opacity:0.5"></i>${driver}</div>
+          <span class="be-status-badge unknown"><i class="fa-solid fa-circle-question"></i>No Cost Set</span>
+          <div class="be-row"><span class="be-row-label">Total Investment</span><span class="be-row-val" style="color:var(--muted)">Not set</span></div>
+          <div class="be-row"><span class="be-row-label">Cumulative Net</span><span class="be-row-val" style="color:var(--green)">${cumulativeNet>=0?'+':''}GHS ${cumulativeNet.toLocaleString()}</span></div>
+          <div class="be-progress-wrap">
+            <div class="be-progress-label"><span>Breakeven Progress</span><span>—</span></div>
+            <div class="be-progress-track"><div class="be-progress-fill not-broken" style="width:0%"></div></div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const isBroken = cumulativeNet >= totalCost;
+    const pct = Math.min(Math.round(cumulativeNet / totalCost * 100), 100);
+    const remaining = totalCost - cumulativeNet;
+
+    html += `
+      <div class="be-card ${isBroken ? 'broken' : 'not-broken'}">
+        <div class="be-truck-id">${id}</div>
+        <div class="be-driver"><i class="fa-solid fa-user" style="margin-right:5px;opacity:0.5"></i>${driver}</div>
+        ${isBroken
+          ? `<span class="be-status-badge broken"><i class="fa-solid fa-trophy"></i>BROKEN EVEN ✓</span>`
+          : `<span class="be-status-badge not-broken"><i class="fa-solid fa-hourglass-half"></i>In Progress</span>`}
+        <div class="be-row">
+          <span class="be-row-label">Total Investment</span>
+          <span class="be-row-val">GHS ${totalCost.toLocaleString()}</span>
+        </div>
+        <div class="be-row">
+          <span class="be-row-label">Cumulative Net</span>
+          <span class="be-row-val" style="color:${cumulativeNet>=0?'var(--green)':'var(--red)'}">${cumulativeNet>=0?'+':''}GHS ${cumulativeNet.toLocaleString()}</span>
+        </div>
+        <div class="be-progress-wrap">
+          <div class="be-progress-label">
+            <span>Breakeven Progress</span>
+            <span style="font-weight:700;color:${isBroken?'var(--green)':'var(--accent)'}">${pct}%</span>
+          </div>
+          <div class="be-progress-track">
+            <div class="be-progress-fill ${isBroken?'broken':'not-broken'}" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div class="be-surplus ${isBroken?'pos':'neg'}">
+          ${isBroken
+            ? `<i class="fa-solid fa-circle-check"></i> Surplus: GHS ${(cumulativeNet - totalCost).toLocaleString()} profit after breakeven`
+            : `<i class="fa-solid fa-circle-arrow-up"></i> Still needs GHS ${remaining.toLocaleString()} to break even`}
+        </div>
+      </div>`;
+  });
+
+  grid.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//   PROFIT & LOSS CHART
+// ─────────────────────────────────────────────────────────────────────────────
+function populatePnLSelect() {
+  const sel = document.getElementById('pnlTruckSelect');
+  sel.innerHTML = '<option value="all">All Trucks Combined</option>';
+  Object.keys(DATA.trucks).forEach(id => {
+    sel.innerHTML += `<option value="${id}">${id}</option>`;
+  });
+}
+
+function togglePnLMode() {
+  pnlCumulative = !pnlCumulative;
+  const btn = document.getElementById('pnlModeBtn');
+  btn.textContent = pnlCumulative ? 'Cumulative' : 'Per Period';
+  btn.classList.toggle('active', pnlCumulative);
+  renderPnL();
+}
+
+function renderPnL() {
+  const selectedTruck = document.getElementById('pnlTruckSelect').value;
+  const years = getSortedYears();
+  const ctx = document.getElementById('pnlChart').getContext('2d');
+  if (charts.pnl) charts.pnl.destroy();
+
+  const datasets = [];
+
+  if (selectedTruck === 'all') {
+    // All trucks combined P&L per year
+    const labels = years.map(String);
+    const netPerYear = years.map(y => {
+      const yKey = String(y);
+      return Object.values(DATA.trucks).reduce((sum, t) => sum + (t[yKey]?.net || 0), 0);
+    });
+
+    if (pnlCumulative) {
+      let cum = 0;
+      const cumData = netPerYear.map(v => { cum += v; return cum; });
+      datasets.push({
+        label: 'Cumulative Net P&L',
+        data: cumData,
+        borderColor: '#2de08a',
+        backgroundColor: cumData.map(v => v >= 0 ? 'rgba(45,224,138,0.15)' : 'rgba(224,68,58,0.15)'),
+        borderWidth: 2.5, pointBackgroundColor: cumData.map(v => v >= 0 ? '#2de08a' : '#e0443a'),
+        pointRadius: 5, tension: 0.35, fill: true,
+      });
+      datasets.push({
+        label: 'Breakeven Line',
+        data: labels.map(() => 0),
+        borderColor: 'rgba(245,166,35,0.5)', borderDash: [6,4],
+        borderWidth: 1.5, pointRadius: 0, fill: false,
+      });
+    } else {
+      datasets.push({
+        label: 'Net P&L per Year',
+        data: netPerYear,
+        backgroundColor: netPerYear.map(v => v >= 0 ? 'rgba(45,224,138,0.7)' : 'rgba(224,68,58,0.7)'),
+        borderColor: netPerYear.map(v => v >= 0 ? '#2de08a' : '#e0443a'),
+        borderWidth: 1.5, borderRadius: 5,
+        type: 'bar',
+      });
+    }
+
+    charts.pnl = new Chart(ctx, {
+      type: pnlCumulative ? 'line' : 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { color: '#9aa4b8', padding: 12, usePointStyle: true } },
+          tooltip: { backgroundColor: '#1a1f2b', borderColor: '#252d3d', borderWidth: 1,
+            callbacks: { label: ctx => ` ${ctx.dataset.label}: GHS ${ctx.parsed.y.toLocaleString()}` } }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9aa4b8' } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7a96', callback: v => 'GHS '+(v/1000).toFixed(0)+'K' } }
+        }
+      }
+    });
+  } else {
+    // Single truck P&L across years
+    const t = DATA.trucks[selectedTruck];
+    const totalCost = getTruckTotalCost(selectedTruck);
+    const truckYears = years.filter(y => t[String(y)]);
+    const labels = truckYears.map(String);
+    const netPerYear = truckYears.map(y => t[String(y)]?.net || 0);
+
+    if (pnlCumulative) {
+      let cum = -totalCost; // start at negative total investment
+      const cumData = netPerYear.map(v => { cum += v; return cum; });
+
+      datasets.push({
+        label: `${selectedTruck} — Cumulative P&L`,
+        data: cumData,
+        borderColor: '#4a9eff',
+        backgroundColor: 'rgba(74,158,255,0.08)',
+        borderWidth: 2.5, tension: 0.35, fill: true,
+        pointBackgroundColor: cumData.map(v => v >= 0 ? '#2de08a' : '#e0443a'),
+        pointRadius: 5,
+      });
+      datasets.push({
+        label: 'Break-Even Line (0)',
+        data: labels.map(() => 0),
+        borderColor: 'rgba(245,166,35,0.6)', borderDash: [6, 4],
+        borderWidth: 1.5, pointRadius: 0, fill: false,
+        type: 'line',
+      });
+      if (totalCost) {
+        datasets.push({
+          label: `Total Investment (−GHS ${(totalCost/1000).toFixed(0)}K)`,
+          data: labels.map(() => -totalCost),
+          borderColor: 'rgba(224,68,58,0.4)', borderDash: [3, 3],
+          borderWidth: 1, pointRadius: 0, fill: false,
+          type: 'line',
+        });
+      }
+    } else {
+      datasets.push({
+        label: 'Net Income per Year',
+        data: netPerYear,
+        backgroundColor: netPerYear.map(v => v >= 0 ? 'rgba(45,224,138,0.7)' : 'rgba(224,68,58,0.7)'),
+        borderColor: netPerYear.map(v => v >= 0 ? '#2de08a' : '#e0443a'),
+        borderWidth: 1.5, borderRadius: 5,
+      });
+    }
+
+    charts.pnl = new Chart(ctx, {
+      type: pnlCumulative ? 'line' : 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { color: '#9aa4b8', padding: 12, usePointStyle: true } },
+          tooltip: { backgroundColor: '#1a1f2b', borderColor: '#252d3d', borderWidth: 1,
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: GHS ${ctx.parsed.y.toLocaleString()}`,
+              afterBody: (items) => {
+                if (totalCost && pnlCumulative) {
+                  const v = items[0]?.parsed.y;
+                  if (v !== undefined) return v >= 0 ? ['✓ Total investment recovered!'] : [`Remaining to breakeven: GHS ${(-v).toLocaleString()}`];
+                }
+                return [];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9aa4b8' } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7a96', callback: v => 'GHS '+(v/1000).toFixed(0)+'K' } }
+        }
+      }
+    });
+  }
 }
 
 // ─── TRUCK TABLE ──────────────────────────────────────────────────────────────
 function renderTable(year) {
   const trucks = getTruckData(year);
-  const maxNet = Math.max(...trucks.map(t=>t.net));
+  const maxNet = Math.max(...trucks.map(t => t.net));
   const ranks = ['r1','r2','r3','r4','r5','r6'];
   const drivers = DATA.drivers || {};
-  document.getElementById('tableYearPill').innerHTML =
-    year === 'all'
-      ? '<i class="fa-solid fa-layer-group" aria-hidden="true"></i>All Years Combined'
-      : `<i class="fa-solid fa-calendar-day" aria-hidden="true"></i>Year ${year}`;
+  const admin = isAdmin();
+  document.getElementById('tableYearPill').innerHTML = year === 'all'
+    ? '<i class="fa-solid fa-layer-group"></i>All Years Combined'
+    : `<i class="fa-solid fa-calendar-day"></i>Year ${year}`;
 
-  let html = `
-    <thead><tr>
-      <th>Rank</th><th>Truck ID</th><th>Driver</th>
-      <th>Gross (GHS)</th><th>Expenditure (GHS)</th><th>Net Income (GHS)</th>
-      <th>Weeks Operated</th><th>Efficiency</th><th>Net Income Bar</th>
-    </tr></thead><tbody>`;
+  let html = `<thead><tr>
+    <th>Rank</th><th>Truck ID</th><th>Driver</th>
+    <th>Gross (GHS)</th><th>Expenditure</th><th>Net Income</th>
+    <th>Weeks</th><th>Efficiency</th><th>Breakeven</th><th>Net Bar</th>
+    ${admin ? '<th style="text-align:center">Actions</th>' : ''}
+  </tr></thead><tbody>`;
 
-  trucks.forEach((t,i) => {
-    const pct = maxNet ? Math.round(t.net/maxNet*100) : 0;
-    const effColor = t.eff>80?'var(--green)':t.eff>60?'var(--accent)':'var(--red)';
-    html += `<tr>
-      <td><span class="rank-badge ${ranks[i]}">${i+1}</span></td>
-      <td><a href="truck.html?id=${encodeURIComponent(t.id)}" class="truck-id">${t.id}</a></td>
-      <td style="color:var(--label)">${drivers[t.id]||'—'}</td>
+  trucks.forEach((t, i) => {
+    const pct = maxNet ? Math.round(t.net / maxNet * 100) : 0;
+    const effColor = t.eff > 80 ? 'var(--green)' : t.eff > 60 ? 'var(--accent)' : 'var(--red)';
+    const tData = DATA.trucks[t.id];
+    const totalCost = getTruckTotalCost(t.id);
+    const cumNet = getTruckCumulativeNet(t.id);
+    const isEOT = tData?.endOfTerm === true;
+    const eotTag = isEOT ? '<span class="eot-label">EOT</span>' : '';
+    let beHtml;
+    if (!totalCost) {
+      beHtml = `<span class="be-table-badge na"><i class="fa-solid fa-minus"></i>N/A</span>`;
+    } else if (cumNet >= totalCost) {
+      beHtml = `<span class="be-table-badge yes"><i class="fa-solid fa-check"></i>BROKEN EVEN</span>`;
+    } else {
+      const bePct = Math.min(Math.round(cumNet / totalCost * 100), 99);
+      beHtml = `<span class="be-table-badge no"><i class="fa-solid fa-hourglass-half"></i>${bePct}%</span>`;
+    }
+
+    html += `<tr class="${isEOT ? 'eot-row' : ''}">
+      <td><span class="rank-badge ${ranks[i] || 'r4'}">${i+1}</span></td>
+      <td><a href="truck.html?id=${encodeURIComponent(t.id)}" class="truck-id">${t.id}</a>${eotTag}</td>
+      <td style="color:var(--label)">${drivers[t.id] || '—'}</td>
       <td style="color:var(--accent);font-weight:600">${t.gross.toLocaleString()}</td>
       <td style="color:var(--red)">${t.exp.toLocaleString()}</td>
       <td style="color:var(--green);font-weight:700">${t.net.toLocaleString()}</td>
       <td style="color:var(--muted);text-align:center">${t.weeks}</td>
       <td style="color:${effColor};font-weight:600;font-family:'JetBrains Mono',monospace">${t.eff}%</td>
-      <td style="min-width:100px">
-        <div class="bar-cell">
-          <div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${pct}%"></div></div>
-          <span style="font-size:0.7rem;color:var(--muted);min-width:28px">${pct}%</span>
-        </div>
-      </td>
+      <td>${beHtml}</td>
+      <td style="min-width:90px"><div class="bar-cell"><div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${pct}%"></div></div><span style="font-size:0.7rem;color:var(--muted);min-width:28px">${pct}%</span></div></td>
+      ${admin ? `<td><div class="truck-actions">
+        <button class="tbl-act edit" title="Edit" onclick="editTruckEntry('${t.id}')"><i class="fa-solid fa-pencil"></i></button>
+        <button class="tbl-act eot${isEOT ? ' active' : ''}" title="${isEOT ? 'Remove End-of-Term' : 'Mark End-of-Term'}" onclick="toggleEOT('${t.id}')"><i class="fa-solid fa-stop"></i></button>
+        <button class="tbl-act del" title="Delete truck" onclick="confirmDeleteTruck('${t.id}')"><i class="fa-solid fa-xmark"></i></button>
+      </div></td>` : ''}
     </tr>`;
   });
   html += `</tbody>`;
   document.getElementById('truckTable').innerHTML = html;
 }
 
-// ─── MODAL HELPERS ────────────────────────────────────────────────────────────
+// ─── WEEKS BREAKDOWN ─────────────────────────────────────────────────────────
+function renderWeeksBreakdown(year) {
+  const container = document.getElementById('weeksBreakdown');
+  if (!container) return;
+  const trucks = DATA.trucks;
+  const truckIds = Object.keys(trucks).sort();
+  const years = year === 'all' ? getSortedYears() : [Number(year)];
+  let chips = []; let grandTotal = 0;
+  truckIds.forEach(id => {
+    if (year !== 'all' && !trucks[id]?.[String(year)]) return;
+    const driver = (DATA.drivers && DATA.drivers[id]) || '—';
+    let truckTotal = 0;
+    years.forEach(y => { truckTotal += trucks[id]?.[String(y)]?.weeks || 0; });
+    grandTotal += truckTotal;
+    chips.push({ id, driver, total: truckTotal });
+  });
+  let html = '';
+  chips.forEach(c => {
+    html += `<div class="weeks-chip"><div class="weeks-chip-id">${c.id}</div><div class="weeks-chip-driver">${c.driver}</div><div class="weeks-chip-val">${c.total}</div><div class="weeks-chip-label">weeks</div></div>`;
+  });
+  html += `<div class="weeks-chip total"><div class="weeks-chip-id">TOTAL</div><div class="weeks-chip-driver">${chips.length} trucks</div><div class="weeks-chip-val">${grandTotal}</div><div class="weeks-chip-label">total weeks</div></div>`;
+  container.innerHTML = html;
+}
+
+// ─── MODALS ───────────────────────────────────────────────────────────────────
 function openModal(id) {
   const modal = document.getElementById(id);
-  if(!modal) return;
-  // Populate dynamic content before opening
-  if(id === 'manageYearsModal') populateManageYears();
-  if(id === 'manageDriversModal') populateManageDrivers();
-  if(id === 'manageDriversModal') populateNewDriverTruckSelect();
-  if(id === 'editMonthlyModal') { populateYearSelect('m_monthlyYear'); populateMonthlyEditor(); }
-  if(id === 'editExpensesModal') { populateYearSelect('m_expYear'); populateExpEditor(); }
-  if(id === 'deleteYearModal') populateYearSelect('m_deleteYear');
-  if(id === 'addYearModal') { document.getElementById('m_addYear').value = Math.max(...getSortedYears(), new Date().getFullYear()) + 1; }
+  if (!modal) return;
+  if (id === 'manageYearsModal') populateManageYears();
+  if (id === 'manageDriversModal') { populateManageDrivers(); populateNewDriverTruckSelect(); }
+  if (id === 'editMonthlyModal') { populateYearSelect('m_monthlyYear'); populateMonthlyEditor(); }
+  if (id === 'editExpensesModal') { populateYearSelect('m_expYear'); populateExpEditor(); }
+  if (id === 'deleteYearModal') populateYearSelect('m_deleteYear');
+  if (id === 'addYearModal') document.getElementById('m_addYear').value = Math.max(...getSortedYears(), new Date().getFullYear()) + 1;
   modal.classList.add('open');
 }
 function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
-
-// Close modals on overlay click
-document.addEventListener('click', e => {
-  if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
-});
+document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open'); });
 
 function populateYearSelect(selId) {
   const sel = document.getElementById(selId);
-  if(!sel) return;
-  const years = getSortedYears();
-  sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+  if (!sel) return;
+  sel.innerHTML = getSortedYears().map(y => `<option value="${y}">${y}</option>`).join('');
 }
-
 function saveAndRefresh() {
   localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
-  rebuildAllMonthlyData();
-  syncExpBreakdownYears();
-  renderYearTabs();
-  updateHeaderSubtitle();
-  setYear(currentYear);
-  renderYearly();
-  renderHeatmap();
-  renderWeeksBreakdown(currentYear);
+  const now = new Date();
+  localStorage.setItem('dashboard_lastSaved', now.toISOString());
+  updateDashTimestamp(now);
+  rebuildAllMonthlyData(); syncExpBreakdownYears(); renderYearTabs(); updateHeaderSubtitle();
+  setYear(currentYear); renderYearly(); renderHeatmap(); renderWeeksBreakdown(currentYear);
+  renderBreakeven(currentYear); renderPnL(); populatePnLSelect();
 }
-
-// ─── ADD NEW TRUCK ────────────────────────────────────────────────────────────
 function doAddTruck() {
   const id = document.getElementById('m_truckId').value.trim();
   const driver = document.getElementById('m_truckDriver').value.trim();
   const year = Number(document.getElementById('m_truckYear').value);
+  const purchase = Number(document.getElementById('m_truckPurchase').value || 0);
   const weeks = Number(document.getElementById('m_truckWeeks').value || 52);
-  if(!id) return alert('Enter a Truck ID');
-  if(!Number.isFinite(year) || year < 2024) return alert('Enter a valid year');
-
-  if(!DATA.trucks[id]) DATA.trucks[id] = {};
-  DATA.trucks[id][String(year)] = { gross:0, exp:0, net:0, weeks };
-  if(!DATA.drivers) DATA.drivers = {};
-  if(driver) DATA.drivers[id] = driver;
-  if(!DATA.yearlyTotals[String(year)]) DATA.yearlyTotals[String(year)] = { gross:0, exp:0, net:0 };
-
-  saveAndRefresh();
-  closeModal('addTruckModal');
-  document.getElementById('m_truckId').value = '';
-  document.getElementById('m_truckDriver').value = '';
+  if (!id) return alert('Enter a Truck ID');
+  if (!Number.isFinite(year) || year < 2024) return alert('Enter a valid year');
+  if (!DATA.trucks[id]) DATA.trucks[id] = {};
+  DATA.trucks[id].purchasePrice = purchase;
+  DATA.trucks[id][String(year)] = { gross: 0, exp: 0, net: 0, weeks };
+  if (!DATA.drivers) DATA.drivers = {};
+  if (driver) DATA.drivers[id] = driver;
+  if (!DATA.yearlyTotals[String(year)]) DATA.yearlyTotals[String(year)] = { gross: 0, exp: 0, net: 0 };
+  saveAndRefresh(); closeModal('addTruckModal');
 }
-
-// ─── ADD YEAR ─────────────────────────────────────────────────────────────────
 function doAddYear() {
   const year = Number(document.getElementById('m_addYear').value);
   const gross = Number(document.getElementById('m_addYearGross').value || 0);
   const exp = Number(document.getElementById('m_addYearExp').value || 0);
-  if(!Number.isFinite(year) || year < 2024 || year > 2040) return alert('Enter a valid year (2024–2040)');
-
+  if (!Number.isFinite(year) || year < 2024 || year > 2040) return alert('Enter a valid year (2024–2040)');
   const yKey = String(year);
   DATA.yearlyTotals[yKey] = { gross, exp, net: gross - exp };
-  if(!DATA.monthly[yKey]) DATA.monthly[yKey] = { labels:[], gross:[], exp:[] };
-
-  saveAndRefresh();
-  closeModal('addYearModal');
-  document.getElementById('m_addYearGross').value = '0';
-  document.getElementById('m_addYearExp').value = '0';
+  if (!DATA.monthly[yKey]) DATA.monthly[yKey] = { labels: [], gross: [], exp: [] };
+  saveAndRefresh(); closeModal('addYearModal');
 }
-
-// ─── MANAGE YEAR DATA ─────────────────────────────────────────────────────────
 function populateManageYears() {
   const body = document.getElementById('manageYearsBody');
-  const years = getSortedYears();
-  body.innerHTML = years.map(y => {
-    const d = DATA.yearlyTotals[String(y)] || { gross:0, exp:0 };
+  body.innerHTML = getSortedYears().map(y => {
+    const d = DATA.yearlyTotals[String(y)] || { gross: 0, exp: 0 };
     return `<div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px;">
       <span style="font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace">${y}</span>
       <div><label style="margin:0;font-size:0.68rem">Gross</label><input type="number" class="my-gross" data-year="${y}" value="${d.gross}"></div>
@@ -1590,71 +1197,50 @@ function populateManageYears() {
 }
 function doSaveYears() {
   document.querySelectorAll('#manageYearsBody .my-gross').forEach(inp => {
-    const y = inp.dataset.year;
-    const gross = Number(inp.value || 0);
+    const y = inp.dataset.year; const gross = Number(inp.value || 0);
     const expInp = document.querySelector(`#manageYearsBody .my-exp[data-year="${y}"]`);
     const exp = Number(expInp?.value || 0);
     DATA.yearlyTotals[y] = { gross, exp, net: gross - exp };
   });
-  saveAndRefresh();
-  closeModal('manageYearsModal');
+  saveAndRefresh(); closeModal('manageYearsModal');
 }
-
-// ─── MANAGE DRIVERS ───────────────────────────────────────────────────────────
 function populateManageDrivers() {
-  const body = document.getElementById('manageDriversBody');
-  if(!DATA.drivers) DATA.drivers = {};
-  const trucks = Object.keys(DATA.trucks);
-  body.innerHTML = trucks.map(id => {
-    const driver = DATA.drivers[id] || '';
-    return `<div style="display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:center;margin-bottom:8px;">
+  if (!DATA.drivers) DATA.drivers = {};
+  document.getElementById('manageDriversBody').innerHTML = Object.keys(DATA.trucks).map(id =>
+    `<div style="display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:center;margin-bottom:8px;">
       <span style="font-weight:600;font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--accent)">${id}</span>
-      <input type="text" class="md-driver" data-truck="${id}" value="${driver}" placeholder="Driver name">
-    </div>`;
-  }).join('');
+      <input type="text" class="md-driver" data-truck="${id}" value="${DATA.drivers[id] || ''}" placeholder="Driver name">
+    </div>`
+  ).join('');
 }
-
 function populateNewDriverTruckSelect() {
-  const sel = document.getElementById('newDriverTruck');
-  if(!sel) return;
-  const trucks = Object.keys(DATA.trucks);
-  sel.innerHTML = trucks.map(id => `<option value="${id}">${id}</option>`).join('');
+  const sel = document.getElementById('newDriverTruck'); if (!sel) return;
+  sel.innerHTML = Object.keys(DATA.trucks).map(id => `<option value="${id}">${id}</option>`).join('');
   document.getElementById('newDriverName').value = '';
 }
-
 function addNewDriverToTruck() {
   const truckId = document.getElementById('newDriverTruck').value;
   const name = document.getElementById('newDriverName').value.trim();
-  if(!truckId || !name) { alert('Select a truck and enter a driver name.'); return; }
-  if(!DATA.drivers) DATA.drivers = {};
-  DATA.drivers[truckId] = name;
-  populateManageDrivers();
-  populateNewDriverTruckSelect();
+  if (!truckId || !name) { alert('Select a truck and enter a driver name.'); return; }
+  if (!DATA.drivers) DATA.drivers = {};
+  DATA.drivers[truckId] = name; populateManageDrivers(); populateNewDriverTruckSelect();
 }
 function doSaveDrivers() {
-  if(!DATA.drivers) DATA.drivers = {};
-  document.querySelectorAll('#manageDriversBody .md-driver').forEach(inp => {
-    DATA.drivers[inp.dataset.truck] = inp.value.trim();
-  });
-  saveAndRefresh();
-  closeModal('manageDriversModal');
+  if (!DATA.drivers) DATA.drivers = {};
+  document.querySelectorAll('#manageDriversBody .md-driver').forEach(inp => { DATA.drivers[inp.dataset.truck] = inp.value.trim(); });
+  saveAndRefresh(); closeModal('manageDriversModal');
 }
-
-// ─── EDIT MONTHLY DATA ───────────────────────────────────────────────────────
 function populateMonthlyEditor() {
   const year = document.getElementById('m_monthlyYear')?.value;
   const body = document.getElementById('monthlyEditorBody');
-  if(!year || !body) return;
-  const ym = DATA.monthly[year] || { labels:[], gross:[], exp:[] };
-  const months = MONTH_ORDER;
+  if (!year || !body) return;
+  const ym = DATA.monthly[year] || { labels: [], gross: [], exp: [] };
   body.innerHTML = `<div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:6px 8px;align-items:center;">
     <span style="font-size:0.68rem;color:var(--muted);font-weight:600">MONTH</span>
     <span style="font-size:0.68rem;color:var(--muted);font-weight:600">GROSS</span>
     <span style="font-size:0.68rem;color:var(--muted);font-weight:600">EXP</span>
-    ${months.map(m => {
-      const idx = ym.labels.indexOf(m);
-      const g = idx >= 0 ? ym.gross[idx] : 0;
-      const e = idx >= 0 ? ym.exp[idx] : 0;
+    ${MONTH_ORDER.map(m => {
+      const idx = ym.labels.indexOf(m); const g = idx >= 0 ? ym.gross[idx] : 0; const e = idx >= 0 ? ym.exp[idx] : 0;
       return `<span style="font-weight:600;color:var(--label);font-size:0.82rem">${m}</span>
         <input type="number" class="mm-gross" data-month="${m}" value="${g}">
         <input type="number" class="mm-exp" data-month="${m}" value="${e}">`;
@@ -1662,172 +1248,333 @@ function populateMonthlyEditor() {
   </div>`;
 }
 function doSaveMonthly() {
-  const year = document.getElementById('m_monthlyYear')?.value;
-  if(!year) return;
+  const year = document.getElementById('m_monthlyYear')?.value; if (!year) return;
   const labels = [], gross = [], exp = [];
   document.querySelectorAll('#monthlyEditorBody .mm-gross').forEach(inp => {
-    const m = inp.dataset.month;
-    const g = Number(inp.value || 0);
-    const eInp = document.querySelector(`#monthlyEditorBody .mm-exp[data-month="${m}"]`);
-    const e = Number(eInp?.value || 0);
-    if(g > 0 || e > 0) { labels.push(m); gross.push(g); exp.push(e); }
+    const m = inp.dataset.month; const g = Number(inp.value || 0);
+    const e = Number(document.querySelector(`#monthlyEditorBody .mm-exp[data-month="${m}"]`)?.value || 0);
+    if (g > 0 || e > 0) { labels.push(m); gross.push(g); exp.push(e); }
   });
   DATA.monthly[year] = { labels, gross, exp };
-  saveAndRefresh();
-  closeModal('editMonthlyModal');
+  saveAndRefresh(); closeModal('editMonthlyModal');
 }
-
-// ─── EDIT EXPENSES ────────────────────────────────────────────────────────────
 function populateExpEditor() {
   const year = document.getElementById('m_expYear')?.value;
   const body = document.getElementById('expEditorBody');
-  if(!year || !body) return;
-  const d = DATA.expBreakdown[year] || { maint:0, other:0 };
-  body.innerHTML = `
-    <label>Maintenance / Oil Changes (GHS)</label>
-    <input type="number" id="m_expMaint" value="${d.maint || 0}">
-    <label>Other Expenses / Parts (GHS)</label>
-    <input type="number" id="m_expOther" value="${d.other || 0}">
-  `;
+  if (!year || !body) return;
+  const d = DATA.expBreakdown[year] || { maint: 0, other: 0 };
+  body.innerHTML = `<label>Maintenance / Oil Changes (GHS)</label><input type="number" id="m_expMaint" value="${d.maint||0}">
+    <label>Other Expenses / Parts (GHS)</label><input type="number" id="m_expOther" value="${d.other||0}">`;
 }
 function doSaveExpenses() {
-  const year = document.getElementById('m_expYear')?.value;
-  if(!year) return;
+  const year = document.getElementById('m_expYear')?.value; if (!year) return;
   const maint = Number(document.getElementById('m_expMaint')?.value || 0);
   const other = Number(document.getElementById('m_expOther')?.value || 0);
-  if(!DATA.expBreakdown) DATA.expBreakdown = {};
+  if (!DATA.expBreakdown) DATA.expBreakdown = {};
   DATA.expBreakdown[year] = { maint, other };
-  // Recalculate "all"
-  let allMaint = 0, allOther = 0;
-  getSortedYears().forEach(y => { const e = DATA.expBreakdown[String(y)] || {}; allMaint += e.maint || 0; allOther += e.other || 0; });
-  DATA.expBreakdown.all = { maint: allMaint, other: allOther };
-  saveAndRefresh();
-  closeModal('editExpensesModal');
+  let am = 0, ao = 0;
+  getSortedYears().forEach(y => { const e = DATA.expBreakdown[String(y)] || {}; am += e.maint || 0; ao += e.other || 0; });
+  DATA.expBreakdown.all = { maint: am, other: ao };
+  saveAndRefresh(); closeModal('editExpensesModal');
 }
-
-// ─── DELETE YEAR ──────────────────────────────────────────────────────────────
 function doDeleteYear() {
-  const year = document.getElementById('m_deleteYear')?.value;
-  if(!year) return;
-  if(!confirm(`Delete ALL data for ${year}? This sends data to the Recovery Bin.`)) return;
-
+  const year = document.getElementById('m_deleteYear')?.value; if (!year) return;
+  if (!confirm(`Delete ALL data for ${year}? Sends data to Recovery Bin.`)) return;
   const yKey = String(year);
-  // Save to recovery
   const recovery = JSON.parse(localStorage.getItem('truck_recovery') || '[]');
-    localStorage.setItem('truck_recovery', JSON.stringify(recovery));
-  recovery.push({ id: Date.now()+'_yr', type:'year_full', data:{ year:yKey, yearly:DATA.yearlyTotals[yKey], monthly:DATA.monthly[yKey], expBreakdown:DATA.expBreakdown?.[yKey] }, deletedAt:new Date().toISOString() });
-  // Remove truck year entries
+  recovery.push({ id: Date.now()+'_yr', type:'year_full', data:{ year:yKey, yearly:DATA.yearlyTotals[yKey], monthly:DATA.monthly[yKey] }, deletedAt:new Date().toISOString() });
   Object.keys(DATA.trucks).forEach(tid => {
-    if(DATA.trucks[tid][yKey]) {
+    if (DATA.trucks[tid][yKey]) {
       recovery.push({ id:Date.now()+'_t_'+tid, type:'truck', data:{ truckId:tid, year:yKey, ...DATA.trucks[tid][yKey] }, deletedAt:new Date().toISOString() });
       delete DATA.trucks[tid][yKey];
     }
-    if(!Object.keys(DATA.trucks[tid]).length) delete DATA.trucks[tid];
   });
   localStorage.setItem('truck_recovery', JSON.stringify(recovery));
-
-  delete DATA.yearlyTotals[yKey];
-  delete DATA.monthly[yKey];
-  if(DATA.expBreakdown) delete DATA.expBreakdown[yKey];
-
-  if(currentYear === yKey) currentYear = 'all';
-  saveAndRefresh();
-  closeModal('deleteYearModal');
+  delete DATA.yearlyTotals[yKey]; delete DATA.monthly[yKey];
+  if (DATA.expBreakdown) delete DATA.expBreakdown[yKey];
+  if (currentYear === yKey) currentYear = 'all';
+  saveAndRefresh(); closeModal('deleteYearModal');
 }
 
-// ─── TOGGLE SPREADSHEET ──────────────────────────────────────────────────────
+// ─── SPREADSHEET EDITOR ───────────────────────────────────────────────────────
 function toggleSpreadsheet() {
   const card = document.getElementById('spreadsheetCard');
-  if(!card) return;
+  if (!card) return;
   const visible = card.style.display !== 'none';
   card.style.display = visible ? 'none' : '';
-  if(!visible) {
-    renderSpreadsheetEditor();
-    card.scrollIntoView({ behavior:'smooth', block:'start' });
+  if (!visible) { renderSpreadsheetEditor(); card.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+function renderSpreadsheetEditor() {
+  const holder = document.getElementById('spreadsheetEditor'); if (!holder) return;
+  const filterYear = currentYear !== 'all' ? String(currentYear) : null;
+  const yearData = getSortedYears().filter(y => !filterYear || String(y) === filterYear)
+    .map(y => { const d = DATA.yearlyTotals[String(y)] || {}; return [String(y), Number(d.gross||0), Number(d.exp||0)]; });
+  const monthData = Object.keys(DATA.monthly).filter(y => y !== 'all' && (!filterYear || y === filterYear))
+    .flatMap(y => { const d = DATA.monthly[y]; return d.labels.map((m, i) => [y, m, d.gross[i]||0, d.exp[i]||0]); });
+  const truckData = Object.keys(DATA.trucks).flatMap(id => {
+    const t = DATA.trucks[id];
+    return Object.keys(t).filter(k => !isNaN(k) && (!filterYear || k === filterYear))
+      .map(y => [id, y, t[y].gross||0, t[y].exp||0, t[y].weeks||0, t.purchasePrice||0]);
+  });
+
+  function buildTable(id, cols, rows, types) {
+    const ths = `<th style="width:36px">#</th>` + cols.map(c=>`<th>${c}</th>`).join('') + `<th style="width:38px"></th>`;
+    const trs = rows.map((row, ri) => {
+      const tds = row.map((v, ci) => {
+        const num = types[ci]==='num';
+        return `<td class="cell${num?' num':''}" data-col="${ci}" data-row="${ri}" data-type="${types[ci]}">${num?Number(v).toLocaleString():v}</td>`;
+      }).join('');
+      return `<tr data-ri="${ri}"><td class="row-num">${ri+1}</td>${tds}<td class="act"><button onclick="xlsRemoveRow(this,'${id}')"><i class="fa-solid fa-trash-can"></i></button></td></tr>`;
+    }).join('');
+    return `<table class="xls" id="${id}"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
   }
+
+  holder.innerHTML = `<div class="sheet-wrap">
+    <div class="sheet-block">
+      <div class="sheet-head"><div class="sheet-title"><i class="fa-solid fa-calendar-days"></i>Yearly Totals</div><div class="sheet-btns"><button class="sheet-btn" onclick="xlsAddRow('yearXls',['${Math.max(...getSortedYears(),new Date().getFullYear())+1}','0','0'],['text','num','num'])"><i class="fa-solid fa-plus"></i>Add Year</button></div></div>
+      <div class="formula-bar" id="yearXls_fb"><span class="formula-cell-ref">—</span><span class="formula-value" style="color:var(--muted)">Click a cell to edit</span></div>
+      <div class="sheet-scroll">${buildTable('yearXls',['Year','Gross','Expenditure'],yearData,['text','num','num'])}</div>
+    </div>
+    <div class="sheet-block">
+      <div class="sheet-head"><div class="sheet-title"><i class="fa-solid fa-chart-line"></i>Monthly Data</div><div class="sheet-btns"><button class="sheet-btn" onclick="xlsAddRow('monthlyXls',['${getSortedYears().slice(-1)[0]||new Date().getFullYear()}','Jan','0','0'],['text','text','num','num'])"><i class="fa-solid fa-plus"></i>Add Row</button></div></div>
+      <div class="formula-bar" id="monthlyXls_fb"><span class="formula-cell-ref">—</span><span class="formula-value" style="color:var(--muted)">Click a cell to edit</span></div>
+      <div class="sheet-scroll">${buildTable('monthlyXls',['Year','Month','Gross','Expenditure'],monthData,['text','text','num','num'])}</div>
+    </div>
+    <div class="sheet-block">
+      <div class="sheet-head"><div class="sheet-title"><i class="fa-solid fa-truck"></i>Truck Data</div><div class="sheet-btns"><button class="sheet-btn" onclick="xlsAddRow('truckXls',['NEW TRUCK','${getSortedYears().slice(-1)[0]||new Date().getFullYear()}','0','0','52','0'],['text','text','num','num','num','num'])"><i class="fa-solid fa-plus"></i>Add Row</button></div></div>
+      <div class="formula-bar" id="truckXls_fb"><span class="formula-cell-ref">—</span><span class="formula-value" style="color:var(--muted)">Click a cell to edit</span></div>
+      <div class="sheet-scroll">${buildTable('truckXls',['Truck ID','Year','Gross','Expenditure','Weeks','Purchase Price'],truckData,['text','text','num','num','num','num'])}</div>
+    </div>
+    <div class="sheet-btns" style="margin-top:4px"><button class="sheet-btn primary" onclick="applySpreadsheetData()"><i class="fa-solid fa-check"></i>Apply Changes</button></div>
+    <div class="sheet-help">Click any cell to edit · Tab/Enter to move · Arrow keys to navigate · Esc to cancel<br>Use 3-letter month names (Jan, Feb, Mar). Purchase Price is used for breakeven calculation.</div>
+  </div>`;
+  holder.querySelectorAll('.xls').forEach(tbl => xlsInit(tbl));
 }
 
-// ─── WEEKS BREAKDOWN ─────────────────────────────────────────────────────────
-function renderWeeksBreakdown(year) {
-  const container = document.getElementById('weeksBreakdown');
-  const pill = document.getElementById('weeksPill');
-  if(!container) return;
+let xlsActive = null;
+function xlsInit(tbl) { tbl.addEventListener('click', e => { const cell = e.target.closest('td.cell'); if (cell) xlsSelect(cell, tbl.id); }); }
+function xlsSelect(cell, tableId) {
+  if (xlsActive) { xlsCommit(); xlsActive.cell.classList.remove('selected'); }
+  cell.classList.add('selected'); xlsActive = { cell, tableId };
+  const fb = document.getElementById(tableId + '_fb');
+  if (fb) {
+    const ref = String.fromCharCode(65 + parseInt(cell.dataset.col)) + (parseInt(cell.dataset.row) + 1);
+    fb.querySelector('.formula-cell-ref').textContent = ref;
+    fb.querySelector('.formula-value').textContent = cell.dataset.raw !== undefined ? cell.dataset.raw : cell.textContent;
+    fb.querySelector('.formula-value').style.color = 'var(--text)';
+  }
+}
+function xlsEdit(cell) {
+  if (cell.classList.contains('editing')) return;
+  const raw = cell.dataset.raw !== undefined ? cell.dataset.raw : cell.textContent.replace(/,/g, '');
+  cell.dataset.raw = raw; cell.classList.add('editing');
+  const input = document.createElement('input');
+  input.type = cell.dataset.type === 'num' ? 'number' : 'text'; input.value = raw;
+  cell.textContent = ''; cell.appendChild(input); input.focus(); input.select();
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); xlsCommit(); xlsMove(0, 1); }
+    if (e.key === 'Tab') { e.preventDefault(); xlsCommit(); xlsMove(e.shiftKey ? -1 : 1, 0); }
+    if (e.key === 'Escape') { cell.dataset.raw = raw; xlsCommit(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); xlsCommit(); xlsMove(0, 1); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); xlsCommit(); xlsMove(0, -1); }
+  });
+  input.addEventListener('blur', () => { setTimeout(() => { if (cell.classList.contains('editing')) xlsCommit(); }, 100); });
+}
+function xlsCommit() {
+  if (!xlsActive) return; const cell = xlsActive.cell;
+  if (!cell.classList.contains('editing')) return;
+  const input = cell.querySelector('input'); if (!input) return;
+  const val = input.value; cell.dataset.raw = val; cell.classList.remove('editing');
+  cell.textContent = cell.dataset.type === 'num' ? Number(val || 0).toLocaleString() : val;
+  const fb = document.getElementById(xlsActive.tableId + '_fb');
+  if (fb) fb.querySelector('.formula-value').textContent = val;
+}
+function xlsMove(dc, dr) {
+  if (!xlsActive) return;
+  const cell = xlsActive.cell; const tbl = cell.closest('table');
+  const col = parseInt(cell.dataset.col) + dc; const row = parseInt(cell.dataset.row) + dr;
+  const next = tbl.querySelector(`td.cell[data-col="${col}"][data-row="${row}"]`);
+  if (next) { xlsSelect(next, xlsActive.tableId); xlsEdit(next); }
+}
+document.addEventListener('dblclick', e => { const cell = e.target.closest('td.cell'); if (cell && xlsActive?.cell === cell) xlsEdit(cell); });
+document.addEventListener('keydown', e => {
+  if (!xlsActive) return; const cell = xlsActive.cell;
+  if (cell.classList.contains('editing')) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); xlsMove(0, 1); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); xlsMove(0, -1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); xlsMove(1, 0); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); xlsMove(-1, 0); }
+  if (e.key === 'Tab') { e.preventDefault(); xlsMove(e.shiftKey ? -1 : 1, 0); }
+  if (e.key === 'Enter') { e.preventDefault(); xlsEdit(cell); }
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault();
+    cell.dataset.raw = cell.dataset.type === 'num' ? '0' : '';
+    cell.textContent = cell.dataset.type === 'num' ? '0' : '';
+  }
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { cell.dataset.raw = ''; xlsEdit(cell); const inp = cell.querySelector('input'); if (inp) inp.value = e.key; }
+});
+function xlsRemoveRow(btn, tableId) {
+  const tr = btn.closest('tr'); if (!tr) return;
+  const tbl = tr.closest('table');
+  const cells = tr.querySelectorAll('td.cell');
+  const rowData = {};
+  cells.forEach(c => { rowData['col'+c.dataset.col] = c.dataset.raw !== undefined ? c.dataset.raw : c.textContent.replace(/,/g,''); });
+  const recovery = JSON.parse(localStorage.getItem('truck_recovery') || '[]');
+  let type = null;
+  if (tableId === 'yearXls') type = 'year';
+  else if (tableId === 'monthlyXls') type = 'monthly';
+  else if (tableId === 'truckXls') type = 'truck';
+  if (type) recovery.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2), type, data: rowData, deletedAt: new Date().toISOString() });
+  localStorage.setItem('truck_recovery', JSON.stringify(recovery));
+  tr.remove();
+  tbl.querySelectorAll('tbody tr').forEach((r, i) => { r.dataset.ri = i; r.querySelector('.row-num').textContent = i+1; r.querySelectorAll('td.cell').forEach(c => c.dataset.row = i); });
+  if (xlsActive && !xlsActive.cell.closest('tr')) xlsActive = null;
+}
+function xlsAddRow(tableId, values, types) {
+  const tbl = document.getElementById(tableId); if (!tbl) return;
+  const tbody = tbl.querySelector('tbody'); const ri = tbody.querySelectorAll('tr').length;
+  const tds = values.map((v, ci) => {
+    const num = types[ci]==='num';
+    return `<td class="cell${num?' num':''}" data-col="${ci}" data-row="${ri}" data-type="${types[ci]}" data-raw="${v}">${num?Number(v).toLocaleString():v}</td>`;
+  }).join('');
+  tbody.insertAdjacentHTML('beforeend', `<tr data-ri="${ri}"><td class="row-num">${ri+1}</td>${tds}<td class="act"><button onclick="xlsRemoveRow(this,'${tableId}')"><i class="fa-solid fa-trash-can"></i></button></td></tr>`);
+  const newCell = tbody.lastElementChild.querySelector('td.cell');
+  if (newCell) { xlsSelect(newCell, tableId); xlsEdit(newCell); }
+}
+function xlsReadTable(tableId) {
+  const tbl = document.getElementById(tableId); if (!tbl) return [];
+  const rows = [];
+  tbl.querySelectorAll('tbody tr').forEach(tr => {
+    const row = [];
+    tr.querySelectorAll('td.cell').forEach(c => row.push(c.dataset.raw !== undefined ? c.dataset.raw : c.textContent.replace(/,/g,'')));
+    rows.push(row);
+  });
+  return rows;
+}
+function applySpreadsheetData() {
+  const nextYearly = {};
+  xlsReadTable('yearXls').forEach(r => {
+    const year = Number(r[0]); const gross = Number(r[1]||0); const exp = Number(r[2]||0);
+    if (Number.isFinite(year) && year > 0) nextYearly[String(year)] = { gross, exp, net: gross-exp };
+  });
+  DATA.yearlyTotals = nextYearly;
 
-  pill.innerHTML = year === 'all'
-    ? '<i class="fa-solid fa-layer-group"></i>All Years'
-    : `<i class="fa-solid fa-calendar-day"></i>Year ${year}`;
-
-  const trucks = DATA.trucks;
-  const truckIds = Object.keys(trucks).sort();
-  const years = year === 'all' ? getSortedYears() : [Number(year)];
-
-  let rows = [];
-  let grandTotal = 0;
-
-  truckIds.forEach(id => {
-    const driver = (DATA.drivers && DATA.drivers[id]) || '—';
-    let yearCols = {};
-    let truckTotal = 0;
-    years.forEach(y => {
-      const w = (trucks[id] && trucks[id][String(y)])?.weeks || 0;
-      yearCols[y] = w;
-      truckTotal += w;
-    });
-    grandTotal += truckTotal;
-    rows.push({ id, driver, yearCols, total: truckTotal });
+  const nextMonthly = {};
+  xlsReadTable('monthlyXls').forEach(r => {
+    const year = Number(r[0]); const month = String(r[1]||'').trim().slice(0,3);
+    const gross = Number(r[2]||0); const exp = Number(r[3]||0);
+    if (!Number.isFinite(year)||year<=0||!MONTH_ORDER.includes(month)) return;
+    const yKey = String(year);
+    if (!nextMonthly[yKey]) nextMonthly[yKey] = [];
+    nextMonthly[yKey].push({ month, gross, exp });
+  });
+  DATA.monthly = { all: { labels:[], gross:[], exp:[] } };
+  Object.keys(nextMonthly).forEach(y => {
+    const rows = nextMonthly[y].sort((a,b)=>monthToIndex(a.month)-monthToIndex(b.month));
+    DATA.monthly[y] = { labels:rows.map(r=>r.month), gross:rows.map(r=>r.gross), exp:rows.map(r=>r.exp) };
   });
 
-  let html = `<table class="weeks-table"><thead><tr>
-    <th>Truck ID</th><th>Driver</th>`;
-  if(year === 'all') years.forEach(y => { html += `<th style="text-align:center">${y}</th>`; });
-  html += `<th style="text-align:center">Total Weeks</th></tr></thead><tbody>`;
-
-  rows.forEach(r => {
-    html += `<tr>
-      <td style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:0.76rem;color:var(--accent)">${r.id}</td>
-      <td style="color:var(--label)">${r.driver}</td>`;
-    if(year === 'all') years.forEach(y => {
-      const w = r.yearCols[y] || 0;
-      html += `<td style="text-align:center;color:${w > 0 ? 'var(--text)' : 'var(--muted)'};font-family:'JetBrains Mono',monospace">${w || '—'}</td>`;
-    });
-    html += `<td style="text-align:center;font-weight:700;color:var(--blue);font-family:'JetBrains Mono',monospace">${r.total}</td></tr>`;
+  const nextTrucks = {};
+  xlsReadTable('truckXls').forEach(r => {
+    const id = String(r[0]||'').trim(); const year = Number(r[1]); const gross = Number(r[2]||0);
+    const exp = Number(r[3]||0); const weeks = Number(r[4]||0); const purchasePrice = Number(r[5]||0);
+    if (!id||!Number.isFinite(year)||year<=0) return;
+    if (!nextTrucks[id]) nextTrucks[id] = {};
+    if (purchasePrice) nextTrucks[id].purchasePrice = purchasePrice;
+    nextTrucks[id][String(year)] = { gross, exp, net: gross-exp, weeks };
   });
-
-  html += `<tr class="total-row"><td colspan="2" style="font-weight:700">TOTAL</td>`;
-  if(year === 'all') years.forEach(y => {
-    const colTotal = rows.reduce((s, r) => s + (r.yearCols[y] || 0), 0);
-    html += `<td style="text-align:center;font-family:'JetBrains Mono',monospace">${colTotal}</td>`;
+  // Preserve purchase prices from existing data for trucks not modified
+  Object.keys(DATA.trucks).forEach(id => {
+    if (DATA.trucks[id].purchasePrice && nextTrucks[id] && !nextTrucks[id].purchasePrice) {
+      nextTrucks[id].purchasePrice = DATA.trucks[id].purchasePrice;
+    }
   });
-  html += `<td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.88rem">${grandTotal}</td></tr>`;
-  html += `</tbody></table>`;
+  DATA.trucks = nextTrucks;
 
-  container.innerHTML = html;
+  rebuildAllMonthlyData(); syncExpBreakdownYears(); renderYearTabs(); updateHeaderSubtitle();
+  setYear(currentYear); renderYearly(); renderHeatmap(); renderPnL(); populatePnLSelect();
+  renderSpreadsheetEditor();
+}
+
+// ─── TRUCK ACTIONS (leaderboard) ──────────────────────────────────────────────
+function editTruckEntry(truckId) {
+  window.location.href = 'truck.html?id=' + encodeURIComponent(truckId);
+}
+function toggleEOT(truckId) {
+  const tData = DATA.trucks[truckId];
+  if (!tData) return;
+  const isEOT = tData.endOfTerm === true;
+  const action = isEOT ? 'reactivate' : 'mark as End-of-Term';
+  openConfirm(
+    isEOT ? 'Reactivate Truck' : 'End of Term',
+    `Are you sure you want to ${action} <b>${truckId}</b>?${!isEOT ? '<br><small style="color:var(--muted)">Its data will be preserved but no new data can be entered.</small>' : ''}`,
+    () => {
+      DATA.trucks[truckId].endOfTerm = !isEOT;
+      saveAndRefresh();
+      closeConfirm();
+    }
+  );
+}
+function confirmDeleteTruck(truckId) {
+  openConfirm(
+    'Delete Truck',
+    `Delete <b>${truckId}</b> and all its year data?<br><small style="color:var(--muted)">Recoverable from Recovery Bin.</small>`,
+    () => {
+      let recovery = JSON.parse(localStorage.getItem('truck_recovery') || '[]');
+      const tData = DATA.trucks[truckId];
+      Object.keys(tData).filter(k => !isNaN(k)).forEach(y => {
+        recovery.push({ id: Date.now()+'_t_'+truckId+'_'+y, type:'truck', data:{ truckId, year:y, ...tData[y] }, deletedAt:new Date().toISOString() });
+      });
+      localStorage.setItem('truck_recovery', JSON.stringify(recovery));
+      delete DATA.trucks[truckId];
+      if (DATA.drivers) delete DATA.drivers[truckId];
+      saveAndRefresh();
+      closeConfirm();
+    }
+  );
+}
+let _confirmCb = null;
+function openConfirm(title, msg, onConfirm) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').innerHTML = msg;
+  _confirmCb = onConfirm;
+  document.getElementById('confirmAction').onclick = () => { if (_confirmCb) _confirmCb(); };
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  _confirmCb = null;
 }
 
 // ─── YEAR SWITCH ──────────────────────────────────────────────────────────────
 function setYear(year) {
   currentYear = year;
-  document.querySelectorAll('.year-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.year === String(year));
-  });
-  renderKPIs(year);
-  renderMonthly(year);
-  renderTruckIncome(year);
-  renderExpBreakdown(year);
-  renderEfficiency(year);
-  renderTable(year);
-  renderWeeksBreakdown(year);
+  document.querySelectorAll('.year-tab').forEach(t => t.classList.toggle('active', t.dataset.year === String(year)));
+  renderKPIs(year); renderMonthly(year); renderTruckIncome(year);
+  renderExpBreakdown(year); renderEfficiency(year); renderTable(year);
+  renderWeeksBreakdown(year); renderBreakeven(year);
+  const mgmt = document.getElementById('mgmtPanel');
+  if (mgmt) mgmt.style.display = (year !== 'all' && isAdmin()) ? '' : 'none';
+  const sheetBtn = document.getElementById('spreadsheetBtn');
+  if (sheetBtn) sheetBtn.innerHTML = `<i class="fa-solid fa-table-cells-large"></i>Edit in Spreadsheet${year !== 'all' ? ' ' + year : ''}`;
+}
+
+// ─── TIMESTAMP ───────────────────────────────────────────────────────────────
+function updateDashTimestamp(date) {
+  const el = document.getElementById('dashTimestamp');
+  if (!el || !date) { if (el) el.innerHTML = ''; return; }
+  const d = new Date(date);
+  const day = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  el.innerHTML = `<i class="fa-regular fa-clock" style="color:var(--accent)"></i>Last saved: ${day} at ${time}`;
 }
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
-// Process any items queued for restore from recovery.html
-(function processRestoreQueue() {
-  const queue = JSON.parse(localStorage.getItem('truck_restore_queue') || '[]');
-  if(!queue.length) return;
-  localStorage.removeItem('truck_restore_queue');
-  // Items will be inserted into the spreadsheet after it renders
-  window._pendingRestores = queue;
-})();
+DATA.drivers = DATA.drivers || {
+  'GT 6350-19':'Paapa','GN 4106-18':'Isaac / Alfred',
+  'GW 1568-22':'Oliver','GN 1674-21':'JAT',
+  'GN 4394-25':'ATL Isaac','GX 4502-22':'Agoe'
+};
 
 rebuildAllMonthlyData();
 renderYearTabs();
@@ -1839,57 +1586,17 @@ renderExpBreakdown('all');
 renderYearly();
 renderEfficiency('all');
 renderHeatmap();
+renderBreakeven('all');
+populatePnLSelect();
+renderPnL();
 renderTable('all');
 renderWeeksBreakdown('all');
 renderSpreadsheetEditor();
 
-// Inject any pending restores into the spreadsheet tables
-(function injectRestores() {
-  const items = window._pendingRestores || [];
-  if(!items.length) return;
-  items.forEach(item => {
-    const { type, data } = item;
-    if(type === 'year') {
-      const body = document.querySelector('#yearDataTable tbody');
-      if(body) body.insertAdjacentHTML('beforeend', `<tr>
-        <td><input class="sheet-input year-row-year" type="number" value="${data.year || ''}"></td>
-        <td><input class="sheet-input year-row-gross" type="number" value="${data.gross || 0}"></td>
-        <td><input class="sheet-input year-row-exp" type="number" value="${data.exp || 0}"></td>
-        <td><button class="sheet-btn remove" onclick="removeRow(this)"><i class="fa-solid fa-trash" aria-hidden="true"></i>Remove</button></td>
-      </tr>`);
-    } else if(type === 'monthly') {
-      const body = document.querySelector('#monthlyDataTable tbody');
-      if(body) body.insertAdjacentHTML('beforeend', `<tr>
-        <td><input class="sheet-input month-row-year" type="number" value="${data.year || ''}"></td>
-        <td><input class="sheet-input month-row-month" type="text" value="${data.month || ''}" placeholder="Jan"></td>
-        <td><input class="sheet-input month-row-gross" type="number" value="${data.gross || 0}"></td>
-        <td><input class="sheet-input month-row-exp" type="number" value="${data.exp || 0}"></td>
-        <td><button class="sheet-btn remove" onclick="removeRow(this)"><i class="fa-solid fa-trash" aria-hidden="true"></i>Remove</button></td>
-      </tr>`);
-    } else if(type === 'truck') {
-      const body = document.querySelector('#truckDataTable tbody');
-      if(body) body.insertAdjacentHTML('beforeend', `<tr>
-        <td><input class="sheet-input truck-row-id" type="text" value="${data.truckId || ''}"></td>
-        <td><input class="sheet-input truck-row-year" type="number" value="${data.year || ''}"></td>
-        <td><input class="sheet-input truck-row-gross" type="number" value="${data.gross || 0}"></td>
-        <td><input class="sheet-input truck-row-exp" type="number" value="${data.exp || 0}"></td>
-        <td><input class="sheet-input truck-row-weeks" type="number" value="${data.weeks || 0}"></td>
-        <td><button class="sheet-btn remove" onclick="removeRow(this)"><i class="fa-solid fa-trash" aria-hidden="true"></i>Remove</button></td>
-      </tr>`);
-    }
-  });
-  if(items.length) {
-    // Scroll to spreadsheet so user sees restored rows
-    document.querySelector('.chart-card:last-of-type')?.scrollIntoView({ behavior:'smooth', block:'start' });
-  }
-})();
+// Load saved timestamp
+const _savedTs = localStorage.getItem('dashboard_lastSaved');
+if (_savedTs) updateDashTimestamp(new Date(_savedTs));
 
-// Persist DATA to localStorage so sub-pages (truck.html, etc.) can access it
-DATA.drivers = DATA.drivers || {
-  'GT 6350-19':'Paapa','GN 4106-18':'Isaac/Alfred',
-  'GW 1568-22':'Oliver','GN 1674-21':'JAT',
-  'GN 4394-25':'ATL Isaac','GX 4502-22':'Agoe'
-};
 localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
 </script>
 <script src="src/api.js"></script>

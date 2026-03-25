@@ -14,7 +14,10 @@ router.post('/verify', async (req, res) => {
     }
 
     req.session.isAdmin = true;
-    res.json({ success: true, message: 'Admin access granted' });
+    req.session.save((err) => {
+      if (err) return res.status(500).json({ error: 'Session save failed' });
+      res.json({ success: true, message: 'Admin access granted' });
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

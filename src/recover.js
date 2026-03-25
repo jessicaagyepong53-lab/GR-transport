@@ -93,7 +93,7 @@ function renderTrash() {
         <div>Deleted: ${dateStr}</div>
         <div class="${daysClass}"><i class="fa-solid fa-clock"></i>${daysLeft} days left</div>
       </div>
-      <div class="trash-actions">
+      <div class="trash-actions"${!isAdmin() ? ' style="display:none"' : ''}>
         <button class="btn btn-recover" onclick="restoreItem('${item._id}')">
           <i class="fa-solid fa-rotate-left"></i>Restore
         </button>

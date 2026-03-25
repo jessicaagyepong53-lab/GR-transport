@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Settings — GR-Transport</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Settings</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -17,7 +17,8 @@
   .header-left{display:flex;align-items:center;gap:20px;}
   .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .logo-mark i{color:#fff;font-size:22px;}
-  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+    .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
   .page-subtitle{color:var(--muted);font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
   .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--label);text-decoration:none;transition:all 0.2s;}
   .back-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -62,6 +63,15 @@
     .wrapper{padding:22px 14px;}
     .form-row{flex-direction:column;}
     .header{flex-direction:column;align-items:flex-start;}
+    .driver-table th,.driver-table td{padding:8px 6px;font-size:0.78rem;}
+    .driver-table input{padding:5px 8px;font-size:0.78rem;}
+  }
+  @media (max-width:500px) {
+    .wrapper { padding: 6px 1px; }
+    .header { gap: 10px; }
+    .footer-note { font-size: 0.68rem; }
+    .driver-table th,.driver-table td{padding:6px 4px;font-size:0.72rem;}
+    .card{padding:14px 10px;}
   }
 </style>
 </head>
@@ -111,9 +121,46 @@
   <div class="section">
     <div class="section-title"><i class="fa-solid fa-money-bill-trend-up"></i>Truck Costs</div>
     <div class="card">
-      <table class="driver-table" id="costTable"></table>
+      <div style="overflow-x:auto;">
+        <table class="driver-table" id="costTable"></table>
+      </div>
       <div style="margin-top:14px;">
         <button class="btn btn-primary" onclick="saveCosts()"><i class="fa-solid fa-floppy-disk"></i>Save Costs</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add New Truck Cost -->
+  <div class="section">
+    <div class="section-title"><i class="fa-solid fa-truck-medical"></i>Add New Truck</div>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Truck ID</label>
+          <input type="text" class="form-input" id="newTruckId" placeholder="GN 0000-00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Driver Name</label>
+          <input type="text" class="form-input" id="newTruckDriver" placeholder="Driver name">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Initial Value (GHS)</label>
+          <input type="number" class="form-input" id="newTruckInit" value="0" oninput="updateNewTruckTotal()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount Paid (GHS)</label>
+          <input type="number" class="form-input" id="newTruckPaid" value="0" oninput="updateNewTruckTotal()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Repairs &amp; Maintenance (GHS)</label>
+          <input type="number" class="form-input" id="newTruckMaint" value="0" oninput="updateNewTruckTotal()">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;margin-top:4px;flex-wrap:wrap;">
+        <div style="font-size:0.82rem;color:var(--muted);">Total: <span id="newTruckTotal" style="color:var(--blue);font-weight:700;font-family:'JetBrains Mono',monospace;">GHS 0</span></div>
+        <button class="btn btn-primary" onclick="addNewTruck()"><i class="fa-solid fa-plus"></i>Add Truck</button>
       </div>
     </div>
   </div>

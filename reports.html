@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reports — GR-Transport</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Reports</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
   .header-left{display:flex;align-items:center;gap:20px;}
   .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--blue),var(--green));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .logo-mark i{color:#fff;font-size:22px;}
-  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--blue) 0%,#fff 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--blue) 0%,#fff 60%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
   .page-subtitle{color:var(--muted);font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
   .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--label);text-decoration:none;transition:all 0.2s;}
   .back-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -47,6 +47,61 @@
   .ranking-table th{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
   .ranking-table td{padding:10px 12px;font-size:0.85rem;border-bottom:1px solid rgba(37,45,61,0.5);}
 
+  /* Data Management — individual year only */
+  .data-mgmt{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
+  .data-mgmt-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
+  .data-mgmt-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--text);}
+  .data-mgmt-title i{margin-right:8px;color:var(--green);}
+  .dm-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .dm-search{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.82rem;font-family:'DM Sans',sans-serif;min-width:180px;}
+  .dm-search:focus{border-color:var(--accent);outline:none;}
+  .dm-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--label);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .dm-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .dm-btn.add{border-color:rgba(45,224,138,0.35);color:var(--green);}
+  .dm-btn.add:hover{background:rgba(45,224,138,0.08);}
+  .dm-table{width:100%;border-collapse:collapse;margin-top:4px;}
+  .dm-table th{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+  .dm-table td{padding:9px 12px;font-size:0.82rem;border-bottom:1px solid rgba(37,45,61,0.4);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+  .dm-table tr:hover td{background:rgba(245,166,35,0.03);}
+  .dm-table .act-cell{display:flex;gap:6px;}
+  .dm-act{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-size:0.75rem;padding:4px 10px;transition:all 0.18s;font-family:'DM Sans',sans-serif;}
+  .dm-act:hover{border-color:var(--accent);color:var(--accent);}
+  .dm-act.del:hover{border-color:var(--red);color:var(--red);}
+  .dm-gross{color:var(--blue);}
+  .dm-net.pos{color:var(--green);}
+  .dm-net.neg{color:var(--red);}
+  .dm-week-badge{display:inline-block;background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.2);border-radius:4px;padding:1px 8px;font-size:0.72rem;letter-spacing:0.5px;}
+  .dm-truck-badge{display:inline-block;background:rgba(74,158,255,0.12);color:var(--blue);border:1px solid rgba(74,158,255,0.18);border-radius:4px;padding:1px 8px;font-size:0.72rem;}
+  .dm-empty{text-align:center;padding:32px;color:var(--muted);font-size:0.85rem;}
+  .dm-pagination{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .dm-page-btn{padding:5px 13px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--label);font-size:0.78rem;cursor:pointer;transition:all 0.18s;font-family:'DM Sans',sans-serif;}
+  .dm-page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  .dm-page-btn:disabled{opacity:0.35;cursor:not-allowed;}
+  .dm-page-info{font-size:0.75rem;color:var(--muted);margin-left:auto;}
+
+  /* Inline edit row */
+  .dm-table input.inline-edit{background:var(--bg3);border:1px solid var(--accent);border-radius:5px;padding:4px 8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.82rem;width:100px;}
+  .dm-table select.inline-edit{background:var(--bg3);border:1px solid var(--accent);border-radius:5px;padding:4px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.82rem;}
+
+  /* Modal */
+  .dm-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:900;display:none;align-items:center;justify-content:center;}
+  .dm-modal-overlay.open{display:flex;}
+  .dm-modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:440px;animation:fadeUp 0.25s ease;}
+  .dm-modal h3{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;margin-bottom:18px;color:var(--text);}
+  .dm-modal h3 i{margin-right:8px;color:var(--green);}
+  .dm-field{margin-bottom:14px;}
+  .dm-field label{display:block;font-size:0.68rem;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+  .dm-field input,.dm-field select,.dm-field textarea{width:100%;padding:10px 13px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;}
+  .dm-field input:focus,.dm-field select:focus,.dm-field textarea:focus{border-color:var(--accent);outline:none;}
+  .dm-modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end;}
+  .dm-modal-actions .dm-btn.save{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .dm-modal-actions .dm-btn.save:hover{background:#ffb940;}
+
+  .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
+  .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+  .toast.success{border-color:rgba(45,224,138,0.4);color:var(--green);}
+  .toast.error{border-color:rgba(224,68,58,0.4);color:var(--red);}
+
   .footer-note{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;letter-spacing:0.5px;}
   .footer-note i{margin-right:6px;color:var(--accent);}
 
@@ -57,6 +112,11 @@
     .wrapper{padding:22px 14px;}
     .summary-grid{grid-template-columns:1fr;}
     .header{flex-direction:column;align-items:flex-start;}
+  }
+  @media (max-width:600px) {
+    .wrapper { padding: 8px 2px; }
+    .header { gap: 12px; }
+    .footer-note { font-size: 0.68rem; }
   }
 </style>
 </head>
@@ -74,9 +134,12 @@
   </div>
 
   <div class="controls">
-    <select id="yearSelect" onchange="loadReport()">
-      <option value="all">All Years</option>
-    </select>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <i class="fa-solid fa-calendar" style="color:var(--accent);font-size:0.9rem;"></i>
+      <select id="yearSelect" onchange="loadReport()">
+        <option value="all">All Years</option>
+      </select>
+    </div>
     <div class="export-btns">
       <a id="csvLink" class="export-btn"><i class="fa-solid fa-file-csv"></i>Export CSV</a>
       <a id="jsonLink" class="export-btn"><i class="fa-solid fa-file-code"></i>Export JSON</a>
@@ -93,11 +156,269 @@
     <table class="ranking-table" id="rankingTable"></table>
   </div>
 
+  <!-- Data Management — only visible when a specific year is selected -->
+  <div class="data-mgmt" id="dataMgmtSection" style="display:none;">
+    <div class="data-mgmt-header">
+      <span class="data-mgmt-title"><i class="fa-solid fa-database"></i>Data Management</span>
+      <div class="dm-toolbar">
+        <input type="text" class="dm-search" id="dmSearch" placeholder="Search truck, week…" oninput="dmFilter()">
+        <button class="dm-btn add" data-admin-only onclick="dmOpenAdd()"><i class="fa-solid fa-plus"></i>Add Entry</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="dm-table">
+        <thead>
+          <tr>
+            <th>Truck</th>
+            <th>Week</th>
+            <th>Driver</th>
+            <th>Gross (GHS)</th>
+            <th>Expenses (GHS)</th>
+            <th>Net (GHS)</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="dmTableBody"></tbody>
+      </table>
+    </div>
+    <div class="dm-empty" id="dmEmpty" style="display:none;">No entries found for this year.</div>
+    <div class="dm-pagination" id="dmPagination"></div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div class="dm-modal-overlay" id="dmModal">
+    <div class="dm-modal">
+      <h3><i class="fa-solid fa-pen-to-square"></i><span id="dmModalTitle">Add Entry</span></h3>
+      <div class="dm-field">
+        <label>Truck</label>
+        <select id="dmTruckSel" class="dm-field select"></select>
+      </div>
+      <div class="dm-field">
+        <label>Week</label>
+        <select id="dmWeekSel"></select>
+      </div>
+      <div class="dm-field">
+        <label>Gross Income (GHS)</label>
+        <input type="number" id="dmGrossIn" placeholder="0">
+      </div>
+      <div class="dm-field">
+        <label>Expenses (GHS)</label>
+        <input type="number" id="dmExpIn" placeholder="0">
+      </div>
+      <div class="dm-field">
+        <label>Notes</label>
+        <textarea id="dmNotesIn" rows="2" placeholder="Optional…"></textarea>
+      </div>
+      <div class="dm-field">
+        <label>Remarks</label>
+        <textarea id="dmRemarksIn" rows="2" placeholder="Optional…"></textarea>
+      </div>
+      <div class="dm-modal-actions">
+        <button class="dm-btn" onclick="dmCloseModal()"><i class="fa-solid fa-xmark"></i>Cancel</button>
+        <button class="dm-btn save" onclick="dmSaveEntry()"><i class="fa-solid fa-floppy-disk"></i>Save</button>
+      </div>
+    </div>
+  </div>
+
   <div class="footer-note"><i class="fa-regular fa-copyright"></i>Copyright 2026 All rights reserved.</div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script src="src/api.js"></script>
+<script src="src/auth-modal.js"></script>
 <script src="src/nav.js"></script>
 <script src="src/reports.js"></script>
-</body>
-</html>
+<script>
+// ── Data Management: show/hide based on year selection ──────────────────────
+(function(){
+  const yearSel = document.getElementById('yearSelect');
+  const dmSection = document.getElementById('dataMgmtSection');
+
+  function toggleDM(){
+    const val = yearSel ? yearSel.value : 'all';
+    if(val && val !== 'all'){
+      dmSection.style.display = '';
+      dmLoadYear(val);
+    } else {
+      dmSection.style.display = 'none';
+    }
+  }
+
+  // Hook into the existing onchange (reports.js calls loadReport())
+  if(yearSel){
+    const orig = yearSel.onchange;
+    yearSel.onchange = function(e){ if(orig) orig.call(this,e); toggleDM(); };
+    // Also observe in case reports.js populates options dynamically
+    const obs = new MutationObserver(() => toggleDM());
+    obs.observe(yearSel, { childList: true });
+    // Initial check after reports.js loads
+    window.addEventListener('load', () => setTimeout(toggleDM, 400));
+  }
+
+  // ── DM state ──────────────────────────────────────────────────────────────
+  let dmAll = [], dmFiltered = [], dmPage = 0;
+  const DM_PER_PAGE = 15;
+  let dmEditId = null;
+  let dmCurrentYear = null;
+
+  window.dmLoadYear = async function(year){
+    dmCurrentYear = year;
+    try {
+      const data = await API.getWeeklyEntries({ year });
+      dmAll = Array.isArray(data) ? data : (data.entries || []);
+    } catch(e){ dmAll = []; }
+    dmFilter();
+  };
+
+  window.dmFilter = function(){
+    const q = (document.getElementById('dmSearch')?.value || '').toLowerCase();
+    dmFiltered = dmAll.filter(r =>
+      !q ||
+      String(r.truck||'').toLowerCase().includes(q) ||
+      String(r.week||'').toLowerCase().includes(q) ||
+      String(r.driver||'').toLowerCase().includes(q) ||
+      String(r.notes||'').toLowerCase().includes(q)
+    );
+    dmPage = 0;
+    dmRender();
+  };
+
+  function dmRender(){
+    const body = document.getElementById('dmTableBody');
+    const empty = document.getElementById('dmEmpty');
+    const pag = document.getElementById('dmPagination');
+    if(!body) return;
+
+    const total = dmFiltered.length;
+    const pages = Math.max(1, Math.ceil(total / DM_PER_PAGE));
+    dmPage = Math.min(dmPage, pages - 1);
+    const slice = dmFiltered.slice(dmPage * DM_PER_PAGE, (dmPage + 1) * DM_PER_PAGE);
+
+    if(!slice.length){
+      body.innerHTML = '';
+      empty.style.display = '';
+      pag.innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    const fmt = v => Number(v||0).toLocaleString('en-GH',{minimumFractionDigits:2,maximumFractionDigits:2});
+    body.innerHTML = slice.map(r => {
+      const net = (r.gross||0) - (r.expenses||0);
+      const netCls = net >= 0 ? 'pos' : 'neg';
+      return `<tr>
+        <td><span class="dm-truck-badge">${r.truck||'—'}</span></td>
+        <td><span class="dm-week-badge">Wk ${r.week||'?'}</span></td>
+        <td style="color:var(--label)">${r.driver||'—'}</td>
+        <td class="dm-gross">${fmt(r.gross)}</td>
+        <td style="color:var(--red)">${fmt(r.expenses)}</td>
+        <td class="dm-net ${netCls}">${net<0?'−':''}${fmt(Math.abs(net))}</td>
+        <td style="color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis">${r.notes||'—'}</td>
+        <td><div class="act-cell" style="display:flex;gap:6px;"${!isAdmin()?' hidden':''}>
+          <button class="dm-act" onclick="dmOpenEdit('${r._id||r.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="dm-act del" onclick="dmDelete('${r._id||r.id}')"><i class="fa-solid fa-trash"></i></button>
+        </div></td>
+      </tr>`;
+    }).join('');
+
+    // Pagination
+    pag.innerHTML = `
+      <button class="dm-page-btn" onclick="dmGoPage(${dmPage-1})" ${dmPage===0?'disabled':''}>‹ Prev</button>
+      <button class="dm-page-btn" onclick="dmGoPage(${dmPage+1})" ${dmPage>=pages-1?'disabled':''}>Next ›</button>
+      <span class="dm-page-info">Page ${dmPage+1} of ${pages} &nbsp;·&nbsp; ${total} entries</span>`;
+  }
+
+  window.dmGoPage = function(p){ dmPage = p; dmRender(); };
+
+  window.dmOpenAdd = async function(){
+    dmEditId = null;
+    document.getElementById('dmModalTitle').textContent = 'Add Entry';
+    await dmPopulateSelects();
+    document.getElementById('dmGrossIn').value = '';
+    document.getElementById('dmExpIn').value = '';
+    document.getElementById('dmNotesIn').value = '';
+    document.getElementById('dmRemarksIn').value = '';
+    document.getElementById('dmModal').classList.add('open');
+  };
+
+  window.dmOpenEdit = async function(id){
+    dmEditId = id;
+    document.getElementById('dmModalTitle').textContent = 'Edit Entry';
+    const entry = dmAll.find(r => (r._id||r.id) === id);
+    if(!entry) return;
+    await dmPopulateSelects();
+    document.getElementById('dmTruckSel').value = entry.truck || '';
+    document.getElementById('dmWeekSel').value = entry.week || '';
+    document.getElementById('dmGrossIn').value = entry.gross || '';
+    document.getElementById('dmExpIn').value = entry.expenses || '';
+    document.getElementById('dmNotesIn').value = entry.notes || '';
+    document.getElementById('dmRemarksIn').value = entry.remarks || '';
+    document.getElementById('dmModal').classList.add('open');
+  };
+
+  async function dmPopulateSelects(){
+    // Trucks
+    const tSel = document.getElementById('dmTruckSel');
+    try {
+      const trucks = await API.getTrucks();
+      tSel.innerHTML = trucks.map(t => `<option value="${t.name||t}">${t.name||t}</option>`).join('');
+    } catch(e){ tSel.innerHTML = '<option>—</option>'; }
+    // Weeks 1-52
+    const wSel = document.getElementById('dmWeekSel');
+    wSel.innerHTML = Array.from({length:52},(_,i)=>`<option value="${i+1}">Week ${i+1}</option>`).join('');
+  }
+
+  window.dmCloseModal = function(){
+    document.getElementById('dmModal').classList.remove('open');
+    dmEditId = null;
+  };
+
+  // Close modal on overlay click
+  document.getElementById('dmModal').addEventListener('click', function(e){
+    if(e.target === this) dmCloseModal();
+  });
+
+  window.dmSaveEntry = async function(){
+    const payload = {
+      truck: document.getElementById('dmTruckSel').value,
+      week: parseInt(document.getElementById('dmWeekSel').value),
+      year: parseInt(dmCurrentYear),
+      gross: parseFloat(document.getElementById('dmGrossIn').value) || 0,
+      expenses: parseFloat(document.getElementById('dmExpIn').value) || 0,
+      notes: document.getElementById('dmNotesIn').value,
+      remarks: document.getElementById('dmRemarksIn').value,
+    };
+    try {
+      if(dmEditId){
+        await API.updateWeeklyEntry(dmEditId, payload);
+        showToast('Entry updated', 'success');
+      } else {
+        await API.addWeeklyEntry(payload);
+        showToast('Entry added', 'success');
+      }
+      dmCloseModal();
+      dmLoadYear(dmCurrentYear);
+    } catch(e){ showToast('Error saving entry', 'error'); }
+  };
+
+  window.dmDelete = async function(id){
+    if(!confirm('Delete this entry?')) return;
+    try {
+      await API.deleteWeeklyEntry(id);
+      showToast('Entry deleted', 'success');
+      dmLoadYear(dmCurrentYear);
+    } catch(e){ showToast('Error deleting entry', 'error'); }
+  };
+
+  function showToast(msg, type=''){
+    const t = document.getElementById('toast');
+    if(!t) return;
+    t.textContent = msg;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(t._to);
+    t._to = setTimeout(() => t.className = 'toast', 2800);
+  }
+})();
+</script>

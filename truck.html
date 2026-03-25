@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Truck Detail</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0c10;--bg2:#111418;--bg3:#181c24;--card:#1a1f2b;--border:#252d3d;
+    --accent:#f5a623;--accent2:#e05c1a;--green:#2de08a;--red:#e0443a;
+    --blue:#4a9eff;--purple:#9b72ff;--text:#e8ecf4;--muted:#6b7a96;--label:#9aa4b8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,166,35,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .wrapper{position:relative;z-index:1;padding:32px;max-width:1400px;margin:0 auto;}
+
+  .header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:16px;}
+  .header-left{display:flex;align-items:center;gap:20px;}
+  .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .logo-mark i{color:#fff;font-size:22px;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-subtitle{color:var(--muted);font-size:0.82rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+  .back-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--label);text-decoration:none;transition:all 0.2s;}
+  .back-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .header-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn{padding:8px 18px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text);transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .btn-primary:hover{background:#ffb940;}
+  .btn-secondary{background:var(--bg3);color:var(--label);}
+  .btn-danger{background:rgba(224,68,58,0.12);border-color:var(--red);color:var(--red);}
+  .btn-danger:hover{background:rgba(224,68,58,0.25);}
+  .btn-sm{padding:5px 12px;font-size:0.72rem;}
+
+  .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;position:relative;overflow:hidden;}
+  .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .kpi:nth-child(1)::after{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+  .kpi:nth-child(2)::after{background:linear-gradient(90deg,var(--green),#1ab870);}
+  .kpi:nth-child(3)::after{background:linear-gradient(90deg,var(--red),#a83030);}
+  .kpi:nth-child(4)::after{background:linear-gradient(90deg,var(--blue),var(--purple));}
+  .kpi:nth-child(5)::after{background:linear-gradient(90deg,var(--purple),var(--blue));}
+  .kpi-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+  .kpi-value{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:2px;line-height:1;}
+  .kpi:nth-child(1) .kpi-value{color:var(--accent);}
+  .kpi:nth-child(2) .kpi-value{color:var(--green);}
+  .kpi:nth-child(3) .kpi-value{color:var(--red);}
+  .kpi:nth-child(4) .kpi-value{color:var(--blue);}
+  .kpi:nth-child(5) .kpi-value{color:var(--purple);}
+  .kpi-sub{font-size:0.8rem;color:var(--muted);margin-top:6px;}
+
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;}
+  .chart-card.wide{grid-column:1/-1;}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  .card-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--text);}
+  .card-title i{margin-right:8px;color:var(--accent);}
+
+  .year-table{width:100%;border-collapse:collapse;}
+  .year-table th{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+  .year-table td{padding:10px 12px;font-size:0.85rem;border-bottom:1px solid rgba(37,45,61,0.5);}
+  .bar-cell{display:flex;align-items:center;gap:8px;}
+  .mini-bar-bg{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+  .mini-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width 0.4s;}
+
+  .spread-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+
+  .footer-note{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;letter-spacing:0.5px;}
+  .footer-note i{margin-right:6px;color:var(--accent);}
+
+  /* Toast */
+  .toast{position:fixed;bottom:32px;right:32px;background:var(--card);border:1px solid var(--green);border-radius:10px;padding:14px 24px;color:var(--green);font-size:0.85rem;font-weight:600;z-index:2000;transform:translateY(100px);opacity:0;transition:all 0.3s ease;pointer-events:none;}
+  .toast.show{transform:translateY(0);opacity:1;}
+  .toast.error{border-color:var(--red);color:var(--red);}
+
+  /* Modals */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:1500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+  .modal-overlay.open{opacity:1;pointer-events:auto;}
+  .modal-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;max-width:440px;width:92%;max-height:80vh;overflow-y:auto;}
+  .modal-box h3{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;margin-bottom:18px;color:var(--text);}
+  .modal-box h3 i{margin-right:8px;color:var(--accent);}
+  .modal-box label{display:block;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;margin-top:14px;}
+  .modal-box input,.modal-box select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;}
+  .modal-box input:focus,.modal-box select:focus{outline:none;border-color:var(--accent);}
+  .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  .kpi,.chart-card{animation:fadeUp 0.5s ease both;}
+
+  @media(max-width:900px){
+    .wrapper{padding:22px 14px;}
+    .kpi-strip{grid-template-columns:repeat(2,1fr);}
+    .chart-grid{grid-template-columns:1fr;}
+    .header{flex-direction:column;align-items:flex-start;}
+  }
+  @media(max-width:600px){
+    .kpi-strip{grid-template-columns:1fr;}
+    .wrapper{padding:8px 2px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark"><i class="fa-solid fa-truck"></i></div>
+      <div>
+        <div class="page-title" id="truckTitle">—</div>
+        <div class="page-subtitle" id="truckSubtitle">Truck Detail</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="openEditDriverModal()"><i class="fa-solid fa-pen"></i> Edit Truck</button>
+      <button class="btn btn-primary" onclick="openAddYearModal()"><i class="fa-solid fa-plus"></i> Add Year</button>
+      <button class="btn btn-danger" onclick="openDeleteTruckModal()"><i class="fa-solid fa-trash"></i> Delete</button>
+      <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+    </div>
+  </div>
+
+  <div class="kpi-strip" id="kpiStrip"></div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-chart-column"></i>Yearly Performance</span>
+      </div>
+      <canvas id="yearlyChart" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-gauge-high"></i>Efficiency by Year</span>
+      </div>
+      <canvas id="effChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card wide" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-chart-line"></i>Net Income Trend</span>
+    </div>
+    <canvas id="netTrendChart" height="80"></canvas>
+  </div>
+
+  <div class="chart-card wide" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-table"></i>Year-by-Year Breakdown</span>
+    </div>
+    <table class="year-table" id="yearTable"></table>
+    <div class="spread-links" id="spreadsheetLinks"></div>
+  </div>
+
+  <div class="footer-note"><i class="fa-regular fa-copyright"></i>Copyright 2026 All rights reserved.</div>
+</div>
+
+<!-- Add Year Modal -->
+<div class="modal-overlay" id="addYearModal">
+  <div class="modal-box">
+    <h3><i class="fa-solid fa-calendar-plus"></i>Add Year Entry</h3>
+    <label>Year</label>
+    <input type="number" id="addYear" value="2026">
+    <label>Weeks Operated</label>
+    <input type="number" id="addWeeks" value="52">
+    <label>Gross Income (GHS)</label>
+    <input type="number" id="addGross" value="0">
+    <label>Expenditure (GHS)</label>
+    <input type="number" id="addExp" value="0">
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('addYearModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddYear()">Add Year</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Year Modal -->
+<div class="modal-overlay" id="editYearModal">
+  <div class="modal-box">
+    <h3 id="editYearTitle"><i class="fa-solid fa-pen"></i>Edit Year</h3>
+    <label>Year</label>
+    <input type="number" id="editYearLabel" disabled>
+    <label>Weeks Operated</label>
+    <input type="number" id="editWeeks">
+    <label>Gross Income (GHS)</label>
+    <input type="number" id="editGross">
+    <label>Expenditure (GHS)</label>
+    <input type="number" id="editExp">
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm" onclick="deleteYearEntry()"><i class="fa-solid fa-trash"></i> Delete Year</button>
+      <button class="btn btn-secondary" onclick="closeModal('editYearModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEditYear()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Driver / Truck Settings Modal -->
+<div class="modal-overlay" id="editDriverModal">
+  <div class="modal-box">
+    <h3><i class="fa-solid fa-id-card"></i>Edit Truck Settings</h3>
+    <label>Driver Name</label>
+    <input type="text" id="driverNameInput" placeholder="Driver name">
+    <label>Initial Value (GHS)</label>
+    <input type="number" id="truckInitialValueInput" value="0" oninput="updateTruckTotalPreview()">
+    <label>Price Paid (GHS)</label>
+    <input type="number" id="truckPricePaidInput" value="0" oninput="updateTruckTotalPreview()">
+    <label>Maintenance Cost (GHS)</label>
+    <input type="number" id="truckMaintCostInput" value="0" oninput="updateTruckTotalPreview()">
+    <p id="truckTotalAmountPreview" style="margin-top:12px;font-size:0.82rem;font-weight:600;color:var(--accent)">Total Amount: GHS 0</p>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('editDriverModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitDriver()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Truck Modal -->
+<div class="modal-overlay" id="deleteTruckModal">
+  <div class="modal-box">
+    <h3 style="-webkit-text-fill-color:var(--red)"><i class="fa-solid fa-trash-can" style="color:var(--red)"></i>Delete Truck</h3>
+    <p style="color:var(--muted);font-size:0.85rem;line-height:1.6;">Are you sure you want to delete <strong id="deleteTruckName" style="color:var(--red)"></strong> and all its year data?<br><small>Data will be recoverable for 30 days.</small></p>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('deleteTruckModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDeleteTruck()">Delete Truck</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="src/api.js"></script>
+<script src="src/auth-modal.js"></script>
+<script src="src/nav.js"></script>
+<script src="src/truck.js"></script>
+</body>
+</html>

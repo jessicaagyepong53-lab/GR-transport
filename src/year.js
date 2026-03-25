@@ -51,16 +51,21 @@ function renderYearNav() {
 }
 
 // ─── RENDER TRUCK TABLE ──────────────────────────────────────────────────────
+function isTruckEOT(truckId) {
+  return !!(yearData.endOfTerm && yearData.endOfTerm[truckId]);
+}
+
 function renderTruckTable() {
   const table = document.getElementById('truckTable');
   const trucks = yearData.trucks || {};
   const drivers = yearData.drivers || {};
+  const admin = isAdmin();
   let rows = [];
 
   for (const id in trucks) {
     const entry = trucks[id][currentYear];
     if (entry) {
-      rows.push({ id, driver: drivers[id] || '—', ...entry });
+      rows.push({ id, driver: drivers[id] || '—', eot: isTruckEOT(id), ...entry });
     }
   }
   rows.sort((a, b) => b.net - a.net);
@@ -71,19 +76,31 @@ function renderTruckTable() {
     <th>Truck ID</th><th>Driver</th><th class="num">Gross (GHS)</th>
     <th class="num">Expenditure (GHS)</th><th class="num">Net (GHS)</th>
     <th class="num">Weeks</th>
+    ${admin ? '<th style="text-align:center">Actions</th>' : ''}
   </tr></thead><tbody>`;
 
   let totGross = 0, totExp = 0, totNet = 0, totWeeks = 0;
   rows.forEach(r => {
     totGross += r.gross; totExp += r.exp; totNet += r.net; totWeeks += r.weeks;
     const netClass = r.net >= 0 ? 'positive' : 'negative';
-    html += `<tr>
-      <td class="label-cell"><a href="truck.html?id=${encodeURIComponent(r.id)}">${r.id}</a></td>
+    const eotClass = r.eot ? ' eot-row' : '';
+    html += `<tr class="${eotClass}">
+      <td class="label-cell">
+        <a href="truck.html?id=${encodeURIComponent(r.id)}">${r.id}</a>
+        ${r.eot ? '<span class="eot-badge">END OF TERM</span>' : ''}
+      </td>
       <td class="label-cell" style="color:var(--label)">${r.driver}</td>
-      <td><input class="truck-gross" data-truck="${r.id}" type="number" value="${r.gross}" onchange="markDirty()"></td>
-      <td><input class="truck-exp" data-truck="${r.id}" type="number" value="${r.exp}" onchange="markDirty()"></td>
+      <td><input class="truck-gross" data-truck="${r.id}" type="number" value="${r.gross}" onchange="markDirty()"${r.eot || !admin ? ' disabled' : ''}></td>
+      <td><input class="truck-exp" data-truck="${r.id}" type="number" value="${r.exp}" onchange="markDirty()"${r.eot || !admin ? ' disabled' : ''}></td>
       <td class="computed ${netClass}">${fmt(r.net)}</td>
-      <td><input class="truck-weeks" data-truck="${r.id}" type="number" value="${r.weeks}" onchange="markDirty()"></td>
+      <td><input class="truck-weeks" data-truck="${r.id}" type="number" value="${r.weeks}" onchange="markDirty()"${r.eot || !admin ? ' disabled' : ''}></td>
+      ${admin ? `<td class="actions-cell">
+        <div class="truck-actions">
+          <button class="act-btn edit" onclick="editTruckEntry('${r.id}')" title="Edit truck"><i class="fa-solid fa-pencil"></i></button>
+          <button class="act-btn eot${r.eot ? ' active' : ''}" onclick="toggleEOT('${r.id}')" title="${r.eot ? 'Restore truck' : 'End of term'}"><i class="fa-solid fa-${r.eot ? 'rotate-left' : 'stop'}"></i></button>
+          <button class="act-btn del" onclick="confirmDeleteTruck('${r.id}')" title="Delete truck"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </td>` : ''}
     </tr>`;
   });
 
@@ -93,6 +110,7 @@ function renderTruckTable() {
     <td class="computed negative">${fmt(totExp)}</td>
     <td class="computed ${totNet >= 0 ? 'positive' : 'negative'}">${fmt(totNet)}</td>
     <td class="computed neutral">${totWeeks}</td>
+    ${admin ? '<td></td>' : ''}
   </tr></tbody>`;
 
   table.innerHTML = html;
@@ -116,8 +134,8 @@ function renderMonthlyTable() {
     totGross += g; totExp += e;
     html += `<tr>
       <td class="label-cell">${label}</td>
-      <td><input class="month-gross" data-month="${label}" type="number" value="${g}" onchange="markDirty()"></td>
-      <td><input class="month-exp" data-month="${label}" type="number" value="${e}" onchange="markDirty()"></td>
+      <td><input class="month-gross" data-month="${label}" type="number" value="${g}" onchange="markDirty()"${!isAdmin() ? ' disabled' : ''}></td>
+      <td><input class="month-exp" data-month="${label}" type="number" value="${e}" onchange="markDirty()"${!isAdmin() ? ' disabled' : ''}></td>
       <td class="computed ${net >= 0 ? 'positive' : 'negative'}">${fmt(net)}</td>
     </tr>`;
   });
@@ -144,12 +162,12 @@ function renderExpTable() {
   </tr></thead><tbody>
     <tr>
       <td class="label-cell"><i class="fa-solid fa-oil-can" style="color:var(--green);margin-right:6px"></i>Maintenance (Oil Changes)</td>
-      <td><input id="expMaint" type="number" value="${e.maint || 0}" onchange="markDirty()"></td>
+      <td><input id="expMaint" type="number" value="${e.maint || 0}" onchange="markDirty()"${!isAdmin() ? ' disabled' : ''}></td>
       <td class="computed neutral">${total ? Math.round((e.maint || 0)/total*100) : 0}%</td>
     </tr>
     <tr>
       <td class="label-cell"><i class="fa-solid fa-gear" style="color:var(--red);margin-right:6px"></i>Other Expenses (Parts)</td>
-      <td><input id="expOther" type="number" value="${e.other || 0}" onchange="markDirty()"></td>
+      <td><input id="expOther" type="number" value="${e.other || 0}" onchange="markDirty()"${!isAdmin() ? ' disabled' : ''}></td>
       <td class="computed neutral">${total ? Math.round((e.other || 0)/total*100) : 0}%</td>
     </tr>
     <tr class="total-row">
@@ -281,6 +299,86 @@ function loadLastSaved() {
   updateLastSaved(raw ? new Date(raw) : null);
 }
 
+// ─── TRUCK ACTIONS ───────────────────────────────────────────────────────────
+
+function editTruckEntry(truckId) {
+  const row = document.querySelector(`input.truck-gross[data-truck="${truckId}"]`)?.closest('tr');
+  if (!row) return;
+  const inputs = row.querySelectorAll('input[type="number"]');
+  const isDisabled = inputs[0]?.disabled;
+  if (isDisabled) {
+    // Enable editing temporarily even for EOT trucks
+    inputs.forEach(inp => { inp.disabled = false; inp.focus(); });
+    inputs[0].focus();
+    inputs[0].select();
+    showToast(`Editing ${truckId} — save when done`);
+  } else {
+    inputs[0].focus();
+    inputs[0].select();
+  }
+}
+
+async function toggleEOT(truckId) {
+  const wasEOT = isTruckEOT(truckId);
+  const action = wasEOT ? 'restore' : 'mark as end of term';
+  openConfirm(
+    wasEOT ? 'Restore Truck' : 'End of Term',
+    `Are you sure you want to ${action} <strong>${truckId}</strong>?${!wasEOT ? '<br><small style="color:var(--muted)">Its existing data will be preserved but inputs will be locked.</small>' : ''}`,
+    wasEOT ? 'accent' : 'danger',
+    wasEOT ? 'Restore' : 'End of Term',
+    async () => {
+      try {
+        await API.put(`/api/trucks/${encodeURIComponent(truckId)}`, {
+          endOfTerm: { active: !wasEOT, date: wasEOT ? '' : new Date().toISOString().split('T')[0] }
+        });
+        showToast(wasEOT ? `${truckId} restored to service` : `${truckId} marked end of term`, wasEOT ? 'success' : '');
+        await loadData();
+        renderAll();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+  );
+}
+
+function confirmDeleteTruck(truckId) {
+  openConfirm(
+    'Delete Truck',
+    `Delete <strong>${truckId}</strong> and all its year data?<br><small style="color:var(--muted)">Data will be moved to the Recovery Bin.</small>`,
+    'danger',
+    'Delete',
+    async () => {
+      try {
+        await API.delete(`/api/trucks/${encodeURIComponent(truckId)}`);
+        showToast(`${truckId} deleted`, 'success');
+        await loadData();
+        renderAll();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+  );
+}
+
+// ─── CONFIRM MODAL ───────────────────────────────────────────────────────────
+let _confirmCb = null;
+
+function openConfirm(title, msg, btnClass, btnLabel, cb) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').innerHTML = msg;
+  const actionBtn = document.getElementById('confirmAction');
+  actionBtn.className = 'cbtn ' + btnClass;
+  actionBtn.textContent = btnLabel;
+  _confirmCb = cb;
+  actionBtn.onclick = async () => { closeConfirm(); if (_confirmCb) await _confirmCb(); _confirmCb = null; };
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+  _confirmCb = null;
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
@@ -289,9 +387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadData();
   renderAll();
 
-  // Update admin UI
-  const admin = await checkAdmin();
-  if (!admin) {
-    document.querySelectorAll('[data-admin-only]').forEach(el => el.style.display = 'none');
-  }
+  // Update admin UI — re-render after auth check so inputs respect admin state
+  await refreshAdminStatus();
+  renderAll();
 });
