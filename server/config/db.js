@@ -1,18 +1,18 @@
 const mongoose = require('mongoose');
 
+let cachedConnection = null;
+
 async function connectDB() {
-  try {
-    const uri = process.env.MONGO_URI;
-    if (!uri) {
-      console.error('MONGO_URI not set in .env');
-      process.exit(1);
-    }
-    await mongoose.connect(uri);
-    console.log('MongoDB connected');
-  } catch (err) {
-    console.error('MongoDB connection error:', err.message);
-    process.exit(1);
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
   }
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    throw new Error('MONGO_URI not set');
+  }
+  cachedConnection = await mongoose.connect(uri);
+  console.log('MongoDB connected');
+  return cachedConnection;
 }
 
 module.exports = connectDB;

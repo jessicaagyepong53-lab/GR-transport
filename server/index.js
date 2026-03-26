@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const { MongoStore } = require('connect-mongo');
+const mongoose = require('mongoose');
 const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
@@ -9,8 +10,19 @@ const connectDB = require('./config/db');
 
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB first, then set up session store using the same connection
+const dbReady = connectDB();
+const clientPromise = dbReady.then(() => mongoose.connection.getClient());
+
+// Ensure DB is connected before handling any request (critical for serverless cold starts)
+app.use(async (req, res, next) => {
+  try {
+    await dbReady;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: 'Database connection failed' });
+  }
+});
 
 // Security
 app.use(helmet({
@@ -32,12 +44,12 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session (MongoDB-backed for serverless compatibility)
+// Session (MongoDB-backed, reuses the existing mongoose connection)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-me',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  store: MongoStore.create({ clientPromise }),
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
