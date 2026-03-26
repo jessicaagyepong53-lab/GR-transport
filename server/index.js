@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
-const { MongoStore } = require('connect-mongo');
 const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
@@ -32,12 +31,11 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session (MongoDB-backed for serverless compatibility)
+// Session
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-me',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -66,4 +64,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
-module.exports = app;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`\n  ✓ GR-Transport server running on http://localhost:${PORT}\n  ✓ Open http://localhost:${PORT} in your browser\n`);
+});
