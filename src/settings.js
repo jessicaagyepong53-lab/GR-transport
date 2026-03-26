@@ -130,18 +130,20 @@ async function addNewTruck() {
   }
 }
 
-// ─── PIN CHANGE ──────────────────────────────────────────────────────────────
-async function changePin() {
-  const currentPin = document.getElementById('currentPin').value.trim();
-  const newPin = document.getElementById('newPin').value.trim();
-  if (!currentPin || !newPin) return showToast('Fill both PIN fields', 'error');
+// ─── PIN RESET ───────────────────────────────────────────────────────────────
+async function resetPin() {
+  const recoveryKey = document.getElementById('recoveryKey').value.trim();
+  const newPin = document.getElementById('resetNewPin').value.trim();
+  if (!recoveryKey || !newPin) return showToast('Fill recovery key and new PIN', 'error');
   if (newPin.length < 4) return showToast('PIN must be at least 4 characters', 'error');
 
   try {
-    await API.put('/api/settings/pin', { currentPin, newPin });
-    showToast('PIN changed successfully', 'success');
-    document.getElementById('currentPin').value = '';
-    document.getElementById('newPin').value = '';
+    await API.post('/api/settings/pin/reset', { recoveryKey, newPin });
+    showToast('PIN has been reset — you are now logged in', 'success');
+    document.getElementById('recoveryKey').value = '';
+    document.getElementById('resetNewPin').value = '';
+    window._isAdminCached = true;
+    updateAdminUI();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   }

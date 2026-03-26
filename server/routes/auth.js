@@ -1,6 +1,5 @@
 const router = require('express').Router();
-const bcrypt = require('bcryptjs');
-const { getHashedPin } = require('../middleware/auth');
+const { getAdminPin } = require('../middleware/auth');
 
 // POST /api/auth/verify — verify admin PIN
 router.post('/verify', async (req, res) => {
@@ -8,7 +7,7 @@ router.post('/verify', async (req, res) => {
     const { pin } = req.body;
     if (!pin) return res.status(400).json({ error: 'PIN required' });
 
-    const adminPin = process.env.ADMIN_PIN || '1234';
+    const adminPin = await getAdminPin();
     if (String(pin) !== String(adminPin)) {
       return res.status(401).json({ error: 'Invalid PIN' });
     }

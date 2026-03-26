@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
+const { MongoStore } = require('connect-mongo');
 const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
@@ -31,11 +32,12 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session
+// Session (MongoDB-backed for serverless compatibility)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-me',
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -44,8 +46,10 @@ app.use(session({
   }
 }));
 
-// Static files — serve the project root (HTML, src/)
-app.use(express.static(path.join(__dirname, '..')));
+// Static files — serve the project root (HTML, src/) — local dev only
+if (!process.env.VERCEL) {
+  app.use(express.static(path.join(__dirname, '..')));
+}
 
 // API routes
 app.use('/api/auth', require('./routes/auth'));
@@ -59,12 +63,11 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/drivers', require('./routes/drivers'));
 app.use('/api/settings', require('./routes/settings'));
 
-// SPA fallback — serve index.html for non-API, non-file routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
+// SPA fallback — local dev only
+if (!process.env.VERCEL) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+  });
+}
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`\n  ✓ GR-Transport server running on http://localhost:${PORT}\n  ✓ Open http://localhost:${PORT} in your browser\n`);
-});
+module.exports = app;

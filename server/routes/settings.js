@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, getAdminPin, setAdminPin } = require('../middleware/auth');
 
 // GET /api/settings — get app settings
 router.get('/', (req, res) => {
@@ -9,27 +9,33 @@ router.get('/', (req, res) => {
   });
 });
 
-// PUT /api/settings/pin — change admin PIN
-router.put('/pin', requireAdmin, async (req, res) => {
+// POST /api/settings/pin/reset — reset PIN using recovery key
+router.post('/pin/reset', async (req, res) => {
   try {
-    const { currentPin, newPin } = req.body;
-    if (!currentPin || !newPin) {
-      return res.status(400).json({ error: 'Current and new PIN required' });
+    const { recoveryKey, newPin } = req.body;
+    if (!recoveryKey || !newPin) {
+      return res.status(400).json({ error: 'Recovery key and new PIN required' });
     }
     if (String(newPin).length < 4) {
       return res.status(400).json({ error: 'PIN must be at least 4 characters' });
     }
 
-    const adminPin = process.env.ADMIN_PIN || '1234';
-    if (String(currentPin) !== String(adminPin)) {
-      return res.status(401).json({ error: 'Current PIN is incorrect' });
+    const validKey = process.env.RECOVERY_KEY;
+    if (!validKey) {
+      return res.status(503).json({ error: 'Recovery key not configured on server' });
+    }
+    if (String(recoveryKey) !== String(validKey)) {
+      return res.status(401).json({ error: 'Invalid recovery key' });
     }
 
-    // Note: PIN change persists only in memory for this session.
-    // For permanent change, update the .env file or environment variable.
-    process.env.ADMIN_PIN = String(newPin);
+    await setAdminPin(newPin);
 
-    res.json({ success: true, message: 'PIN updated for current session' });
+    // Grant admin session after successful reset
+    req.session.isAdmin = true;
+    req.session.save((err) => {
+      if (err) return res.status(500).json({ error: 'Session save failed' });
+      res.json({ success: true, message: 'PIN has been reset' });
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

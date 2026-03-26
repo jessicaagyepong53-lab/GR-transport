@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs');
+const AppSettings = require('../models/AppSettings');
 
 // Middleware: require admin session for mutations
 function requireAdmin(req, res, next) {
@@ -8,19 +8,22 @@ function requireAdmin(req, res, next) {
   return res.status(401).json({ error: 'Admin authentication required' });
 }
 
-// Hash PIN on startup (cached)
-let hashedPin = null;
-async function getHashedPin() {
-  if (!hashedPin) {
-    const pin = process.env.ADMIN_PIN || '1234';
-    hashedPin = await bcrypt.hash(pin, 10);
-  }
-  return hashedPin;
+// Get the current admin PIN (DB first, then env fallback)
+async function getAdminPin() {
+  try {
+    const doc = await AppSettings.findOne({ key: 'adminPin' });
+    if (doc) return doc.value;
+  } catch { /* fall through */ }
+  return process.env.ADMIN_PIN || '1234';
 }
 
-// Re-hash when PIN changes
-function clearPinCache() {
-  hashedPin = null;
+// Save PIN to the database
+async function setAdminPin(newPin) {
+  await AppSettings.findOneAndUpdate(
+    { key: 'adminPin' },
+    { value: String(newPin) },
+    { upsert: true }
+  );
 }
 
-module.exports = { requireAdmin, getHashedPin, clearPinCache };
+module.exports = { requireAdmin, getAdminPin, setAdminPin };

@@ -91,17 +91,22 @@
   <!-- PIN Management -->
   <div class="section">
     <div class="section-title"><i class="fa-solid fa-lock"></i>Admin PIN</div>
-    <div class="card">
+    <div class="card" id="resetCard">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <i class="fa-solid fa-triangle-exclamation" style="color:var(--accent);"></i>
+        <span style="font-size:0.85rem;font-weight:600;">Reset PIN</span>
+        <span style="font-size:0.78rem;color:var(--muted);">Use your recovery key to set a new PIN</span>
+      </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Current PIN</label>
-          <input type="password" class="form-input" id="currentPin" autocomplete="off">
+          <label class="form-label">Recovery Key</label>
+          <input type="password" class="form-input" id="recoveryKey" autocomplete="off" placeholder="Enter recovery key">
         </div>
         <div class="form-group">
           <label class="form-label">New PIN</label>
-          <input type="password" class="form-input" id="newPin" autocomplete="off">
+          <input type="password" class="form-input" id="resetNewPin" autocomplete="off" placeholder="Min 4 characters">
         </div>
-        <button class="btn btn-primary" onclick="changePin()"><i class="fa-solid fa-key"></i>Change PIN</button>
+        <button class="btn btn-primary" onclick="resetPin()"><i class="fa-solid fa-rotate-right"></i>Reset PIN</button>
       </div>
     </div>
   </div>
@@ -111,7 +116,7 @@
     <div class="section-title"><i class="fa-solid fa-id-badge"></i>Driver Assignments</div>
     <div class="card">
       <table class="driver-table" id="driverTable"></table>
-      <div style="margin-top:14px;">
+      <div style="margin-top:14px;" data-admin-only>
         <button class="btn btn-primary" onclick="saveDrivers()"><i class="fa-solid fa-floppy-disk"></i>Save Drivers</button>
       </div>
     </div>
@@ -124,14 +129,14 @@
       <div style="overflow-x:auto;">
         <table class="driver-table" id="costTable"></table>
       </div>
-      <div style="margin-top:14px;">
+      <div style="margin-top:14px;" data-admin-only>
         <button class="btn btn-primary" onclick="saveCosts()"><i class="fa-solid fa-floppy-disk"></i>Save Costs</button>
       </div>
     </div>
   </div>
 
   <!-- Add New Truck Cost -->
-  <div class="section">
+  <div class="section" data-admin-only>
     <div class="section-title"><i class="fa-solid fa-truck-medical"></i>Add New Truck</div>
     <div class="card">
       <div class="form-row">
