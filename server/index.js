@@ -45,15 +45,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Session (MongoDB-backed, reuses the existing mongoose connection)
+const isProduction = process.env.NODE_ENV === 'production';
+app.set('trust proxy', 1); // Trust Vercel's proxy
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-me',
-  resave: false,
+  resave: true,
   saveUninitialized: false,
   store: MongoStore.create({ clientPromise }),
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
