@@ -367,7 +367,6 @@ function openEditDriverModal() {
   if (!isAdmin()) return showToast('View only', true);
   document.getElementById('driverNameInput').value = DATA.drivers[TRUCK_ID] || '';
   const cost = DATA.truckCost?.[TRUCK_ID] || {};
-  document.getElementById('truckInitialValueInput').value = cost.initialValue || 0;
   document.getElementById('truckPricePaidInput').value = cost.pricePaid || 0;
   document.getElementById('truckMaintCostInput').value = cost.maintenanceCost || 0;
   updateTruckTotalPreview();
@@ -375,23 +374,21 @@ function openEditDriverModal() {
 }
 
 function updateTruckTotalPreview() {
-  const iv = parseFloat(document.getElementById('truckInitialValueInput')?.value) || 0;
   const pp = parseFloat(document.getElementById('truckPricePaidInput')?.value) || 0;
   const mc = parseFloat(document.getElementById('truckMaintCostInput')?.value) || 0;
   const el = document.getElementById('truckTotalAmountPreview');
-  if (el) el.textContent = `Total Amount: GHS ${(iv + pp + mc).toLocaleString()}`;
+  if (el) el.textContent = `Total Cost: GHS ${(pp + mc).toLocaleString()}`;
 }
 
 function submitDriver() {
   if (!isAdmin()) return showToast('View only', true);
   const name = document.getElementById('driverNameInput').value.trim();
   if (name) DATA.drivers[TRUCK_ID] = name;
-  const iv = parseFloat(document.getElementById('truckInitialValueInput').value) || 0;
   const pp = parseFloat(document.getElementById('truckPricePaidInput').value) || 0;
   const mc = parseFloat(document.getElementById('truckMaintCostInput').value) || 0;
-  if (iv > 0 || pp > 0 || mc > 0) {
+  if (pp > 0 || mc > 0) {
     if (!DATA.truckCost) DATA.truckCost = {};
-    DATA.truckCost[TRUCK_ID] = { initialValue: iv, pricePaid: pp, maintenanceCost: mc };
+    DATA.truckCost[TRUCK_ID] = { initialValue: pp + mc, pricePaid: pp, maintenanceCost: mc };
   }
   saveData();
   closeModal('editDriverModal');
@@ -464,7 +461,7 @@ function refreshAll() {
   }
 
   // Add event listeners for truck cost preview
-  ['truckInitialValueInput', 'truckPricePaidInput', 'truckMaintCostInput'].forEach(id => {
+  ['truckPricePaidInput', 'truckMaintCostInput'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updateTruckTotalPreview);
   });

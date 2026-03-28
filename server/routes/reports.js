@@ -50,8 +50,11 @@ router.get('/summary', async (req, res) => {
     const yearFilter = req.query.year && req.query.year !== 'all' ? parseInt(req.query.year) : null;
     const filter = yearFilter ? { year: yearFilter } : {};
 
-    const entries = await YearEntry.find(filter);
-    const trucks = await Truck.find();
+    const [entries, trucks, expBreakdowns] = await Promise.all([
+      YearEntry.find(filter),
+      Truck.find().lean(),
+      ExpenseBreakdown.find(filter)
+    ]);
 
     let totalGross = 0, totalExp = 0, totalNet = 0;
     const truckSummary = {};
@@ -60,15 +63,53 @@ router.get('/summary', async (req, res) => {
       totalGross += e.gross;
       totalExp += e.exp;
       totalNet += e.net;
-      if (!truckSummary[e.truckId]) truckSummary[e.truckId] = { gross: 0, exp: 0, net: 0 };
+      if (!truckSummary[e.truckId]) truckSummary[e.truckId] = { gross: 0, exp: 0, net: 0, weeks: 0 };
       truckSummary[e.truckId].gross += e.gross;
       truckSummary[e.truckId].exp += e.exp;
       truckSummary[e.truckId].net += e.net;
+      truckSummary[e.truckId].weeks += (e.weeks || 0);
     });
 
+    // Build truck cost lookup
+    const truckCostMap = {};
+    trucks.forEach(t => {
+      if (t.cost) truckCostMap[t.truckId] = t.cost;
+    });
+
+    // Compute ratio for ranking (lower ratio = better)
     const ranked = Object.entries(truckSummary)
-      .map(([id, s]) => ({ truckId: id, ...s }))
-      .sort((a, b) => b.net - a.net);
+      .map(([id, s]) => {
+        const totalAmount = s.gross;
+        const pctExp = totalAmount ? Math.round(s.exp / totalAmount * 100) : 0;
+        const pctIncome = totalAmount ? Math.round(s.net / totalAmount * 100) : 0;
+        const ratio = s.net ? parseFloat((s.exp / s.net).toFixed(2)) : 0;
+        const avgIncome = s.weeks ? parseFloat((s.net / s.weeks).toFixed(2)) : 0;
+        const cost = truckCostMap[id] || null;
+        return { truckId: id, ...s, totalAmount, pctExp, pctIncome, ratio, avgIncome, cost };
+      })
+      .sort((a, b) => a.ratio - b.ratio);
+
+    // Assign ranks
+    ranked.forEach((t, i) => { t.rank = i + 1; });
+
+    // Expense breakdown (fleet-wide)
+    let totalMaint = 0, totalOther = 0;
+    expBreakdowns.forEach(e => {
+      totalMaint += (e.maint || 0);
+      totalOther += (e.other || 0);
+    });
+
+    // Allocate minor/major per truck proportionally
+    ranked.forEach(t => {
+      if (totalExp > 0) {
+        const share = t.exp / totalExp;
+        t.minorExp = Math.round(totalMaint * share);
+        t.majorExp = Math.round(totalOther * share);
+      } else {
+        t.minorExp = 0;
+        t.majorExp = 0;
+      }
+    });
 
     res.json({
       totalGross,
@@ -77,7 +118,8 @@ router.get('/summary', async (req, res) => {
       truckCount: trucks.length,
       topPerformer: ranked[0] || null,
       bottomPerformer: ranked[ranked.length - 1] || null,
-      truckRanking: ranked
+      truckRanking: ranked,
+      expBreakdown: { maint: totalMaint, other: totalOther }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

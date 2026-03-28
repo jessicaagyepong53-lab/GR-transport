@@ -552,17 +552,17 @@ const DATA = {
   monthly: {
     all: {
       labels:['Apr 2024','May 2024','Jun 2024','Jul 2024','Aug 2024','Sep 2024','Oct 2024','Nov 2024','Dec 2024','Jan 2025','Feb 2025','Mar 2025','Apr 2025','May 2025','Jun 2025','Jul 2025','Aug 2025','Sep 2025','Oct 2025','Nov 2025','Dec 2025','Jan 2026','Feb 2026','Mar 2026'],
-      gross: [18000,24000,23000,23000,22000,51000,56000,82000,86000,66000,73000,83500,60000,60000,97000,81000,104000,109000,130000,180500,155500,128500,140000,43000],
-      exp:   [120,4300,3500,9120,9500,32600,3120,9020,46550,5310,76500,30300,30540,3300,5600,7310,16950,0,14960,51020,9250,8550,37600,0],
+      gross: [18000,24000,23000,23000,22000,51000,56000,82000,86000,66000,73000,83500,60000,60000,97000,81000,104000,109000,130000,180500,155500,128500,140000,183000],
+      exp:   [120,4300,3500,9120,9500,32600,3120,9020,46550,5310,76500,30300,30540,3300,5600,7310,130150,0,14960,51020,9250,44550,47700,21450],
     },
     2024:{ labels:['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], gross:[18000,24000,23000,23000,22000,51000,56000,82000,86000], exp:[120,4300,3500,9120,9500,32600,3120,9020,46550] },
-    2025:{ labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], gross:[66000,73000,83500,60000,60000,97000,81000,104000,109000,130000,180500,155500], exp:[5310,76500,30300,30540,3300,5600,7310,16950,0,14960,51020,9250] },
-    2026:{ labels:['Jan','Feb','Mar'], gross:[128500,140000,43000], exp:[8550,37600,0] },
+    2025:{ labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], gross:[66000,73000,83500,60000,60000,97000,81000,104000,109000,130000,180500,155500], exp:[5310,76500,30300,30540,3300,5600,7310,130150,0,14960,51020,9250] },
+    2026:{ labels:['Jan','Feb','Mar'], gross:[128500,140000,183000], exp:[44550,47700,21450] },
   },
   yearlyTotals:{
     2024:{ gross:385000, exp:117830, net:267170 },
-    2025:{ gross:1199500, exp:251040, net:948460 },
-    2026:{ gross:311500, exp:46150, net:265350 },
+    2025:{ gross:1199500, exp:364240, net:835260 },
+    2026:{ gross:451500, exp:113700, net:337800 },
   },
   trucks:{
     'GT 6350-19':{
@@ -573,41 +573,60 @@ const DATA = {
     'GN 4106-18':{
       purchasePrice: 270000,
       2024:{ gross:101000, exp:19720, net:81280,  weeks:17 },
-      2025:{ gross:329000, exp:77930, net:251070, weeks:52 },
-      2026:{ gross:59000,  exp:1770,  net:57230,  weeks:52 },
+      2025:{ gross:329000, exp:151230, net:177770, weeks:51 },
+      2026:{ gross:59000,  exp:1770,  net:57230,  weeks:9  },
     },
-    'GW 1568-22':{
+    'GW 1568-22 OLD':{
       purchasePrice: 550000,
       2024:{ gross:65000,  exp:16850, net:48150,  weeks:10 },
-      2025:{ gross:372000, exp:86130, net:285870, weeks:51 },
-      2026:{ gross:14500,  exp:1470,  net:13030,  weeks:52 },
+      2025:{ gross:372000, exp:126030, net:245970, weeks:51 },
+      2026:{ gross:23000,  exp:28070, net:-5070,  weeks:4  },
     },
     'GN 1674-21':{
       purchasePrice: 650000,
-      2025:{ gross:257000, exp:71490, net:185510, weeks:41 },
-      2026:{ gross:73000,  exp:1770,  net:71230,  weeks:52 },
+      2025:{ gross:257000, exp:71490, net:185510, weeks:33 },
+      2026:{ gross:166500, exp:39420, net:127080, weeks:11 },
     },
     'GN 4394-25':{
       purchasePrice: 856000,
       2025:{ gross:166500, exp:5070,  net:161430, weeks:16 },
-      2026:{ gross:92000,  exp:37770, net:54230,  weeks:52 },
+      2026:{ gross:113000, exp:39420, net:73580,  weeks:11 },
     },
-    'GX 4502-22':{
+    'GX 4502-22 NEW':{
       purchasePrice: 500000,
       2025:{ gross:46000,  exp:4150,  net:41850,  weeks:6  },
-      2026:{ gross:73000,  exp:3370,  net:69630,  weeks:52 },
+      2026:{ gross:90000,  exp:5020,  net:84980,  weeks:11 },
+    },
+    'GN 626-26':{
+      purchasePrice: 0,
+      2026:{ gross:0, exp:0, net:0, weeks:0 },
+    },
+    'GN 4107-26':{
+      purchasePrice: 0,
+      2026:{ gross:0, exp:0, net:0, weeks:0 },
     },
   },
   expBreakdown:{
-    all:{ maint:58200, other:423870 },
+    all:{ maint:86250, other:509520 },
     2024:{ maint:12000, other:105830 },
-    2025:{ maint:46200, other:204840 },
-    2026:{ maint:6600,  other:39550  },
+    2025:{ maint:46200, other:318040 },
+    2026:{ maint:28050, other:85650  },
   },
   drivers:{
-    'GT 6350-19':'Paapa','GN 4106-18':'Isaac / Alfred',
-    'GW 1568-22':'Oliver','GN 1674-21':'JAT',
-    'GN 4394-25':'ATL Isaac','GX 4502-22':'Agoe'
+    'GT 6350-19':'Paapa','GN 4106-18':'Issac/Alfred',
+    'GW 1568-22 OLD':'Oliver','GN 1674-21':'JAT',
+    'GN 4394-25':'ATL Isaac','GX 4502-22 NEW':'Agoe',
+    'GN 626-26':'','GN 4107-26':''
+  },
+  truckCost:{
+    'GT 6350-19':{ initialValue:395000, pricePaid:330000, maintenanceCost:65000 },
+    'GN 4106-18':{ initialValue:335000, pricePaid:270000, maintenanceCost:65000 },
+    'GW 1568-22 OLD':{ initialValue:580000, pricePaid:550000, maintenanceCost:3000 },
+    'GN 1674-21':{ initialValue:661000, pricePaid:650000, maintenanceCost:11000 },
+    'GN 4394-25':{ initialValue:866000, pricePaid:856000, maintenanceCost:80000 },
+    'GX 4502-22 NEW':{ initialValue:568000, pricePaid:500000, maintenanceCost:68000 },
+    'GN 626-26':{ initialValue:0, pricePaid:0, maintenanceCost:0 },
+    'GN 4107-26':{ initialValue:0, pricePaid:0, maintenanceCost:0 },
   }
 };
 
@@ -616,7 +635,18 @@ Chart.defaults.color = '#6b7a96';
 Chart.defaults.font.family = 'DM Sans';
 Chart.defaults.plugins.legend.display = false;
 const COLORS = { accent:'#f5a623',green:'#2de08a',red:'#e0443a',blue:'#4a9eff',purple:'#9b72ff' };
-const TRUCK_COLORS = ['#f5a623','#4a9eff','#2de08a','#9b72ff','#e0443a','#22d3ee'];
+const TRUCK_COLOR_MAP = {
+  'GT 6350-19':  '#f5a623',
+  'GN 4106-18':  '#4a9eff',
+  'GW 1568-22 OLD': '#2de08a',
+  'GN 1674-21':  '#9b72ff',
+  'GN 4394-25':  '#e0443a',
+  'GX 4502-22 NEW':  '#22d3ee',
+  'GN 626-26':  '#f472b6',
+  'GN 4107-26':  '#ff8c42',
+};
+function getTruckColor(id) { return TRUCK_COLOR_MAP[id] || '#6b7a96'; }
+const TRUCK_COLORS = ['#f5a623','#4a9eff','#2de08a','#9b72ff','#e0443a','#22d3ee','#f472b6','#ff8c42'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 let currentYear = 'all';
@@ -676,7 +706,7 @@ function getTruckData(year) {
     let gross=0,exp=0,net=0,weeks=0;
     years.forEach(y=>{ if(t[y]){gross+=t[y].gross;exp+=t[y].exp;net+=t[y].net;weeks+=t[y].weeks;} });
     return {id,gross,exp,net,weeks,eff:gross?Math.round(net/gross*100):0};
-  }).filter(t=>t&&(t.gross>0||t.exp>0||t.weeks>0)).sort((a,b)=>b.net-a.net);
+  }).filter(t=>t).sort((a,b)=>b.net-a.net);
 }
 function getYearlyKPIs(year) {
   if(year==='all'){
@@ -730,8 +760,8 @@ function renderTruckIncome(year) {
   charts.truckIncome=new Chart(ctx,{
     type:'bar',
     data:{labels:trucks.map(t=>t.id),datasets:[
-      {label:'Gross',data:trucks.map(t=>t.gross),backgroundColor:TRUCK_COLORS.map(c=>c+'99'),borderColor:TRUCK_COLORS,borderWidth:1.5,borderRadius:5},
-      {label:'Net',data:trucks.map(t=>t.net),backgroundColor:TRUCK_COLORS.map(c=>c+'44'),borderColor:TRUCK_COLORS.map(c=>c+'88'),borderWidth:1,borderRadius:5},
+      {label:'Gross',data:trucks.map(t=>t.gross),backgroundColor:trucks.map(t=>getTruckColor(t.id)+'99'),borderColor:trucks.map(t=>getTruckColor(t.id)),borderWidth:1.5,borderRadius:5},
+      {label:'Net',data:trucks.map(t=>t.net),backgroundColor:trucks.map(t=>getTruckColor(t.id)+'44'),borderColor:trucks.map(t=>getTruckColor(t.id)+'88'),borderWidth:1,borderRadius:5},
     ]},
     options:{responsive:true,indexAxis:'y',
       plugins:{tooltip:{backgroundColor:'#1a1f2b',borderColor:'#252d3d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.dataset.label}: GHS ${ctx.parsed.x.toLocaleString()}`}}},
@@ -809,11 +839,17 @@ function renderHeatmap() {
 //   BREAKEVEN TRACKER
 // ─────────────────────────────────────────────────────────────────────────────
 function getTruckTotalCost(truckId) {
-  // Sum all cost components: initialValue + pricePaid + maintenanceCost
+  // Break-even target = pricePaid + maintenanceCost (initialValue is the sum, not separate)
   const c = DATA.truckCost?.[truckId];
-  if (c) return (Number(c.initialValue || 0) + Number(c.pricePaid || 0) + Number(c.maintenanceCost || 0));
+  if (c) return (Number(c.pricePaid || 0) + Number(c.maintenanceCost || 0));
   // Fallback to legacy purchasePrice
   return Number(DATA.trucks[truckId]?.purchasePrice || 0);
+}
+function getTruckCostBreakdown(truckId) {
+  const c = DATA.truckCost?.[truckId];
+  if (c) return { initialValue: Number(c.initialValue || 0), pricePaid: Number(c.pricePaid || 0), maintenanceCost: Number(c.maintenanceCost || 0) };
+  const pp = Number(DATA.trucks[truckId]?.purchasePrice || 0);
+  return pp ? { initialValue: 0, pricePaid: pp, maintenanceCost: 0 } : null;
 }
 function getTruckCumulativeNet(truckId) {
   const t = DATA.trucks[truckId];
@@ -859,6 +895,7 @@ function renderBreakeven(year) {
     const isBroken = cumulativeNet >= totalCost;
     const pct = Math.min(Math.round(cumulativeNet / totalCost * 100), 100);
     const remaining = totalCost - cumulativeNet;
+    const breakdown = getTruckCostBreakdown(id);
 
     html += `
       <div class="be-card ${isBroken ? 'broken' : 'not-broken'}">
@@ -871,6 +908,9 @@ function renderBreakeven(year) {
           <span class="be-row-label">Total Investment</span>
           <span class="be-row-val">GHS ${totalCost.toLocaleString()}</span>
         </div>
+        ${breakdown && breakdown.pricePaid ? `<div class="be-row"><span class="be-row-label" style="padding-left:10px;font-size:0.68rem;opacity:0.7"><i class="fa-solid fa-money-bill-transfer" style="margin-right:4px"></i>Amount Paid</span><span class="be-row-val" style="font-size:0.8rem;color:var(--label)">GHS ${breakdown.pricePaid.toLocaleString()}</span></div>` : ''}
+        ${breakdown && breakdown.maintenanceCost ? `<div class="be-row"><span class="be-row-label" style="padding-left:10px;font-size:0.68rem;opacity:0.7"><i class="fa-solid fa-wrench" style="margin-right:4px"></i>Repairs & Maint.</span><span class="be-row-val" style="font-size:0.8rem;color:var(--label)">GHS ${breakdown.maintenanceCost.toLocaleString()}</span></div>` : ''}
+        ${breakdown && breakdown.initialValue ? `<div class="be-row"><span class="be-row-label" style="padding-left:10px;font-size:0.68rem;opacity:0.6;font-style:italic"><i class="fa-solid fa-tag" style="margin-right:4px"></i>Initial Value (ref)</span><span class="be-row-val" style="font-size:0.75rem;color:var(--muted);font-style:italic">GHS ${breakdown.initialValue.toLocaleString()}</span></div>` : ''}
         <div class="be-row">
           <span class="be-row-label">Cumulative Net</span>
           <span class="be-row-val" style="color:${cumulativeNet>=0?'var(--green)':'var(--red)'}">${cumulativeNet>=0?'+':''}GHS ${cumulativeNet.toLocaleString()}</span>
@@ -1574,9 +1614,10 @@ function updateDashTimestamp(date) {
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 DATA.drivers = DATA.drivers || {
-  'GT 6350-19':'Paapa','GN 4106-18':'Isaac / Alfred',
-  'GW 1568-22':'Oliver','GN 1674-21':'JAT',
-  'GN 4394-25':'ATL Isaac','GX 4502-22':'Agoe'
+  'GT 6350-19':'Paapa','GN 4106-18':'Issac/Alfred',
+  'GW 1568-22 OLD':'Oliver','GN 1674-21':'JAT',
+  'GN 4394-25':'ATL Isaac','GX 4502-22 NEW':'Agoe',
+  'GN 626-26':'','GN 4107-26':''
 };
 
 rebuildAllMonthlyData();

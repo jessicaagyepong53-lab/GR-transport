@@ -8,7 +8,8 @@ router.get('/', async (req, res) => {
     const trucks = await Truck.find().sort('truckId');
     const drivers = trucks.map(t => ({
       truckId: t.truckId,
-      driver: t.driver || ''
+      driver: t.driver || '',
+      driverNotes: t.driverNotes || ''
     }));
     res.json(drivers);
   } catch (err) {
@@ -30,14 +31,18 @@ router.get('/:truckId', async (req, res) => {
 // PUT /api/drivers/:truckId — update driver assignment
 router.put('/:truckId', requireAdmin, async (req, res) => {
   try {
-    const { driver } = req.body;
+    const { driver, driverNotes, startDates, endOfTerm } = req.body;
+    const update = { driver: driver || '' };
+    if (driverNotes !== undefined) update.driverNotes = driverNotes;
+    if (startDates !== undefined) update.startDates = startDates;
+    if (endOfTerm !== undefined) update.endOfTerm = endOfTerm;
     const truck = await Truck.findOneAndUpdate(
       { truckId: req.params.truckId },
-      { driver: driver || '' },
+      update,
       { new: true }
     );
     if (!truck) return res.status(404).json({ error: 'Truck not found' });
-    res.json({ truckId: truck.truckId, driver: truck.driver });
+    res.json({ truckId: truck.truckId, driver: truck.driver, driverNotes: truck.driverNotes || '' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

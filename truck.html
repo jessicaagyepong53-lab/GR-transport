@@ -201,13 +201,11 @@
     <h3><i class="fa-solid fa-id-card"></i>Edit Truck Settings</h3>
     <label>Driver Name</label>
     <input type="text" id="driverNameInput" placeholder="Driver name">
-    <label>Initial Value (GHS)</label>
-    <input type="number" id="truckInitialValueInput" value="0" oninput="updateTruckTotalPreview()">
-    <label>Price Paid (GHS)</label>
+    <label>Amount Paid (GHS)</label>
     <input type="number" id="truckPricePaidInput" value="0" oninput="updateTruckTotalPreview()">
-    <label>Maintenance Cost (GHS)</label>
+    <label>Repairs & Maintenance (GHS)</label>
     <input type="number" id="truckMaintCostInput" value="0" oninput="updateTruckTotalPreview()">
-    <p id="truckTotalAmountPreview" style="margin-top:12px;font-size:0.82rem;font-weight:600;color:var(--accent)">Total Amount: GHS 0</p>
+    <p id="truckTotalAmountPreview" style="margin-top:12px;font-size:0.82rem;font-weight:600;color:var(--accent)">Total Cost: GHS 0</p>
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('editDriverModal')">Cancel</button>
       <button class="btn btn-primary" onclick="submitDriver()">Save</button>

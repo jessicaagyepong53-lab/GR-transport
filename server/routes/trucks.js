@@ -20,6 +20,8 @@ router.get('/', async (req, res) => {
       return {
         truckId: t.truckId,
         driver: t.driver,
+        driverNotes: t.driverNotes || '',
+        startDates: t.startDates || {},
         cost: t.cost,
         endOfTerm: t.endOfTerm,
         years
