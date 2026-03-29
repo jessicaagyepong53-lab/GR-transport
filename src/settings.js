@@ -50,6 +50,40 @@ function autoSaveDriverRow(truckId) {
   }, 800);
 }
 
+// ─── RENAME TRUCK ────────────────────────────────────────────────────────────
+async function renameTruck(input) {
+  const oldId = input.dataset.truck;
+  const newId = input.value.trim().toUpperCase();
+  if (!newId || newId === oldId) { input.value = oldId; return; }
+  // Check for duplicate in current data
+  if (trucksData.some(t => t.truckId === newId)) {
+    showToast('A truck with that name already exists', 'error');
+    input.value = oldId;
+    return;
+  }
+  try {
+    await API.put(`/api/trucks/${encodeURIComponent(oldId)}`, { newTruckId: newId });
+    showToast(`Renamed ${oldId} → ${newId}`, 'success');
+    // Also update localStorage so the dashboard picks up the change
+    const raw = localStorage.getItem('transport_dashboard_data');
+    if (raw) {
+      try {
+        const DATA = JSON.parse(raw);
+        if (DATA.trucks?.[oldId]) { DATA.trucks[newId] = DATA.trucks[oldId]; delete DATA.trucks[oldId]; }
+        if (DATA.drivers?.[oldId]) { DATA.drivers[newId] = DATA.drivers[oldId]; delete DATA.drivers[oldId]; }
+        if (DATA.truckCost?.[oldId]) { DATA.truckCost[newId] = DATA.truckCost[oldId]; delete DATA.truckCost[oldId]; }
+        if (DATA.endOfTerm?.[oldId]) { DATA.endOfTerm[newId] = DATA.endOfTerm[oldId]; delete DATA.endOfTerm[oldId]; }
+        if (DATA.monthly?.[oldId]) { DATA.monthly[newId] = DATA.monthly[oldId]; delete DATA.monthly[oldId]; }
+        localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
+      } catch(e) {}
+    }
+    await loadSettings();
+  } catch (err) {
+    showToast('Rename failed: ' + err.message, 'error');
+    input.value = oldId;
+  }
+}
+
 function renderDriverTable() {
   const table = document.getElementById('driverTable');
   // Collect all years across all trucks
@@ -65,7 +99,7 @@ function renderDriverTable() {
     const sd = t.startDates || {};
     const eot = t.endOfTerm || { active: false, date: '' };
     html += `<tr>
-      <td style="color:var(--accent);font-weight:600;font-family:'JetBrains Mono',monospace">${t.truckId}</td>
+      <td><input type="text" value="${t.truckId}" data-truck="${t.truckId}" class="truck-name-input" style="color:var(--accent);font-weight:600;font-family:'JetBrains Mono',monospace;text-transform:uppercase"></td>
       <td><input type="text" value="${t.driver || ''}" data-truck="${t.truckId}" class="driver-input"></td>`;
     years.forEach(y => {
       const hasYear = t.years && t.years[y];
@@ -88,6 +122,11 @@ function renderDriverTable() {
   table.querySelectorAll('.driver-input, .driver-notes-input, .start-date-input, .eot-date').forEach(input => {
     input.addEventListener('input', () => autoSaveDriverRow(input.dataset.truck));
     input.addEventListener('change', () => autoSaveDriverRow(input.dataset.truck));
+  });
+  // Truck name rename on blur or Enter
+  table.querySelectorAll('.truck-name-input').forEach(input => {
+    input.addEventListener('blur', () => renameTruck(input));
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
   });
   // Checkbox listeners for end-of-term
   table.querySelectorAll('.eot-active').forEach(cb => {
