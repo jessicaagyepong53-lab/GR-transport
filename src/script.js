@@ -46,10 +46,10 @@ const DEFAULT_DATA = {
       2025:{ gross:46000,  exp:4150,  net:41850,  weeks:6  },
       2026:{ gross:90000,  exp:5020,  net:84980,  weeks:11 },
     },
-    'GN 626-26': {
+    'GN 626-26 BLUE': {
       2026:{ gross:0, exp:0, net:0, weeks:0 },
     },
-    'GN 4107-26': {
+    'GN 4107-26 GREEN': {
       2026:{ gross:0, exp:0, net:0, weeks:0 },
     },
   },
@@ -60,8 +60,8 @@ const DEFAULT_DATA = {
     'GN 1674-21':'JAT',
     'GN 4394-25':'ATL Isaac',
     'GX 4502-22 NEW':'Agoe',
-    'GN 626-26':'',
-    'GN 4107-26':'',
+    'GN 626-26 BLUE':'',
+    'GN 4107-26 GREEN':'',
   },
   expBreakdown: {
     2024: { maint:12000,  other:105830 },
