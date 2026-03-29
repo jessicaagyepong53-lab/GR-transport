@@ -19,6 +19,14 @@ async function loadSettings() {
   }
 }
 
+// ─── LOCALSTORAGE SYNC ───────────────────────────────────────────────────────
+function getLocalData() {
+  try { return JSON.parse(localStorage.getItem('transport_dashboard_data')) || {}; } catch(e) { return {}; }
+}
+function setLocalData(data) {
+  localStorage.setItem('transport_dashboard_data', JSON.stringify(data));
+}
+
 // ─── DRIVER TABLE ────────────────────────────────────────────────────────────
 let _driverSaveTimer = null;
 function autoSaveDriverRow(truckId) {
@@ -43,6 +51,11 @@ function autoSaveDriverRow(truckId) {
     };
     try {
       await API.put(`/api/drivers/${encodeURIComponent(truckId)}`, { driver, driverNotes, startDates, endOfTerm });
+      // Sync to localStorage
+      const DATA = getLocalData();
+      if (DATA.drivers) DATA.drivers[truckId] = driver;
+      if (DATA.endOfTerm) DATA.endOfTerm[truckId] = endOfTerm;
+      setLocalData(DATA);
       showToast('Saved', 'success');
     } catch (err) {
       showToast('Error: ' + err.message, 'error');
@@ -64,19 +77,28 @@ async function renameTruck(input) {
   try {
     await API.put(`/api/trucks/${encodeURIComponent(oldId)}`, { newTruckId: newId });
     showToast(`Renamed ${oldId} → ${newId}`, 'success');
-    // Also update localStorage so the dashboard picks up the change
-    const raw = localStorage.getItem('transport_dashboard_data');
-    if (raw) {
-      try {
-        const DATA = JSON.parse(raw);
-        if (DATA.trucks?.[oldId]) { DATA.trucks[newId] = DATA.trucks[oldId]; delete DATA.trucks[oldId]; }
-        if (DATA.drivers?.[oldId]) { DATA.drivers[newId] = DATA.drivers[oldId]; delete DATA.drivers[oldId]; }
-        if (DATA.truckCost?.[oldId]) { DATA.truckCost[newId] = DATA.truckCost[oldId]; delete DATA.truckCost[oldId]; }
-        if (DATA.endOfTerm?.[oldId]) { DATA.endOfTerm[newId] = DATA.endOfTerm[oldId]; delete DATA.endOfTerm[oldId]; }
-        if (DATA.monthly?.[oldId]) { DATA.monthly[newId] = DATA.monthly[oldId]; delete DATA.monthly[oldId]; }
-        localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
-      } catch(e) {}
-    }
+    // Update localStorage — move ALL keys from old to new
+    const DATA = getLocalData();
+    if (DATA.trucks?.[oldId]) { DATA.trucks[newId] = DATA.trucks[oldId]; delete DATA.trucks[oldId]; }
+    if (DATA.drivers?.[oldId]) { DATA.drivers[newId] = DATA.drivers[oldId]; delete DATA.drivers[oldId]; }
+    if (DATA.truckCost?.[oldId]) { DATA.truckCost[newId] = DATA.truckCost[oldId]; delete DATA.truckCost[oldId]; }
+    if (DATA.endOfTerm?.[oldId]) { DATA.endOfTerm[newId] = DATA.endOfTerm[oldId]; delete DATA.endOfTerm[oldId]; }
+    if (DATA.monthly?.[oldId]) { DATA.monthly[newId] = DATA.monthly[oldId]; delete DATA.monthly[oldId]; }
+    if (DATA.weekly?.[oldId]) { DATA.weekly[newId] = DATA.weekly[oldId]; delete DATA.weekly[oldId]; }
+    if (DATA.entryMeta?.[oldId]) { DATA.entryMeta[newId] = DATA.entryMeta[oldId]; delete DATA.entryMeta[oldId]; }
+    setLocalData(DATA);
+    // Update truck_recovery if any entries reference the old name
+    try {
+      const recRaw = localStorage.getItem('truck_recovery');
+      if (recRaw) {
+        const recovery = JSON.parse(recRaw);
+        let changed = false;
+        recovery.forEach(r => {
+          if (r.data?.truckId === oldId) { r.data.truckId = newId; changed = true; }
+        });
+        if (changed) localStorage.setItem('truck_recovery', JSON.stringify(recovery));
+      }
+    } catch(e) {}
     await loadSettings();
   } catch (err) {
     showToast('Rename failed: ' + err.message, 'error');
@@ -188,6 +210,11 @@ function autoSaveCostRow(truckId) {
     const maintenanceCost = parseFloat(row.querySelector('.cost-maint').value) || 0;
     try {
       await API.put(`/api/trucks/${encodeURIComponent(truckId)}`, { cost: { initialValue, pricePaid, maintenanceCost } });
+      // Sync to localStorage
+      const DATA = getLocalData();
+      if (!DATA.truckCost) DATA.truckCost = {};
+      DATA.truckCost[truckId] = { initialValue, pricePaid, maintenanceCost };
+      setLocalData(DATA);
       showToast('Saved', 'success');
     } catch (err) {
       showToast('Error: ' + err.message, 'error');

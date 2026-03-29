@@ -1,6 +1,8 @@
 const router = require('express').Router();
 const Truck = require('../models/Truck');
 const YearEntry = require('../models/YearEntry');
+const MonthlyEntry = require('../models/MonthlyEntry');
+const WeeklyEntry = require('../models/WeeklyEntry');
 const Trash = require('../models/Trash');
 const { requireAdmin } = require('../middleware/auth');
 
@@ -98,8 +100,11 @@ router.put('/:id', requireAdmin, async (req, res) => {
       const cleanId = newTruckId.trim().toUpperCase();
       const existing = await Truck.findOne({ truckId: cleanId });
       if (existing) return res.status(409).json({ error: 'A truck with that name already exists' });
-      // Update all year entries to reference the new truckId
-      await YearEntry.updateMany({ truckId: truck.truckId }, { truckId: cleanId });
+      const oldId = truck.truckId;
+      // Update truckId in ALL related collections
+      await YearEntry.updateMany({ truckId: oldId }, { truckId: cleanId });
+      await MonthlyEntry.updateMany({ truckId: oldId }, { truckId: cleanId });
+      await WeeklyEntry.updateMany({ truckId: oldId }, { truckId: cleanId });
       truck.truckId = cleanId;
     }
 
