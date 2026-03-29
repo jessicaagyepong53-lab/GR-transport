@@ -15,8 +15,8 @@ const DEFAULT_DATA = {
     'GN 1674-21': { driver: 'JAT', startDates: { 2025: '2025-03-18', 2026: '2026-01-01' }, purchaseYear: 2025, cost: { initialValue: 661000, pricePaid: 650000, maintenanceCost: 11000 }, years: { 2025: { gross:257000, exp:71490, net:185510, weeks:33 }, 2026: { gross:166500, exp:39420, net:127080, weeks:11 } } },
     'GN 4394-25': { driver: 'ATL Isaac', startDates: { 2025: '2025-09-07', 2026: '2026-01-01' }, purchaseYear: 2025, cost: { initialValue: 866000, pricePaid: 856000, maintenanceCost: 80000 }, years: { 2025: { gross:166500, exp:5070, net:161430, weeks:16 }, 2026: { gross:113000, exp:39420, net:73580, weeks:11 } } },
     'GX 4502-22 NEW': { driver: 'Agoe', startDates: { 2025: '2025-11-19', 2026: '2026-01-01' }, purchaseYear: 2025, cost: { initialValue: 568000, pricePaid: 500000, maintenanceCost: 68000 }, years: { 2025: { gross:46000, exp:4150, net:41850, weeks:6 }, 2026: { gross:90000, exp:5020, net:84980, weeks:11 } } },
-    'GN 626-26': { driver: '', startDates: {}, purchaseYear: 2026, cost: { initialValue: 0, pricePaid: 0, maintenanceCost: 0 }, years: { 2026: { gross:0, exp:0, net:0, weeks:0 } } },
-    'GN 4107-26': { driver: '', startDates: {}, purchaseYear: 2026, cost: { initialValue: 0, pricePaid: 0, maintenanceCost: 0 }, years: { 2026: { gross:0, exp:0, net:0, weeks:0 } } },
+    'GN 626-26 BLUE': { driver: '', startDates: {}, purchaseYear: 2026, cost: { initialValue: 0, pricePaid: 0, maintenanceCost: 0 }, years: { 2026: { gross:0, exp:0, net:0, weeks:0 } } },
+    'GN 4107-26 GREEN': { driver: '', startDates: {}, purchaseYear: 2026, cost: { initialValue: 0, pricePaid: 0, maintenanceCost: 0 }, years: { 2026: { gross:0, exp:0, net:0, weeks:0 } } },
   },
   monthly: {
     2024: { labels: ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], gross: [18000,24000,23000,23000,22000,51000,56000,82000,86000], exp: [120,4300,3500,9120,9500,32600,3120,9020,46550] },
