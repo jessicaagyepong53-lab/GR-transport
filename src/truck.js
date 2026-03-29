@@ -364,8 +364,7 @@ function deleteYearEntry() {
 
 // ─── EDIT DRIVER / TRUCK SETTINGS ────────────────────────────────────────────
 function openEditDriverModal() {
-  if (!isAdmin()) return showToast('View only', true);
-  document.getElementById('driverNameInput').value = DATA.drivers[TRUCK_ID] || '';
+  if (!isAdmin()) return showToast('View only', true);  document.getElementById('truckNameInput').value = TRUCK_ID;  document.getElementById('driverNameInput').value = DATA.drivers[TRUCK_ID] || '';
   const cost = DATA.truckCost?.[TRUCK_ID] || {};
   document.getElementById('truckPricePaidInput').value = cost.pricePaid || 0;
   document.getElementById('truckMaintCostInput').value = cost.maintenanceCost || 0;
@@ -382,18 +381,52 @@ function updateTruckTotalPreview() {
 
 function submitDriver() {
   if (!isAdmin()) return showToast('View only', true);
+  const newName = (document.getElementById('truckNameInput').value || '').trim().toUpperCase();
   const name = document.getElementById('driverNameInput').value.trim();
-  if (name) DATA.drivers[TRUCK_ID] = name;
   const pp = parseFloat(document.getElementById('truckPricePaidInput').value) || 0;
   const mc = parseFloat(document.getElementById('truckMaintCostInput').value) || 0;
+
+  // Handle truck rename
+  const renamed = newName && newName !== TRUCK_ID;
+  if (renamed) {
+    if (DATA.trucks[newName]) return showToast('A truck with that name already exists', true);
+    // Move all data keys from old to new
+    DATA.trucks[newName] = DATA.trucks[TRUCK_ID];
+    delete DATA.trucks[TRUCK_ID];
+    if (DATA.drivers[TRUCK_ID]) { DATA.drivers[newName] = DATA.drivers[TRUCK_ID]; delete DATA.drivers[TRUCK_ID]; }
+    if (DATA.truckCost?.[TRUCK_ID]) { DATA.truckCost[newName] = DATA.truckCost[TRUCK_ID]; delete DATA.truckCost[TRUCK_ID]; }
+    if (DATA.endOfTerm?.[TRUCK_ID]) { DATA.endOfTerm[newName] = DATA.endOfTerm[TRUCK_ID]; delete DATA.endOfTerm[TRUCK_ID]; }
+    if (DATA.monthly?.[TRUCK_ID]) { DATA.monthly[newName] = DATA.monthly[TRUCK_ID]; delete DATA.monthly[TRUCK_ID]; }
+    TRUCK_ID = newName;
+  }
+
+  if (name) DATA.drivers[TRUCK_ID] = name;
   if (pp > 0 || mc > 0) {
     if (!DATA.truckCost) DATA.truckCost = {};
     DATA.truckCost[TRUCK_ID] = { initialValue: pp + mc, pricePaid: pp, maintenanceCost: mc };
   }
   saveData();
-  closeModal('editDriverModal');
-  showToast('Truck settings saved');
-  refreshAll();
+
+  // Also update via API if rename happened
+  if (renamed) {
+    const oldId = new URLSearchParams(window.location.search).get('id');
+    API.put('/api/trucks/' + encodeURIComponent(oldId), { newTruckId: TRUCK_ID, driver: name, cost: { pricePaid: pp, maintenanceCost: mc, initialValue: pp + mc } })
+      .then(() => {
+        closeModal('editDriverModal');
+        showToast('Truck renamed to ' + TRUCK_ID);
+        // Update URL without full reload
+        const url = new URL(window.location);
+        url.searchParams.set('id', TRUCK_ID);
+        window.history.replaceState({}, '', url);
+        refreshAll();
+      })
+      .catch(err => showToast(err.message || 'API rename failed', true));
+  } else {
+    API.put('/api/trucks/' + encodeURIComponent(TRUCK_ID), { driver: name, cost: { pricePaid: pp, maintenanceCost: mc, initialValue: pp + mc } }).catch(() => {});
+    closeModal('editDriverModal');
+    showToast('Truck settings saved');
+    refreshAll();
+  }
 }
 
 // ─── DELETE TRUCK ────────────────────────────────────────────────────────────

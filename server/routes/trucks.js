@@ -86,12 +86,22 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// PUT /api/trucks/:id — update truck settings
+// PUT /api/trucks/:id — update truck settings (including rename)
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
-    const { driver, cost, endOfTerm } = req.body;
+    const { driver, cost, endOfTerm, newTruckId } = req.body;
     const truck = await Truck.findOne({ truckId: req.params.id });
     if (!truck) return res.status(404).json({ error: 'Truck not found' });
+
+    // Handle rename
+    if (newTruckId && newTruckId.trim().toUpperCase() !== truck.truckId) {
+      const cleanId = newTruckId.trim().toUpperCase();
+      const existing = await Truck.findOne({ truckId: cleanId });
+      if (existing) return res.status(409).json({ error: 'A truck with that name already exists' });
+      // Update all year entries to reference the new truckId
+      await YearEntry.updateMany({ truckId: truck.truckId }, { truckId: cleanId });
+      truck.truckId = cleanId;
+    }
 
     if (driver !== undefined) truck.driver = driver;
     if (cost) truck.cost = { ...truck.cost.toObject?.() || truck.cost, ...cost };
