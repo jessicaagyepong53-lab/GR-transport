@@ -48,7 +48,7 @@ router.post('/', requireAdmin, async (req, res) => {
     const truck = await Truck.create({
       truckId: truckId.trim().toUpperCase(),
       driver: driver || '',
-      cost: cost || { initialValue: 0, pricePaid: 0, maintenanceCost: 0 },
+      cost: cost || { initialValue: 0, pricePaid: 0, insurance: 0, maintenanceCost: 0 },
       endOfTerm: endOfTerm || { active: false, date: '' }
     });
 

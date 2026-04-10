@@ -11,7 +11,7 @@
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
   body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,166,35,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
-  .wrapper{position:relative;z-index:1;padding:32px;max-width:1100px;margin:0 auto;}
+  .wrapper{position:relative;z-index:1;padding:32px;max-width:1400px;margin:0 auto;}
 
   .header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:16px;}
   .header-left{display:flex;align-items:center;gap:20px;}
@@ -33,7 +33,7 @@
   .card-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
   .card-title i{color:var(--accent);}
 
-  .day-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+  .entry-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:18px;}
   .week-field{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:18px;transition:all 0.2s;}
   .week-field:focus-within{border-color:var(--accent);}
   .week-field-label{font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:1.5px;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
@@ -45,6 +45,8 @@
   .total-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:600;}
   .total-value{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:600;}
   .total-value.gross{color:var(--blue);}
+  .total-value.maint{color:var(--purple);}
+  .total-value.other-val{color:var(--accent2);}
   .total-value.exp{color:var(--red);}
   .total-value.net{color:var(--green);}
 
@@ -54,36 +56,44 @@
   .btn-primary:hover{background:#ffb940;}
   .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
 
-  /* Horizontal week history strip */
-  .week-strip-wrap{overflow-x:auto;padding-bottom:8px;margin-top:4px;}
-  .week-strip-wrap::-webkit-scrollbar{height:4px;}
-  .week-strip-wrap::-webkit-scrollbar-track{background:var(--bg3);border-radius:2px;}
-  .week-strip-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-  .week-strip-wrap::-webkit-scrollbar-thumb:hover{background:var(--accent);}
-  .week-strip{display:flex;gap:10px;min-width:max-content;}
-  .week-pill{
-    background:var(--bg3);border:1px solid var(--border);border-radius:10px;
-    padding:12px 16px;cursor:pointer;transition:all 0.18s;min-width:130px;
-    display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden;
-  }
-  .week-pill::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border);transition:background 0.18s;}
-  .week-pill:hover{border-color:var(--accent);transform:translateY(-2px);}
-  .week-pill:hover::before{background:var(--accent);}
-  .week-pill.active{border-color:var(--accent);background:rgba(245,166,35,0.07);}
-  .week-pill.active::before{background:var(--accent);}
-  .wp-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:600;}
-  .wp-week{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1.5px;color:var(--accent);}
-  .wp-gross{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--blue);}
-  .wp-net{font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;}
-  .wp-net.pos{color:var(--green);}
-  .wp-net.neg{color:var(--red);}
-  .wp-empty{font-size:0.75rem;color:var(--muted);font-style:italic;align-self:center;}
-
-  .week-link{color:var(--blue);cursor:pointer;text-decoration:underline;}
-  .week-link:hover{color:var(--accent);}
-
   .notes-input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;resize:vertical;min-height:44px;}
   .notes-input:focus{border-color:var(--accent);outline:none;}
+
+  /* Spreadsheet history table */
+  .history-wrap{overflow-x:auto;margin-top:4px;}
+  .history-wrap::-webkit-scrollbar{height:6px;}
+  .history-wrap::-webkit-scrollbar-track{background:var(--bg3);border-radius:3px;}
+  .history-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  .history-wrap::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+  .history-table{width:100%;border-collapse:collapse;min-width:1200px;font-size:0.78rem;}
+  .history-table thead th{
+    background:var(--bg3);color:var(--accent);font-family:'Bebas Neue',sans-serif;
+    font-size:0.8rem;letter-spacing:1.2px;padding:10px 8px;text-align:left;
+    border-bottom:2px solid var(--accent);position:sticky;top:0;white-space:nowrap;
+  }
+  .history-table tbody td{
+    padding:8px;border-bottom:1px solid var(--border);white-space:nowrap;
+    font-family:'JetBrains Mono',monospace;font-size:0.75rem;
+  }
+  .history-table tbody tr:hover{background:rgba(245,166,35,0.04);}
+  .history-table tbody tr.active-row{background:rgba(245,166,35,0.08);border-left:3px solid var(--accent);}
+  .history-table .month-cell{font-family:'DM Sans',sans-serif;font-weight:600;color:var(--label);}
+  .history-table .week-link{color:var(--blue);cursor:pointer;text-decoration:underline;}
+  .history-table .week-link:hover{color:var(--accent);}
+  .history-table .notes-cell{font-family:'DM Sans',sans-serif;max-width:180px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);}
+  .history-table .col-gross{color:var(--blue);}
+  .history-table .col-maint{color:var(--purple);}
+  .history-table .col-other{color:var(--accent2);}
+  .history-table .col-exp{color:var(--red);}
+  .history-table .col-net{font-weight:700;}
+  .history-table .col-be{font-weight:700;}
+  .history-table tfoot td{
+    background:var(--bg3);font-weight:700;border-top:2px solid var(--accent);
+    padding:10px 8px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+  }
+
+  .history-table .edit-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;padding:4px 8px;font-size:0.7rem;transition:all 0.2s;}
+  .history-table .edit-btn:hover{border-color:var(--accent);color:var(--accent);}
 
   .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
   .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
@@ -97,14 +107,15 @@
 
   @media(max-width:700px){
     .wrapper{padding:22px 14px;}
-    .day-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+    .entry-grid{grid-template-columns:1fr 1fr;}
     .header{flex-direction:column;align-items:flex-start;}
     .selectors{flex-direction:column;}
   }
-  @media (max-width:500px) {
-    .wrapper { padding: 6px 1px; }
-    .header { gap: 10px; }
-    .footer-note { font-size: 0.68rem; }
+  @media(max-width:500px){
+    .wrapper{padding:6px 1px;}
+    .entry-grid{grid-template-columns:1fr;}
+    .header{gap:10px;}
+    .footer-note{font-size:0.68rem;}
   }
 </style>
 </head>
@@ -115,7 +126,7 @@
       <div class="logo-mark"><i class="fa-solid fa-calendar-week"></i></div>
       <div>
         <div class="page-title">Weekly Entry</div>
-        <div class="page-subtitle">Daily Gross &amp; Expense Input</div>
+        <div class="page-subtitle">Weekly Income Tracker</div>
       </div>
     </div>
     <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
@@ -137,34 +148,50 @@
     </div>
   </div>
 
-  <!-- Weekly Entry -->
+  <!-- Weekly Entry Form -->
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-calendar-week"></i>Weekly Entry</div>
-    <div class="day-grid" id="weekEntryGrid">
+    <div class="entry-grid">
+      <div class="week-field">
+        <div class="week-field-label"><i class="fa-solid fa-calendar-days"></i>Days Worked</div>
+        <input type="number" class="week-input" id="weekDays" placeholder="0" min="0" max="6" oninput="updateTotals()" data-admin-input>
+      </div>
       <div class="week-field">
         <div class="week-field-label"><i class="fa-solid fa-arrow-trend-up"></i>Gross Income (GHS)</div>
         <input type="number" class="week-input" id="weekGross" placeholder="0" oninput="updateTotals()" data-admin-input>
       </div>
       <div class="week-field">
-        <div class="week-field-label"><i class="fa-solid fa-arrow-trend-down"></i>Expenses (GHS)</div>
-        <input type="number" class="week-input" id="weekExp" placeholder="0" oninput="updateTotals()" data-admin-input>
+        <div class="week-field-label"><i class="fa-solid fa-oil-can"></i>Maintenance Cost (GHS)</div>
+        <input type="number" class="week-input" id="weekMaint" placeholder="0" oninput="updateTotals()" data-admin-input>
+      </div>
+      <div class="week-field">
+        <div class="week-field-label"><i class="fa-solid fa-cart-shopping"></i>Other Expenses (GHS)</div>
+        <input type="number" class="week-input" id="weekOther" placeholder="0" oninput="updateTotals()" data-admin-input>
       </div>
     </div>
-    <div style="margin-top:12px;">
-      <label class="selector-label" style="margin-bottom:6px;display:block;">Notes</label>
-      <textarea class="notes-input" id="weekNotes" placeholder="Optional notes for this week..." data-admin-input></textarea>
-    </div>
-    <div style="margin-top:12px;">
-      <label class="selector-label" style="margin-bottom:6px;display:block;">Remarks</label>
-      <textarea class="notes-input" id="weekRemarks" placeholder="Optional remarks for this week..." data-admin-input></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+      <div>
+        <label class="selector-label" style="margin-bottom:6px;display:block;">Notes</label>
+        <textarea class="notes-input" id="weekNotes" placeholder="Optional notes for this week..." data-admin-input></textarea>
+      </div>
+      <div>
+        <label class="selector-label" style="margin-bottom:6px;display:block;">Remarks</label>
+        <textarea class="notes-input" id="weekRemarks" placeholder="Optional remarks for this week..." data-admin-input></textarea>
+      </div>
     </div>
   </div>
 
   <!-- Totals -->
-  <div class="totals-bar" id="totalsBar">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <span id="totalsLabel" style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:1.5px;color:var(--accent);display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-chart-pie"></i>Year Total</span>
+    <button class="btn" id="totalsToggle" style="font-size:0.72rem;padding:5px 14px;display:none;" onclick="showYearTotals()"><i class="fa-solid fa-arrow-left"></i> Back to Year Total</button>
+  </div>
+  <div class="totals-bar">
     <div class="total-item"><span class="total-label">Gross</span><span class="total-value gross" id="totalGross">GHS 0</span></div>
-    <div class="total-item"><span class="total-label">Expenses</span><span class="total-value exp" id="totalExp">GHS 0</span></div>
-    <div class="total-item"><span class="total-label">Net</span><span class="total-value net" id="totalNet">GHS 0</span></div>
+    <div class="total-item"><span class="total-label">Maintenance</span><span class="total-value maint" id="totalMaint">GHS 0</span></div>
+    <div class="total-item"><span class="total-label">Other Exp</span><span class="total-value other-val" id="totalOther">GHS 0</span></div>
+    <div class="total-item"><span class="total-label">Total Exp</span><span class="total-value exp" id="totalExp">GHS 0</span></div>
+    <div class="total-item"><span class="total-label">Net Income</span><span class="total-value net" id="totalNet">GHS 0</span></div>
   </div>
 
   <div class="actions">
@@ -174,11 +201,25 @@
     <span id="weekLastSaved" style="margin-left:auto;font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;"></span>
   </div>
 
-  <!-- History Strip -->
+  <!-- History Table -->
   <div class="card" style="margin-top:28px;">
-    <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>Week History</div>
-    <div class="week-strip-wrap">
-      <div class="week-strip" id="weekStrip"></div>
+    <div class="card-title">
+      <span><i class="fa-solid fa-clock-rotate-left"></i> Week History</span>
+      <button class="btn btn-primary" data-admin-only onclick="addNewEntry()" style="font-size:0.78rem;padding:7px 16px;"><i class="fa-solid fa-plus"></i> Add Entry</button>
+    </div>
+    <div class="history-wrap">
+      <table class="history-table" id="historyTable">
+        <thead>
+          <tr>
+            <th>Month</th><th>Week</th><th>Date Range</th><th>No. of Days Worked</th>
+            <th>Gross Income</th><th>Maint. Cost</th><th>Other Exp.</th>
+            <th>Total Exp.</th><th>Net Income</th><th>Break-Even</th>
+            <th>Notes</th><th>Remarks</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+        <tfoot id="historyFoot"></tfoot>
+      </table>
     </div>
   </div>
 
@@ -191,40 +232,5 @@
 <script src="src/auth-modal.js"></script>
 <script src="src/nav.js"></script>
 <script src="src/weekly.js"></script>
-<script>
-// ── Week Strip renderer ─────────────────────────────────────────────────────
-// Bridges the legacy historyTable API to the new horizontal pill strip.
-// weekly.js should call window.renderWeekStrip(entries, currentWeek)
-// OR if it still writes to #historyTable, we observe and convert.
-
-window.renderWeekStrip = function(entries, activeWeek){
-  const strip = document.getElementById('weekStrip');
-  if(!strip) return;
-  if(!entries || !entries.length){
-    strip.innerHTML = '<span style="color:var(--muted);font-size:0.82rem;padding:12px;">No history yet for this truck & year.</span>';
-    return;
-  }
-  const fmt = v => {
-    const n = Number(v||0);
-    if(n >= 1000) return 'GHS ' + (n/1000).toFixed(1) + 'k';
-    return 'GHS ' + n.toLocaleString('en-GH',{minimumFractionDigits:0});
-  };
-  strip.innerHTML = entries.map(e => {
-    const net = (e.gross||0) - (e.expenses||0);
-    const netCls = net >= 0 ? 'pos' : 'neg';
-    const isActive = String(e.week) === String(activeWeek);
-    return `<div class="week-pill${isActive?' active':''}" onclick="loadWeekEntry && loadWeekEntry(${e.week})" title="Week ${e.week}">
-      <span class="wp-label">Week ${e.week}</span>
-      <span class="wp-gross">${fmt(e.gross)}</span>
-      <span class="wp-net ${netCls}">${net<0?'−':''}${fmt(Math.abs(net))}</span>
-    </div>`;
-  }).join('');
-};
-
-// Fallback: if weekly.js populates #historyTable, mirror it into the strip
-(function(){
-  const old = document.getElementById('historyTable');
-  if(old) return; // table present — weekly.js uses it directly; patch below
-  // If no table, weekly.js likely already calls renderWeekStrip — nothing to do
-})();
-</script>
+</body>
+</html>

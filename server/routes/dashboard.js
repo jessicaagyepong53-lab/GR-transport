@@ -3,6 +3,7 @@ const YearEntry = require('../models/YearEntry');
 const MonthlyEntry = require('../models/MonthlyEntry');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const Truck = require('../models/Truck');
+const WeeklyEntry = require('../models/WeeklyEntry');
 
 // GET /api/dashboard/kpis?year= — computed KPIs
 router.get('/kpis', async (req, res) => {
@@ -73,11 +74,15 @@ router.get('/heatmap', async (req, res) => {
 // GET /api/dashboard/full — full dashboard data in one call
 router.get('/full', async (req, res) => {
   try {
-    const [trucks, yearEntries, monthlyEntries, expenses] = await Promise.all([
+    const [trucks, yearEntries, monthlyEntries, expenses, weeklyDaysAgg] = await Promise.all([
       Truck.find().sort('truckId'),
       YearEntry.find(),
       MonthlyEntry.find().sort('year month'),
-      ExpenseBreakdown.find().sort('year')
+      ExpenseBreakdown.find().sort('year'),
+      WeeklyEntry.aggregate([
+        { $match: { daysWorked: { $ne: null } } },
+        { $group: { _id: { truckId: '$truckId', year: '$year' }, weeksWorked: { $sum: 1 } } }
+      ])
     ]);
 
     // Build trucks object
@@ -89,7 +94,7 @@ router.get('/full', async (req, res) => {
     trucks.forEach(t => {
       trucksObj[t.truckId] = {};
       driversObj[t.truckId] = t.driver || '';
-      if (t.cost && (t.cost.initialValue || t.cost.pricePaid || t.cost.maintenanceCost)) {
+      if (t.cost) {
         truckCostObj[t.truckId] = t.cost;
       }
       if (t.endOfTerm?.active) {
@@ -100,6 +105,13 @@ router.get('/full', async (req, res) => {
     yearEntries.forEach(ye => {
       if (!trucksObj[ye.truckId]) trucksObj[ye.truckId] = {};
       trucksObj[ye.truckId][ye.year] = { gross: ye.gross, exp: ye.exp, net: ye.net, weeks: ye.weeks };
+    });
+
+    // Build weeksWorked map from weekly entries aggregation (count of weeks where daysWorked is not N/A)
+    const weeksWorkedMap = {};
+    weeklyDaysAgg.forEach(d => {
+      if (!weeksWorkedMap[d._id.truckId]) weeksWorkedMap[d._id.truckId] = {};
+      weeksWorkedMap[d._id.truckId][d._id.year] = d.weeksWorked;
     });
 
     // Build monthly object
@@ -158,6 +170,7 @@ router.get('/full', async (req, res) => {
       drivers: driversObj,
       truckCost: truckCostObj,
       endOfTerm: endOfTermObj,
+      weeksWorked: weeksWorkedMap,
       monthly,
       yearlyTotals,
       expBreakdown

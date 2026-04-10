@@ -48,6 +48,25 @@
   .driver-table input{background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:0.85rem;width:100%;}
   .driver-table input:focus{border-color:var(--accent);outline:none;}
 
+  .driver-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:14px;animation:fadeUp 0.5s ease both;transition:border-color 0.2s;}
+  .driver-card:hover{border-color:rgba(245,166,35,0.3);}
+  .driver-card-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .driver-card-truck{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;color:var(--accent);min-width:170px;}
+  .driver-card-truck input{font-family:'JetBrains Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--accent);background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 10px;text-transform:uppercase;width:170px;}
+  .driver-card-truck input:focus{border-color:var(--accent);outline:none;}
+  .driver-card-eot{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .driver-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .driver-card-field label{display:block;font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+  .driver-card-field input,.driver-card-field textarea{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;}
+  .driver-card-field input:focus,.driver-card-field textarea:focus{border-color:var(--accent);outline:none;}
+  .driver-card-field textarea{resize:vertical;min-height:38px;}
+  .driver-card-dates{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+  .driver-card-dates .date-chip{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:4px;min-width:140px;}
+  .driver-card-dates .date-chip label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;}
+  .driver-card-dates .date-chip input{padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.8rem;font-family:'DM Sans',sans-serif;}
+  .driver-card-dates .date-chip input:focus{border-color:var(--accent);outline:none;}
+  .driver-card-dates .date-chip input:disabled{opacity:0.3;}
+
   .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
   .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
   .toast.success{border-color:rgba(45,224,138,0.4);color:var(--green);}
@@ -65,6 +84,9 @@
     .header{flex-direction:column;align-items:flex-start;}
     .driver-table th,.driver-table td{padding:8px 6px;font-size:0.78rem;}
     .driver-table input{padding:5px 8px;font-size:0.78rem;}
+    .driver-card-fields{grid-template-columns:1fr;}
+    .driver-card-header{flex-direction:column;align-items:flex-start;}
+    .driver-card-eot{margin-left:0;}
   }
   @media (max-width:500px) {
     .wrapper { padding: 6px 1px; }
@@ -72,6 +94,7 @@
     .footer-note { font-size: 0.68rem; }
     .driver-table th,.driver-table td{padding:6px 4px;font-size:0.72rem;}
     .card{padding:14px 10px;}
+    .driver-card{padding:14px 12px;}
   }
 </style>
 </head>
@@ -114,11 +137,9 @@
   <!-- Driver Management -->
   <div class="section">
     <div class="section-title"><i class="fa-solid fa-id-badge"></i>Driver Assignments</div>
-    <div class="card">
-      <table class="driver-table" id="driverTable"></table>
-      <div style="margin-top:14px;" data-admin-only>
-        <button class="btn btn-primary" onclick="saveDrivers()"><i class="fa-solid fa-floppy-disk"></i>Save Drivers</button>
-      </div>
+    <div id="driverCards"></div>
+    <div style="margin-top:14px;" data-admin-only>
+      <button class="btn btn-primary" onclick="saveDrivers()"><i class="fa-solid fa-floppy-disk"></i>Save All Drivers</button>
     </div>
   </div>
 
@@ -157,6 +178,10 @@
         <div class="form-group">
           <label class="form-label">Amount Paid (GHS)</label>
           <input type="number" class="form-input" id="newTruckPaid" value="0" oninput="updateNewTruckTotal()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Insurance Fee (GHS)</label>
+          <input type="number" class="form-input" id="newTruckInsurance" value="0" oninput="updateNewTruckTotal()">
         </div>
         <div class="form-group">
           <label class="form-label">Repairs &amp; Maintenance (GHS)</label>

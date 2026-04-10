@@ -35,12 +35,15 @@ router.post('/:id/restore', requireAdmin, async (req, res) => {
       const truckData = item.data.truck;
       const yearEntries = item.data.yearEntries || [];
 
-      // Restore truck
+      // Restore truck (all fields)
       await Truck.findOneAndUpdate(
         { truckId: truckData.truckId },
         {
           truckId: truckData.truckId,
           driver: truckData.driver,
+          driverNotes: truckData.driverNotes || '',
+          startDates: truckData.startDates || {},
+          purchaseYear: truckData.purchaseYear,
           cost: truckData.cost,
           endOfTerm: truckData.endOfTerm
         },

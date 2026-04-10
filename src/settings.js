@@ -107,64 +107,84 @@ async function renameTruck(input) {
 }
 
 function renderDriverTable() {
-  const table = document.getElementById('driverTable');
+  const container = document.getElementById('driverCards');
   // Collect all years across all trucks
   const allYears = new Set();
   trucksData.forEach(t => { Object.keys(t.years || {}).forEach(y => allYears.add(y)); });
   const years = [...allYears].sort();
 
-  let html = `<thead><tr><th>Truck ID</th><th>Driver</th>`;
-  years.forEach(y => { html += `<th>Started ${y}</th>`; });
-  html += `<th>Notes</th><th>End of Term</th></tr></thead><tbody>`;
-
+  let html = '';
   trucksData.forEach(t => {
     const sd = t.startDates || {};
     const eot = t.endOfTerm || { active: false, date: '' };
-    html += `<tr>
-      <td><input type="text" value="${t.truckId}" data-truck="${t.truckId}" class="truck-name-input" style="color:var(--accent);font-weight:600;font-family:'JetBrains Mono',monospace;text-transform:uppercase"></td>
-      <td><input type="text" value="${t.driver || ''}" data-truck="${t.truckId}" class="driver-input"></td>`;
-    years.forEach(y => {
-      const hasYear = t.years && t.years[y];
-      html += `<td><input type="date" value="${sd[y] || ''}" data-truck="${t.truckId}" data-year="${y}" class="start-date-input"${!hasYear ? ' disabled style="opacity:0.3"' : ''}></td>`;
-    });
-    html += `<td><input type="text" value="${t.driverNotes || ''}" data-truck="${t.truckId}" class="driver-notes-input" placeholder="e.g. Driver changed Sep 2025"></td>
-      <td style="white-space:nowrap;">
-        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.78rem;color:${eot.active ? 'var(--red)' : 'var(--muted)'};">
-          <input type="checkbox" ${eot.active ? 'checked' : ''} data-truck="${t.truckId}" class="eot-active" style="accent-color:var(--red);width:15px;height:15px;cursor:pointer;">
-          <span class="eot-label">${eot.active ? 'Yes' : 'No'}</span>
-        </label>
-        <input type="date" value="${eot.date || ''}" data-truck="${t.truckId}" class="eot-date" style="margin-top:4px;display:block;${!eot.active ? 'opacity:0.3;pointer-events:none;' : ''}">
-      </td>
-    </tr>`;
+
+    html += `<div class="driver-card">
+      <div class="driver-card-header">
+        <div class="driver-card-truck">
+          <input type="text" value="${t.truckId}" data-truck="${t.truckId}" class="truck-name-input">
+        </div>
+        <div class="driver-card-eot">
+          <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:0.78rem;color:${eot.active ? 'var(--red)' : 'var(--muted)'};">
+            <input type="checkbox" ${eot.active ? 'checked' : ''} data-truck="${t.truckId}" class="eot-active" style="accent-color:var(--red);width:15px;height:15px;cursor:pointer;">
+            <span class="eot-label">${eot.active ? 'End of Term' : 'Active'}</span>
+          </label>
+          <input type="date" value="${eot.date || ''}" data-truck="${t.truckId}" class="eot-date" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.8rem;${!eot.active ? 'opacity:0.3;pointer-events:none;' : ''}">
+        </div>
+      </div>
+      <div class="driver-card-fields">
+        <div class="driver-card-field">
+          <label><i class="fa-solid fa-user" style="margin-right:4px;"></i>Driver Name</label>
+          <input type="text" value="${t.driver || ''}" data-truck="${t.truckId}" class="driver-input" placeholder="Enter driver name">
+        </div>
+        <div class="driver-card-field">
+          <label><i class="fa-solid fa-sticky-note" style="margin-right:4px;"></i>Notes</label>
+          <input type="text" value="${t.driverNotes || ''}" data-truck="${t.truckId}" class="driver-notes-input" placeholder="e.g. Driver changed Sep 2025">
+        </div>
+      </div>`;
+
+    // Start dates
+    if (years.length) {
+      html += `<div class="driver-card-dates">`;
+      years.forEach(y => {
+        const hasYear = t.years && t.years[y];
+        html += `<div class="date-chip">
+          <label>Started ${y}</label>
+          <input type="date" value="${sd[y] || ''}" data-truck="${t.truckId}" data-year="${y}" class="start-date-input"${!hasYear ? ' disabled' : ''}>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `</div>`;
   });
-  html += '</tbody>';
-  table.innerHTML = html;
+
+  container.innerHTML = html;
 
   // Auto-save on change
-  table.querySelectorAll('.driver-input, .driver-notes-input, .start-date-input, .eot-date').forEach(input => {
+  container.querySelectorAll('.driver-input, .driver-notes-input, .start-date-input, .eot-date').forEach(input => {
     input.addEventListener('input', () => autoSaveDriverRow(input.dataset.truck));
     input.addEventListener('change', () => autoSaveDriverRow(input.dataset.truck));
   });
   // Truck name rename on blur or Enter
-  table.querySelectorAll('.truck-name-input').forEach(input => {
+  container.querySelectorAll('.truck-name-input').forEach(input => {
     input.addEventListener('blur', () => renameTruck(input));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
   });
   // Checkbox listeners for end-of-term
-  table.querySelectorAll('.eot-active').forEach(cb => {
+  container.querySelectorAll('.eot-active').forEach(cb => {
     cb.addEventListener('change', () => {
-      const row = cb.closest('tr');
-      const dateInput = row.querySelector('.eot-date');
-      const label = row.querySelector('.eot-label');
+      const card = cb.closest('.driver-card');
+      const dateInput = card.querySelector('.eot-date');
+      const label = card.querySelector('.eot-label');
       if (cb.checked) {
         dateInput.style.opacity = '1';
         dateInput.style.pointerEvents = 'auto';
-        label.textContent = 'Yes';
+        label.textContent = 'End of Term';
         cb.closest('label').style.color = 'var(--red)';
       } else {
         dateInput.style.opacity = '0.3';
         dateInput.style.pointerEvents = 'none';
-        label.textContent = 'No';
+        label.textContent = 'Active';
         cb.closest('label').style.color = 'var(--muted)';
       }
       autoSaveDriverRow(cb.dataset.truck);
@@ -207,13 +227,14 @@ function autoSaveCostRow(truckId) {
     if (!row) return;
     const initialValue = parseFloat(row.querySelector('.cost-init').value) || 0;
     const pricePaid = parseFloat(row.querySelector('.cost-paid').value) || 0;
+    const insurance = parseFloat(row.querySelector('.cost-insurance')?.value) || 0;
     const maintenanceCost = parseFloat(row.querySelector('.cost-maint').value) || 0;
     try {
-      await API.put(`/api/trucks/${encodeURIComponent(truckId)}`, { cost: { initialValue, pricePaid, maintenanceCost } });
+      await API.put(`/api/trucks/${encodeURIComponent(truckId)}`, { cost: { initialValue, pricePaid, insurance, maintenanceCost } });
       // Sync to localStorage
       const DATA = getLocalData();
       if (!DATA.truckCost) DATA.truckCost = {};
-      DATA.truckCost[truckId] = { initialValue, pricePaid, maintenanceCost };
+      DATA.truckCost[truckId] = { initialValue, pricePaid, insurance, maintenanceCost };
       setLocalData(DATA);
       showToast('Saved', 'success');
     } catch (err) {
@@ -224,14 +245,15 @@ function autoSaveCostRow(truckId) {
 
 function renderCostTable() {
   const table = document.getElementById('costTable');
-  let html = `<thead><tr><th>Truck ID</th><th>Initial Value (GHS) <span style="font-size:0.65rem;color:var(--muted);font-weight:400">ref</span></th><th>Amount Paid (GHS)</th><th>Repairs &amp; Maintenance (GHS)</th><th>Total</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>Truck ID</th><th>Initial Value (GHS) <span style="font-size:0.65rem;color:var(--muted);font-weight:400">ref</span></th><th>Amount Paid (GHS)</th><th>Insurance Fee (GHS)</th><th>Repairs &amp; Maintenance (GHS)</th><th>Total</th></tr></thead><tbody>`;
   trucksData.forEach(t => {
     const c = t.cost || {};
-    const total = (c.pricePaid || 0) + (c.maintenanceCost || 0);
+    const total = (c.pricePaid || 0) + (c.insurance || 0) + (c.maintenanceCost || 0);
     html += `<tr data-truck="${t.truckId}">
       <td style="color:var(--accent);font-weight:600;font-family:'JetBrains Mono',monospace">${t.truckId}</td>
       <td><input type="number" value="${c.initialValue || 0}" data-truck="${t.truckId}" class="cost-init" oninput="updateRowTotal(this)"></td>
       <td><input type="number" value="${c.pricePaid || 0}" data-truck="${t.truckId}" class="cost-paid" oninput="updateRowTotal(this)"></td>
+      <td><input type="number" value="${c.insurance || 0}" data-truck="${t.truckId}" class="cost-insurance" oninput="updateRowTotal(this)"></td>
       <td><input type="number" value="${c.maintenanceCost || 0}" data-truck="${t.truckId}" class="cost-maint" oninput="updateRowTotal(this)"></td>
       <td class="row-total" style="color:var(--blue);font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;">GHS ${total.toLocaleString()}</td>
     </tr>`;
@@ -240,7 +262,7 @@ function renderCostTable() {
   table.innerHTML = html;
 
   // Auto-save on change
-  table.querySelectorAll('.cost-init, .cost-paid, .cost-maint').forEach(input => {
+  table.querySelectorAll('.cost-init, .cost-paid, .cost-insurance, .cost-maint').forEach(input => {
     input.addEventListener('input', () => { updateRowTotal(input); autoSaveCostRow(input.dataset.truck); });
   });
 }
@@ -248,14 +270,16 @@ function renderCostTable() {
 function updateRowTotal(input) {
   const row = input.closest('tr');
   const paid = parseFloat(row.querySelector('.cost-paid').value) || 0;
+  const insurance = parseFloat(row.querySelector('.cost-insurance')?.value) || 0;
   const maint = parseFloat(row.querySelector('.cost-maint').value) || 0;
-  row.querySelector('.row-total').textContent = 'GHS ' + (paid + maint).toLocaleString();
+  row.querySelector('.row-total').textContent = 'GHS ' + (paid + insurance + maint).toLocaleString();
 }
 
 function updateNewTruckTotal() {
   const paid = parseFloat(document.getElementById('newTruckPaid').value) || 0;
+  const insurance = parseFloat(document.getElementById('newTruckInsurance').value) || 0;
   const maint = parseFloat(document.getElementById('newTruckMaint').value) || 0;
-  document.getElementById('newTruckTotal').textContent = 'GHS ' + (paid + maint).toLocaleString();
+  document.getElementById('newTruckTotal').textContent = 'GHS ' + (paid + insurance + maint).toLocaleString();
 }
 
 async function saveCosts() {
@@ -266,9 +290,10 @@ async function saveCosts() {
       if (!truckId) continue;
       const initialValue = parseFloat(row.querySelector('.cost-init').value) || 0;
       const pricePaid = parseFloat(row.querySelector('.cost-paid').value) || 0;
+      const insurance = parseFloat(row.querySelector('.cost-insurance')?.value) || 0;
       const maintenanceCost = parseFloat(row.querySelector('.cost-maint').value) || 0;
       await API.put(`/api/trucks/${encodeURIComponent(truckId)}`, {
-        cost: { initialValue, pricePaid, maintenanceCost }
+        cost: { initialValue, pricePaid, insurance, maintenanceCost }
       });
     }
     showToast('Truck costs saved', 'success');
@@ -284,6 +309,7 @@ async function addNewTruck() {
   const driver = document.getElementById('newTruckDriver').value.trim();
   const initialValue = parseFloat(document.getElementById('newTruckInit').value) || 0;
   const pricePaid = parseFloat(document.getElementById('newTruckPaid').value) || 0;
+  const insurance = parseFloat(document.getElementById('newTruckInsurance').value) || 0;
   const maintenanceCost = parseFloat(document.getElementById('newTruckMaint').value) || 0;
 
   if (!truckId) return showToast('Enter a Truck ID', 'error');
@@ -292,13 +318,14 @@ async function addNewTruck() {
     await API.post('/api/trucks', {
       truckId,
       driver,
-      cost: { initialValue, pricePaid, maintenanceCost }
+      cost: { initialValue, pricePaid, insurance, maintenanceCost }
     });
     showToast(`Truck ${truckId} added successfully`, 'success');
     document.getElementById('newTruckId').value = '';
     document.getElementById('newTruckDriver').value = '';
     document.getElementById('newTruckInit').value = '0';
     document.getElementById('newTruckPaid').value = '0';
+    document.getElementById('newTruckInsurance').value = '0';
     document.getElementById('newTruckMaint').value = '0';
     updateNewTruckTotal();
     await loadSettings();
@@ -327,3 +354,8 @@ async function resetPin() {
 }
 
 document.addEventListener('DOMContentLoaded', loadSettings);
+
+// Auto-refresh when tab gains focus
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') loadSettings();
+});

@@ -51,22 +51,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT /api/monthly/:truckId/:year/:month — upsert monthly entry
-router.put('/:truckId/:year/:month', requireAdmin, async (req, res) => {
-  try {
-    const { gross, exp } = req.body;
-    const entry = await MonthlyEntry.findOneAndUpdate(
-      { truckId: req.params.truckId, year: parseInt(req.params.year), month: req.params.month },
-      { gross: gross || 0, exp: exp || 0 },
-      { upsert: true, new: true }
-    );
-    res.json(entry);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// PUT /api/monthly/bulk — bulk upsert monthly entries for a year
+// PUT /api/monthly/bulk/:year — bulk upsert monthly entries for a year
+// NOTE: Must be BEFORE /:truckId/:year/:month so 'bulk' isn't matched as truckId
 router.put('/bulk/:year', requireAdmin, async (req, res) => {
   try {
     const year = parseInt(req.params.year);
@@ -91,6 +77,21 @@ router.put('/bulk/:year', requireAdmin, async (req, res) => {
     if (docs.length) await MonthlyEntry.insertMany(docs);
 
     res.json({ success: true, count: docs.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/monthly/:truckId/:year/:month — upsert monthly entry
+router.put('/:truckId/:year/:month', requireAdmin, async (req, res) => {
+  try {
+    const { gross, exp } = req.body;
+    const entry = await MonthlyEntry.findOneAndUpdate(
+      { truckId: req.params.truckId, year: parseInt(req.params.year), month: req.params.month },
+      { gross: gross || 0, exp: exp || 0 },
+      { upsert: true, new: true }
+    );
+    res.json(entry);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -182,3 +182,8 @@ function renderYearTable() {
 }
 
 document.addEventListener('DOMContentLoaded', loadDriver);
+
+// Auto-refresh when tab gains focus
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') loadDriver();
+});

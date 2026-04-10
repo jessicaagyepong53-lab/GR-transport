@@ -292,8 +292,8 @@
   window.dmLoadYear = async function(year){
     dmCurrentYear = year;
     try {
-      const data = await API.getWeeklyEntries({ year });
-      dmAll = Array.isArray(data) ? data : (data.entries || []);
+      const data = await API.get(`/api/weekly/year/${year}`);
+      dmAll = Array.isArray(data) ? data : [];
     } catch(e){ dmAll = []; }
     dmFilter();
   };
@@ -388,8 +388,8 @@
     // Trucks
     const tSel = document.getElementById('dmTruckSel');
     try {
-      const trucks = await API.getTrucks();
-      tSel.innerHTML = trucks.map(t => `<option value="${t.name||t}">${t.name||t}</option>`).join('');
+      const trucks = await API.get('/api/trucks');
+      tSel.innerHTML = trucks.map(t => `<option value="${t.truckId}">${t.truckId}</option>`).join('');
     } catch(e){ tSel.innerHTML = '<option>—</option>'; }
     // Weeks 1-52
     const wSel = document.getElementById('dmWeekSel');
@@ -407,21 +407,27 @@
   });
 
   window.dmSaveEntry = async function(){
-    const payload = {
-      truck: document.getElementById('dmTruckSel').value,
-      week: parseInt(document.getElementById('dmWeekSel').value),
-      year: parseInt(dmCurrentYear),
-      gross: parseFloat(document.getElementById('dmGrossIn').value) || 0,
-      expenses: parseFloat(document.getElementById('dmExpIn').value) || 0,
-      notes: document.getElementById('dmNotesIn').value,
-      remarks: document.getElementById('dmRemarksIn').value,
-    };
+    const truckId = document.getElementById('dmTruckSel').value;
+    const week = parseInt(document.getElementById('dmWeekSel').value);
+    const year = parseInt(dmCurrentYear);
+    const gross = parseFloat(document.getElementById('dmGrossIn').value) || 0;
+    const expenses = parseFloat(document.getElementById('dmExpIn').value) || 0;
+    const notes = document.getElementById('dmNotesIn').value;
+    const remarks = document.getElementById('dmRemarksIn').value;
     try {
       if(dmEditId){
-        await API.updateWeeklyEntry(dmEditId, payload);
+        // Find the original entry to get its truckId+week for the URL
+        const orig = dmAll.find(r => (r._id||r.id) === dmEditId);
+        const origTruck = orig ? orig.truck : truckId;
+        const origWeek = orig ? orig.week : week;
+        await API.put(`/api/weekly/${encodeURIComponent(origTruck)}/${year}/${origWeek}`, {
+          gross, maint: expenses, other: 0, notes, remarks
+        });
         showToast('Entry updated', 'success');
       } else {
-        await API.addWeeklyEntry(payload);
+        await API.put(`/api/weekly/${encodeURIComponent(truckId)}/${year}/${week}`, {
+          gross, maint: expenses, other: 0, notes, remarks
+        });
         showToast('Entry added', 'success');
       }
       dmCloseModal();
@@ -432,7 +438,9 @@
   window.dmDelete = async function(id){
     if(!confirm('Delete this entry?')) return;
     try {
-      await API.deleteWeeklyEntry(id);
+      const entry = dmAll.find(r => (r._id||r.id) === id);
+      if(!entry) return showToast('Entry not found', 'error');
+      await API.del(`/api/weekly/${encodeURIComponent(entry.truck)}/${entry.year}/${entry.week}`);
       showToast('Entry deleted', 'success');
       dmLoadYear(dmCurrentYear);
     } catch(e){ showToast('Error deleting entry', 'error'); }

@@ -59,29 +59,39 @@ function renderTruckTable() {
   const table = document.getElementById('truckTable');
   const trucks = yearData.trucks || {};
   const drivers = yearData.drivers || {};
+  const weeksWorkedData = yearData.weeksWorked || {};
+  const truckCostData = yearData.truckCost || {};
   const admin = isAdmin();
   let rows = [];
 
   for (const id in trucks) {
     const entry = trucks[id][currentYear];
     if (entry) {
-      rows.push({ id, driver: drivers[id] || '—', eot: isTruckEOT(id), ...entry });
+      const ww = (weeksWorkedData[id] && weeksWorkedData[id][currentYear]) || 0;
+      const insurance = (truckCostData[id] && truckCostData[id].insurance) || 0;
+      rows.push({ id, driver: drivers[id] || '—', eot: isTruckEOT(id), weeksWorked: ww, insurance, ...entry });
     }
   }
   rows.sort((a, b) => b.net - a.net);
 
-  document.getElementById('truckCount').textContent = rows.length + ' trucks';
+  const activeRows = rows.filter(r => !r.eot);
+  const eotRows = rows.filter(r => r.eot);
+  document.getElementById('truckCount').textContent = activeRows.length + ' active' + (eotRows.length ? ` · ${eotRows.length} end of term` : '');
 
   let html = `<thead><tr>
     <th>Truck ID</th><th>Driver</th><th class="num">Gross (GHS)</th>
     <th class="num">Expenditure (GHS)</th><th class="num">Net (GHS)</th>
-    <th class="num">Weeks</th>
+    <th class="num">Insurance Fee (GHS)</th>
+    <th class="num">Weeks Worked</th>
     ${admin ? '<th style="text-align:center">Actions</th>' : ''}
   </tr></thead><tbody>`;
 
-  let totGross = 0, totExp = 0, totNet = 0, totWeeks = 0;
+  let totGross = 0, totExp = 0, totNet = 0, totWeeksWorked = 0, totInsurance = 0;
   rows.forEach(r => {
-    totGross += r.gross; totExp += r.exp; totNet += r.net; totWeeks += r.weeks;
+    // Only add active trucks to totals
+    if (!r.eot) {
+      totGross += r.gross; totExp += r.exp; totNet += r.net; totWeeksWorked += r.weeksWorked; totInsurance += r.insurance;
+    }
     const netClass = r.net >= 0 ? 'positive' : 'negative';
     const eotClass = r.eot ? ' eot-row' : '';
     html += `<tr class="${eotClass}">
@@ -93,7 +103,8 @@ function renderTruckTable() {
       <td><input class="truck-gross" data-truck="${r.id}" type="number" value="${r.gross}" onchange="markDirty()"${r.eot || !admin ? ' disabled' : ''}></td>
       <td><input class="truck-exp" data-truck="${r.id}" type="number" value="${r.exp}" onchange="markDirty()"${r.eot || !admin ? ' disabled' : ''}></td>
       <td class="computed ${netClass}">${fmt(r.net)}</td>
-      <td><input class="truck-weeks" data-truck="${r.id}" type="number" value="${r.weeks}" onchange="markDirty()"${r.eot || !admin ? ' disabled' : ''}></td>
+      <td class="computed neutral">${r.insurance ? fmt(r.insurance) : '—'}</td>
+      <td class="computed neutral">${r.weeksWorked}</td>
       ${admin ? `<td class="actions-cell">
         <div class="truck-actions">
           <button class="act-btn edit" onclick="editTruckEntry('${r.id}')" title="Edit truck"><i class="fa-solid fa-pencil"></i></button>
@@ -109,7 +120,8 @@ function renderTruckTable() {
     <td class="computed neutral">${fmt(totGross)}</td>
     <td class="computed negative">${fmt(totExp)}</td>
     <td class="computed ${totNet >= 0 ? 'positive' : 'negative'}">${fmt(totNet)}</td>
-    <td class="computed neutral">${totWeeks}</td>
+    <td class="computed neutral">${totInsurance ? fmt(totInsurance) : '—'}</td>
+    <td class="computed neutral">${totWeeksWorked}</td>
     ${admin ? '<td></td>' : ''}
   </tr></tbody>`;
 
@@ -190,7 +202,8 @@ function addTruckRow() {
     <td><input class="truck-gross" type="number" value="0" onchange="markDirty()"></td>
     <td><input class="truck-exp" type="number" value="0" onchange="markDirty()"></td>
     <td class="computed neutral">GHS 0</td>
-    <td><input class="truck-weeks" type="number" value="52" onchange="markDirty()"></td>
+    <td class="computed neutral">—</td>
+    <td class="computed neutral">0</td>
   `;
   if (totalRow) tbody.insertBefore(tr, totalRow);
   else tbody.appendChild(tr);
@@ -217,7 +230,7 @@ async function saveAll() {
 
       const gross = parseFloat(tr.querySelector('.truck-gross')?.value) || 0;
       const exp = parseFloat(tr.querySelector('.truck-exp')?.value) || 0;
-      const weeks = parseInt(tr.querySelector('.truck-weeks')?.value) || 0;
+      const weeks = 0;
 
       // If new truck, create it first
       if (newIdInput) {
@@ -349,7 +362,7 @@ function confirmDeleteTruck(truckId) {
     'Delete',
     async () => {
       try {
-        await API.delete(`/api/trucks/${encodeURIComponent(truckId)}`);
+        await API.del(`/api/trucks/${encodeURIComponent(truckId)}`);
         showToast(`${truckId} deleted`, 'success');
         await loadData();
         renderAll();
@@ -390,4 +403,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Update admin UI — re-render after auth check so inputs respect admin state
   await refreshAdminStatus();
   renderAll();
+});
+
+// Auto-refresh when tab gains focus
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    await loadData();
+    renderAll();
+  }
 });

@@ -1646,7 +1646,7 @@ localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
 // ─── SYNC FROM API ───────────────────────────────────────────────────────────
 // Fetch latest truck data from the server so settings edits (renames, driver
 // changes, cost changes) propagate to the dashboard automatically.
-(async function syncFromAPI() {
+async function syncFromAPI() {
   try {
     const fresh = await API.get('/api/dashboard/full');
     if (!fresh || !fresh.trucks) return;
@@ -1675,7 +1675,13 @@ localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
     renderTable(currentYear);
     renderWeeksBreakdown(currentYear);
   } catch(e) { /* offline or API unavailable — keep using hardcoded data */ }
-})();
+}
+syncFromAPI();
+
+// Auto-refresh when tab gains focus (cross-computer sync)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') syncFromAPI();
+});
 </script>
 </body>
 </html>

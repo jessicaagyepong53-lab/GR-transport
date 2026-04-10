@@ -76,7 +76,7 @@ function renderSummary() {
     <div class="summary-card">
       <div class="summary-label">Total Truck Gross</div>
       <div class="summary-value" style="color:var(--accent)">${fmt(d.totalGross)}</div>
-      <div class="summary-sub">${d.truckCount} trucks in operation</div>
+      <div class="summary-sub">${d.activeCount || d.truckCount} active trucks${d.eotCount ? ` · ${d.eotCount} end of term` : ''}</div>
     </div>
     <div class="summary-card">
       <div class="summary-label">Total Truck Net</div>
@@ -93,7 +93,7 @@ function renderSummary() {
       <div class="summary-value" style="color:var(--green);font-size:1.6rem">${d.topPerformer.truckId}</div>
       <div class="summary-sub">Net: ${fmt(d.topPerformer.net)}</div>
     </div>` : ''}
-    ${d.bottomPerformer && d.truckCount > 1 ? `<div class="summary-card">
+    ${d.bottomPerformer && (d.activeCount || d.truckCount) > 1 ? `<div class="summary-card">
       <div class="summary-label">Lowest Performer</div>
       <div class="summary-value" style="color:var(--red);font-size:1.6rem">${d.bottomPerformer.truckId}</div>
       <div class="summary-sub">Net: ${fmt(d.bottomPerformer.net)}</div>
@@ -104,13 +104,16 @@ function renderSummary() {
 function renderRanking() {
   if (!reportData?.truckRanking) return;
   const ranking = reportData.truckRanking;
-  let html = `<thead><tr><th>#</th><th>Truck ID</th><th>Gross (GHS)</th><th>Expenditure (GHS)</th><th>Net (GHS)</th><th>Efficiency</th></tr></thead><tbody>`;
+  let html = `<thead><tr><th>#</th><th>Truck ID</th><th>Status</th><th>Gross (GHS)</th><th>Expenditure (GHS)</th><th>Net (GHS)</th><th>Efficiency</th></tr></thead><tbody>`;
 
   ranking.forEach((t, i) => {
     const eff = t.gross ? Math.round(t.net / t.gross * 100) : 0;
-    html += `<tr>
-      <td style="color:var(--muted);font-weight:600">${i + 1}</td>
+    const eotStyle = t.eot ? 'opacity:0.5;' : '';
+    const eotBadge = t.eot ? '<span style="background:rgba(224,68,58,0.15);color:var(--red);border:1px solid rgba(224,68,58,0.3);border-radius:4px;padding:1px 8px;font-size:0.7rem;">END OF TERM</span>' : '<span style="color:var(--green);font-size:0.78rem;">Active</span>';
+    html += `<tr style="${eotStyle}">
+      <td style="color:var(--muted);font-weight:600">${t.rank != null ? t.rank : '—'}</td>
       <td><a href="truck.html?id=${encodeURIComponent(t.truckId)}" style="color:${getTruckColor(t.truckId)};text-decoration:none;font-weight:600;font-family:'JetBrains Mono',monospace">${t.truckId}</a></td>
+      <td>${eotBadge}</td>
       <td style="color:var(--accent);font-weight:600">${t.gross.toLocaleString()}</td>
       <td style="color:var(--red)">${t.exp.toLocaleString()}</td>
       <td style="color:var(--green);font-weight:700">${t.net.toLocaleString()}</td>
@@ -146,15 +149,21 @@ function renderAnnualSummary() {
 
   trucks.forEach(t => {
     const rankClass = t.rank === 1 ? 'rank-1' : t.rank === 2 ? 'rank-2' : t.rank === 3 ? 'rank-3' : 'rank-other';
-    totExp += t.exp;
-    totIncome += t.net;
-    totAmount += t.totalAmount;
-    totMinor += t.minorExp;
-    totMajor += t.majorExp;
-    totAvgIncome += t.avgIncome;
+    const eotStyle = t.eot ? 'opacity:0.5;' : '';
+    const eotLabel = t.eot ? ' <span style="color:var(--red);font-size:0.65rem;font-family:DM Sans,sans-serif;font-weight:400;">EOT</span>' : '';
 
-    html += `<tr>
-      <td><a href="truck.html?id=${encodeURIComponent(t.truckId)}" style="color:${getTruckColor(t.truckId)};text-decoration:none">${t.truckId}</a></td>
+    // Only add active trucks to totals
+    if (!t.eot) {
+      totExp += t.exp;
+      totIncome += t.net;
+      totAmount += t.totalAmount;
+      totMinor += t.minorExp;
+      totMajor += t.majorExp;
+      totAvgIncome += t.avgIncome;
+    }
+
+    html += `<tr style="${eotStyle}">
+      <td><a href="truck.html?id=${encodeURIComponent(t.truckId)}" style="color:${getTruckColor(t.truckId)};text-decoration:none">${t.truckId}</a>${eotLabel}</td>
       <td style="color:var(--red)">${t.exp.toLocaleString()}</td>
       <td style="color:var(--green)">${t.net.toLocaleString()}</td>
       <td>${t.avgIncome.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
@@ -164,7 +173,7 @@ function renderAnnualSummary() {
       <td style="color:var(--red)">${t.pctExp}%</td>
       <td style="color:var(--green)">${t.pctIncome}%</td>
       <td>${t.ratio.toFixed(2)}:1</td>
-      <td><span class="rank-badge ${rankClass}">${t.rank}</span></td>
+      <td>${t.rank != null ? `<span class="rank-badge ${rankClass}">${t.rank}</span>` : '<span style="color:var(--muted);font-size:0.72rem;">—</span>'}</td>
     </tr>`;
   });
 
@@ -192,3 +201,8 @@ function renderAnnualSummary() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Auto-refresh when tab gains focus
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') loadReport();
+});

@@ -3,6 +3,9 @@
 let allTrucks = [];
 let truckYearMap = {};
 let currentEntry = null;
+let yearlyTotals = { gross: 0, maint: 0, other: 0 };
+let currentWeekOriginal = { gross: 0, maint: 0, other: 0 };
+let totalsMode = 'year'; // 'year' or 'week'
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
@@ -13,7 +16,6 @@ function showToast(msg, type) {
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 async function init() {
-  // Try API first, then fall back to localStorage truck list
   try {
     allTrucks = await API.get('/api/trucks');
   } catch {
@@ -33,21 +35,18 @@ async function init() {
   populateTruckSelect();
   populateYearSelect();
   populateWeekSelect();
-  loadWeek();
-  loadHistory();
+  await loadHistory();
+  await loadWeek();
 }
 
 function populateTruckSelect() {
   const sel = document.getElementById('truckSelect');
   const selectedYear = document.getElementById('yearSelect')?.value;
   const prevTruck = sel.value;
-
-  // Filter trucks that have data for the selected year
   let filtered = allTrucks;
   if (selectedYear && Object.keys(truckYearMap).length) {
     filtered = allTrucks.filter(t => truckYearMap[t.truckId] && truckYearMap[t.truckId][selectedYear]);
   }
-
   if (!filtered.length) {
     sel.innerHTML = '<option value="">No trucks for this year</option>';
     return;
@@ -55,8 +54,6 @@ function populateTruckSelect() {
   sel.innerHTML = filtered.map(t =>
     `<option value="${t.truckId}">${t.truckId}${t.driver ? ' \u2014 ' + t.driver : ''}</option>`
   ).join('');
-
-  // Restore previous selection if still available
   if (prevTruck && filtered.some(t => t.truckId === prevTruck)) {
     sel.value = prevTruck;
   }
@@ -85,6 +82,17 @@ function getWeekMonday(year, week) {
 function fmtShortDate(d) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+function fmtDateRange(d) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${dd} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function getMonthName(d) {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return months[d.getMonth()];
 }
 
 function populateWeekSelect() {
@@ -119,38 +127,79 @@ function getSelected() {
   };
 }
 
-// ─── WEEKLY ENTRY ────────────────────────────────────────────────────────────
+// ─── TOTALS ──────────────────────────────────────────────────────────────────
 function updateTotals() {
-  const gross = parseFloat(document.getElementById('weekGross').value) || 0;
-  const exp = parseFloat(document.getElementById('weekExp').value) || 0;
-  const net = gross - exp;
-  document.getElementById('totalGross').textContent = `GHS ${gross.toLocaleString()}`;
-  document.getElementById('totalExp').textContent = `GHS ${exp.toLocaleString()}`;
-  document.getElementById('totalNet').textContent = `GHS ${net.toLocaleString()}`;
-  document.getElementById('totalNet').style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
+  if (totalsMode === 'week') {
+    // Show current form values (the selected week)
+    const gross = parseFloat(document.getElementById('weekGross').value) || 0;
+    const maint = parseFloat(document.getElementById('weekMaint').value) || 0;
+    const other = parseFloat(document.getElementById('weekOther').value) || 0;
+    const totalExp = maint + other;
+    const net = gross - totalExp;
+    document.getElementById('totalGross').textContent = `GHS ${gross.toLocaleString()}`;
+    document.getElementById('totalMaint').textContent = `GHS ${maint.toLocaleString()}`;
+    document.getElementById('totalOther').textContent = `GHS ${other.toLocaleString()}`;
+    document.getElementById('totalExp').textContent = `GHS ${totalExp.toLocaleString()}`;
+    document.getElementById('totalNet').textContent = `GHS ${net.toLocaleString()}`;
+    document.getElementById('totalNet').style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
+  } else {
+    // Year totals: all weeks summed, with form values replacing the original for current week
+    const formGross = parseFloat(document.getElementById('weekGross').value) || 0;
+    const formMaint = parseFloat(document.getElementById('weekMaint').value) || 0;
+    const formOther = parseFloat(document.getElementById('weekOther').value) || 0;
+    const gross = (yearlyTotals.gross - currentWeekOriginal.gross) + formGross;
+    const maint = (yearlyTotals.maint - currentWeekOriginal.maint) + formMaint;
+    const other = (yearlyTotals.other - currentWeekOriginal.other) + formOther;
+    const totalExp = maint + other;
+    const net = gross - totalExp;
+    document.getElementById('totalGross').textContent = `GHS ${gross.toLocaleString()}`;
+    document.getElementById('totalMaint').textContent = `GHS ${maint.toLocaleString()}`;
+    document.getElementById('totalOther').textContent = `GHS ${other.toLocaleString()}`;
+    document.getElementById('totalExp').textContent = `GHS ${totalExp.toLocaleString()}`;
+    document.getElementById('totalNet').textContent = `GHS ${net.toLocaleString()}`;
+    document.getElementById('totalNet').style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+}
+
+function setTotalsMode(mode, weekNum) {
+  totalsMode = mode;
+  const label = document.getElementById('totalsLabel');
+  const toggle = document.getElementById('totalsToggle');
+  if (mode === 'week') {
+    label.innerHTML = `<i class="fa-solid fa-calendar-week"></i>Week ${weekNum || ''} Total`;
+    toggle.style.display = 'inline-flex';
+  } else {
+    label.innerHTML = '<i class="fa-solid fa-chart-pie"></i>Year Total';
+    toggle.style.display = 'none';
+  }
+  updateTotals();
+}
+
+function showYearTotals() {
+  setTotalsMode('year');
 }
 
 function fillEntry(entry) {
   clearEntries(true);
   if (!entry) return;
-  // Sum days array into weekly totals (backward compat with old daily data)
-  if (entry.days && entry.days.length) {
-    const gross = entry.days.reduce((s, d) => s + (d.gross || 0), 0);
-    const exp = entry.days.reduce((s, d) => s + (d.exp || 0), 0);
-    document.getElementById('weekGross').value = gross || '';
-    document.getElementById('weekExp').value = exp || '';
-  } else {
-    document.getElementById('weekGross').value = entry.gross || '';
-    document.getElementById('weekExp').value = entry.exp || '';
-  }
+  currentWeekOriginal = { gross: entry.gross || 0, maint: entry.maint || 0, other: entry.other || 0 };
+  document.getElementById('weekDays').value = entry.daysWorked != null ? entry.daysWorked : '';
+  document.getElementById('weekGross').value = entry.gross || '';
+  document.getElementById('weekMaint').value = entry.maint || '';
+  document.getElementById('weekOther').value = entry.other || '';
+  document.getElementById('weekNotes').value = entry.notes || '';
+  document.getElementById('weekRemarks').value = entry.remarks || '';
   updateTotals();
 }
 
 function clearEntries(silent) {
+  document.getElementById('weekDays').value = '';
   document.getElementById('weekGross').value = '';
-  document.getElementById('weekExp').value = '';
+  document.getElementById('weekMaint').value = '';
+  document.getElementById('weekOther').value = '';
   document.getElementById('weekNotes').value = '';
   document.getElementById('weekRemarks').value = '';
+  currentWeekOriginal = { gross: 0, maint: 0, other: 0 };
   updateTotals();
   if (!silent) showToast('Entries cleared', '');
 }
@@ -165,8 +214,6 @@ async function loadWeek() {
     currentEntry = entry;
     if (entry) {
       fillEntry(entry);
-      document.getElementById('weekNotes').value = entry.notes || '';
-      document.getElementById('weekRemarks').value = entry.remarks || '';
     } else {
       clearEntries(true);
     }
@@ -179,19 +226,23 @@ async function saveWeek() {
   const { truckId, year, week } = getSelected();
   if (!truckId) return showToast('Select a truck', 'error');
 
+  const daysVal = document.getElementById('weekDays').value;
+  const daysWorked = daysVal !== '' ? parseInt(daysVal) : null;
   const gross = parseFloat(document.getElementById('weekGross').value) || 0;
-  const exp = parseFloat(document.getElementById('weekExp').value) || 0;
+  const maint = parseFloat(document.getElementById('weekMaint').value) || 0;
+  const other = parseFloat(document.getElementById('weekOther').value) || 0;
   const notes = document.getElementById('weekNotes').value.trim();
   const remarks = document.getElementById('weekRemarks').value.trim();
 
-  // Store as single "week" day entry for API compatibility
-  const days = [{ day: 'week', gross, exp }];
-
   try {
-    await API.put(`/api/weekly/${encodeURIComponent(truckId)}/${year}/${week}`, { days, notes, remarks });
+    await API.put(`/api/weekly/${encodeURIComponent(truckId)}/${year}/${week}`, {
+      daysWorked, gross, maint, other, notes, remarks
+    });
+    // Update currentWeekOriginal to match what was just saved
+    currentWeekOriginal = { gross, maint, other };
     showToast(`Week ${week} saved for ${truckId}`, 'success');
     updateWeekTimestamp();
-    loadHistory();
+    await loadHistory();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   }
@@ -203,62 +254,169 @@ async function nextWeek() {
   const current = parseInt(sel.value);
   if (current < 52) {
     sel.value = current + 1;
-    onWeekChange();
+    await loadWeek();
+    await loadHistory();
   }
 }
 
-function onSelectChange() {
+async function onSelectChange() {
   populateTruckSelect();
   populateWeekSelect();
-  loadWeek();
-  loadHistory();
+  setTotalsMode('year');
+  await loadHistory();
+  await loadWeek();
 }
 
-function onWeekChange() {
-  loadWeek();
+async function onWeekChange() {
+  await loadWeek();
 }
 
-// ─── HISTORY ─────────────────────────────────────────────────────────────────
+// ─── HISTORY TABLE ───────────────────────────────────────────────────────────
+function fmtGHS(v) {
+  const n = Number(v || 0);
+  if (n === 0) return 'GH\u20B5 0.00';
+  const abs = Math.abs(n);
+  const formatted = abs.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n < 0 ? `-GH\u20B5 ${formatted}` : `GH\u20B5 ${formatted}`;
+}
+
 async function loadHistory() {
-  const { truckId, year } = getSelected();
+  const { truckId, year, week: currentWeek } = getSelected();
   if (!truckId) return;
-  const table = document.getElementById('historyTable');
+  const tbody = document.getElementById('historyBody');
+  const tfoot = document.getElementById('historyFoot');
+
   try {
-    const data = await API.get(`/api/weekly/${encodeURIComponent(truckId)}/${year}`);
+    const [data, trucks] = await Promise.all([
+      API.get(`/api/weekly/${encodeURIComponent(truckId)}/${year}`),
+      API.get('/api/trucks')
+    ]);
+
+    const truck = trucks.find(t => t.truckId === truckId);
+    const truckCost = truck && truck.cost ? truck.cost.initialValue || 0 : 0;
+
     if (!data || !data.length) {
-      table.innerHTML = '<tbody><tr><td style="text-align:center;color:var(--muted);padding:20px">No entries yet</td></tr></tbody>';
+      tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px;">No entries yet for this truck & year.</td></tr>';
+      tfoot.innerHTML = '';
+      yearlyTotals = { gross: 0, maint: 0, other: 0 };
+      updateTotals();
       return;
     }
+
     const sorted = data.sort((a, b) => a.week - b.week);
-    let html = `<thead><tr><th>Week</th><th>Date Range</th><th>Gross</th><th>Expenses</th><th>Net</th><th>Notes</th><th>Remarks</th></tr></thead><tbody>`;
+    let breakEven = -truckCost;
+    let lastMonth = '';
+    let monthWeekCounter = 0;
+    let totGross = 0, totMaint = 0, totOther = 0, totExp = 0, totNet = 0;
+    let totalWeeks = 0, totDays = 0;
+
+    // Compute yearly totals for the totals bar
+    yearlyTotals = { gross: 0, maint: 0, other: 0 };
     sorted.forEach(e => {
-      const g = (e.days || []).reduce((s, d) => s + (d.gross || 0), 0);
-      const x = (e.days || []).reduce((s, d) => s + (d.exp || 0), 0);
-      const n = g - x;
+      yearlyTotals.gross += e.gross || 0;
+      yearlyTotals.maint += e.maint || 0;
+      yearlyTotals.other += e.other || 0;
+    });
+    updateTotals();
+
+    let html = '';
+    sorted.forEach(e => {
+      const g = e.gross || 0;
+      const m = e.maint || 0;
+      const o = e.other || 0;
+      const exp = m + o;
+      const net = g - exp;
+      breakEven += net;
+
+      totGross += g;
+      totMaint += m;
+      totOther += o;
+      totExp += exp;
+      totNet += net;
+      totalWeeks++;
+      if (e.daysWorked != null) totDays++;
+
       const mon = getWeekMonday(year, e.week);
-      const sat = new Date(mon); sat.setDate(mon.getDate() + 5);
-      const range = `${fmtShortDate(mon)} \u2013 ${fmtShortDate(sat)}`;
-      html += `<tr>
-        <td><span class="week-link" onclick="jumpToWeek(${e.week})">W${e.week}</span></td>
-        <td style="color:var(--label);font-size:0.75rem">${range}</td>
-        <td style="color:var(--blue)">GHS ${g.toLocaleString()}</td>
-        <td style="color:var(--red)">GHS ${x.toLocaleString()}</td>
-        <td style="color:${n >= 0 ? 'var(--green)' : 'var(--red)'}">GHS ${n.toLocaleString()}</td>
-        <td style="color:var(--muted);font-family:'DM Sans',sans-serif;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.notes || '\u2014'}</td>
-        <td style="color:var(--muted);font-family:'DM Sans',sans-serif;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.remarks || '\u2014'}</td>
+      const sat = new Date(mon);
+      sat.setDate(mon.getDate() + 5);
+      const monthName = getMonthName(mon);
+      const showMonth = monthName !== lastMonth;
+      if (showMonth) monthWeekCounter = 1; else monthWeekCounter++;
+      lastMonth = monthName;
+
+      const range = `${fmtDateRange(mon)} - ${fmtDateRange(sat)}`;
+      const dw = e.daysWorked != null ? e.daysWorked : 'N/A';
+      const isActive = e.week === currentWeek;
+
+      html += `<tr class="${isActive ? 'active-row' : ''}">
+        <td class="month-cell">${showMonth ? monthName : ''}</td>
+        <td><span class="week-link" onclick="jumpToWeek(${e.week})">Week ${monthWeekCounter}</span></td>
+        <td style="color:var(--label);font-size:0.72rem;">${range}</td>
+        <td>${dw}</td>
+        <td class="col-gross">${fmtGHS(g)}</td>
+        <td class="col-maint">${fmtGHS(m)}</td>
+        <td class="col-other">${fmtGHS(o)}</td>
+        <td class="col-exp">${fmtGHS(exp)}</td>
+        <td class="col-net" style="color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(net)}</td>
+        <td class="col-be" style="color:${breakEven >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(breakEven)}</td>
+        <td class="notes-cell">${e.notes || '\u2014'}</td>
+        <td class="notes-cell">${e.remarks || '\u2014'}</td>
+        <td><button class="edit-btn" data-admin-only onclick="editWeekEntry(${e.week})"><i class="fa-solid fa-pen-to-square"></i></button></td>
       </tr>`;
     });
-    html += '</tbody>';
-    table.innerHTML = html;
+    tbody.innerHTML = html;
+
+    tfoot.innerHTML = `<tr>
+      <td colspan="3" style="text-align:right;color:var(--accent);">TOTAL:</td>
+      <td>${totDays}</td>
+      <td class="col-gross">${fmtGHS(totGross)}</td>
+      <td class="col-maint">${fmtGHS(totMaint)}</td>
+      <td class="col-other">${fmtGHS(totOther)}</td>
+      <td class="col-exp">${fmtGHS(totExp)}</td>
+      <td class="col-net" style="color:${totNet >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(totNet)}</td>
+      <td class="col-be" style="color:${breakEven >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(breakEven)}</td>
+      <td colspan="3"></td>
+    </tr>`;
   } catch {
-    table.innerHTML = '<tbody><tr><td style="text-align:center;color:var(--muted);padding:20px">Could not load history</td></tr></tbody>';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px;">Could not load history</td></tr>';
+    tfoot.innerHTML = '';
   }
 }
 
 function jumpToWeek(w) {
   document.getElementById('weekSelect').value = w;
+  setTotalsMode('week', w);
   onWeekChange();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function editWeekEntry(w) {
+  document.getElementById('weekSelect').value = w;
+  setTotalsMode('week', w);
+  loadWeek();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast(`Editing Week ${w} — make changes and Save`, '');
+}
+
+async function addNewEntry() {
+  const { truckId, year } = getSelected();
+  if (!truckId) return showToast('Select a truck first', 'error');
+  try {
+    const data = await API.get(`/api/weekly/${encodeURIComponent(truckId)}/${year}`);
+    const usedWeeks = new Set((data || []).map(e => e.week));
+    let nextFree = null;
+    for (let w = 1; w <= 52; w++) {
+      if (!usedWeeks.has(w)) { nextFree = w; break; }
+    }
+    if (!nextFree) return showToast('All 52 weeks have entries', 'error');
+    document.getElementById('weekSelect').value = nextFree;
+    clearEntries(true);
+    currentEntry = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast(`Adding Week ${nextFree} — fill in data and Save`, '');
+  } catch {
+    showToast('Error finding next week', 'error');
+  }
 }
 
 function updateWeekTimestamp() {
@@ -271,3 +429,11 @@ function updateWeekTimestamp() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Auto-refresh when tab gains focus (another computer may have edited data)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    loadHistory();
+    loadWeek();
+  }
+});

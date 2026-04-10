@@ -367,6 +367,7 @@ function openEditDriverModal() {
   if (!isAdmin()) return showToast('View only', true);  document.getElementById('truckNameInput').value = TRUCK_ID;  document.getElementById('driverNameInput').value = DATA.drivers[TRUCK_ID] || '';
   const cost = DATA.truckCost?.[TRUCK_ID] || {};
   document.getElementById('truckPricePaidInput').value = cost.pricePaid || 0;
+  document.getElementById('truckInsuranceInput').value = cost.insurance || 0;
   document.getElementById('truckMaintCostInput').value = cost.maintenanceCost || 0;
   updateTruckTotalPreview();
   openModal('editDriverModal');
@@ -374,9 +375,10 @@ function openEditDriverModal() {
 
 function updateTruckTotalPreview() {
   const pp = parseFloat(document.getElementById('truckPricePaidInput')?.value) || 0;
+  const ins = parseFloat(document.getElementById('truckInsuranceInput')?.value) || 0;
   const mc = parseFloat(document.getElementById('truckMaintCostInput')?.value) || 0;
   const el = document.getElementById('truckTotalAmountPreview');
-  if (el) el.textContent = `Total Cost: GHS ${(pp + mc).toLocaleString()}`;
+  if (el) el.textContent = `Total Cost: GHS ${(pp + ins + mc).toLocaleString()}`;
 }
 
 function submitDriver() {
@@ -384,6 +386,7 @@ function submitDriver() {
   const newName = (document.getElementById('truckNameInput').value || '').trim().toUpperCase();
   const name = document.getElementById('driverNameInput').value.trim();
   const pp = parseFloat(document.getElementById('truckPricePaidInput').value) || 0;
+  const ins = parseFloat(document.getElementById('truckInsuranceInput').value) || 0;
   const mc = parseFloat(document.getElementById('truckMaintCostInput').value) || 0;
 
   // Handle truck rename
@@ -401,16 +404,16 @@ function submitDriver() {
   }
 
   if (name) DATA.drivers[TRUCK_ID] = name;
-  if (pp > 0 || mc > 0) {
+  if (pp > 0 || ins > 0 || mc > 0) {
     if (!DATA.truckCost) DATA.truckCost = {};
-    DATA.truckCost[TRUCK_ID] = { initialValue: pp + mc, pricePaid: pp, maintenanceCost: mc };
+    DATA.truckCost[TRUCK_ID] = { initialValue: pp + ins + mc, pricePaid: pp, insurance: ins, maintenanceCost: mc };
   }
   saveData();
 
   // Also update via API if rename happened
   if (renamed) {
     const oldId = new URLSearchParams(window.location.search).get('id');
-    API.put('/api/trucks/' + encodeURIComponent(oldId), { newTruckId: TRUCK_ID, driver: name, cost: { pricePaid: pp, maintenanceCost: mc, initialValue: pp + mc } })
+    API.put('/api/trucks/' + encodeURIComponent(oldId), { newTruckId: TRUCK_ID, driver: name, cost: { pricePaid: pp, insurance: ins, maintenanceCost: mc, initialValue: pp + ins + mc } })
       .then(() => {
         closeModal('editDriverModal');
         showToast('Truck renamed to ' + TRUCK_ID);
@@ -422,7 +425,7 @@ function submitDriver() {
       })
       .catch(err => showToast(err.message || 'API rename failed', true));
   } else {
-    API.put('/api/trucks/' + encodeURIComponent(TRUCK_ID), { driver: name, cost: { pricePaid: pp, maintenanceCost: mc, initialValue: pp + mc } }).catch(() => {});
+    API.put('/api/trucks/' + encodeURIComponent(TRUCK_ID), { driver: name, cost: { pricePaid: pp, insurance: ins, maintenanceCost: mc, initialValue: pp + ins + mc } }).catch(() => {});
     closeModal('editDriverModal');
     showToast('Truck settings saved');
     refreshAll();
@@ -501,3 +504,26 @@ function refreshAll() {
 
   refreshAll();
 })();
+
+// ─── SYNC FROM API ───────────────────────────────────────────────────────────
+async function syncFromAPI() {
+  if (!TRUCK_ID) return;
+  try {
+    const fresh = await API.get('/api/dashboard/full');
+    if (!fresh || !fresh.trucks) return;
+    DATA.trucks = fresh.trucks;
+    DATA.drivers = fresh.drivers || {};
+    DATA.truckCost = fresh.truckCost || {};
+    DATA.endOfTerm = fresh.endOfTerm || {};
+    if (fresh.monthly) DATA.monthly = fresh.monthly;
+    if (fresh.expBreakdown) DATA.expBreakdown = fresh.expBreakdown;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    if (DATA.trucks[TRUCK_ID]) refreshAll();
+  } catch(e) { /* offline — keep using localStorage data */ }
+}
+syncFromAPI();
+
+// Auto-refresh when tab gains focus (cross-computer sync)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') syncFromAPI();
+});

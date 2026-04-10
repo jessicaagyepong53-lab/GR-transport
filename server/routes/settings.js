@@ -1,5 +1,10 @@
 const router = require('express').Router();
+const jwt = require('jsonwebtoken');
 const { requireAdmin, getAdminPin, setAdminPin } = require('../middleware/auth');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-jwt-secret';
+const COOKIE_NAME = 'gr_auth';
+const isProduction = process.env.NODE_ENV === 'production';
 
 // GET /api/settings — get app settings
 router.get('/', (req, res) => {
@@ -30,12 +35,16 @@ router.post('/pin/reset', async (req, res) => {
 
     await setAdminPin(newPin);
 
-    // Grant admin session after successful reset
-    req.session.isAdmin = true;
-    req.session.save((err) => {
-      if (err) return res.status(500).json({ error: 'Session save failed' });
-      res.json({ success: true, message: 'PIN has been reset' });
+    // Grant admin cookie after successful reset
+    const token = jwt.sign({ isAdmin: true }, JWT_SECRET, { expiresIn: '24h' });
+    res.cookie(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/'
     });
+    res.json({ success: true, message: 'PIN has been reset' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

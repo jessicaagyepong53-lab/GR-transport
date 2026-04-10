@@ -9,6 +9,7 @@ const truckSchema = new mongoose.Schema({
   cost: {
     initialValue: { type: Number, default: 0 },
     pricePaid: { type: Number, default: 0 },
+    insurance: { type: Number, default: 0 },
     maintenanceCost: { type: Number, default: 0 }
   },
   endOfTerm: {
