@@ -55,7 +55,7 @@ app.get('/api/health', async (req, res) => {
     const mongoose = require('mongoose');
     const state = mongoose.connection.readyState; // 1 = connected
     res.json({ status: 'ok', db: state === 1 ? 'connected' : 'disconnected', env: {
-      MONGO_URI: process.env.MONGO_URI ? 'set (' + process.env.MONGO_URI.slice(0, 20) + '...)' : 'NOT SET',
+      MONGO_URI: process.env.MONGO_URI ? 'set' : 'NOT SET',
       JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'NOT SET (using fallback)',
       NODE_ENV: process.env.NODE_ENV || 'not set',
       VERCEL: process.env.VERCEL || 'not set'
