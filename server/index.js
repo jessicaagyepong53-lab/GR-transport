@@ -11,6 +11,31 @@ const app = express();
 // Quick ping — no DB, no middleware — tests if serverless function loads at all
 app.get('/api/ping', (req, res) => res.json({ pong: true, ts: Date.now() }));
 
+// Health check — test DB connection on Vercel (before middleware so it always responds)
+app.get('/api/health', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const state = mongoose.connection.readyState;
+    const envInfo = {
+      MONGO_URI: process.env.MONGO_URI ? 'set' : 'NOT SET',
+      JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'NOT SET (using fallback)',
+      NODE_ENV: process.env.NODE_ENV || 'not set',
+      VERCEL: process.env.VERCEL || 'not set'
+    };
+    if (state === 1) {
+      res.json({ status: 'ok', db: 'connected', env: envInfo });
+    } else {
+      // Try to connect and report the actual error
+      try { await dbReady; } catch (e) {
+        return res.status(500).json({ status: 'error', db: 'failed', error: e.message, env: envInfo });
+      }
+      res.json({ status: 'ok', db: 'connected', env: envInfo });
+    }
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
+  }
+});
+
 // Connect to MongoDB
 const dbReady = connectDB();
 dbReady.catch(() => {}); // prevent unhandled rejection from crashing serverless function
@@ -51,23 +76,6 @@ app.use(cookieParser());
 if (!process.env.VERCEL) {
   app.use(express.static(path.join(__dirname, '..')));
 }
-
-// Health check — test DB connection on Vercel
-app.get('/api/health', async (req, res) => {
-  try {
-    await dbReady;
-    const mongoose = require('mongoose');
-    const state = mongoose.connection.readyState; // 1 = connected
-    res.json({ status: 'ok', db: state === 1 ? 'connected' : 'disconnected', env: {
-      MONGO_URI: process.env.MONGO_URI ? 'set' : 'NOT SET',
-      JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'NOT SET (using fallback)',
-      NODE_ENV: process.env.NODE_ENV || 'not set',
-      VERCEL: process.env.VERCEL || 'not set'
-    }});
-  } catch (err) {
-    res.status(500).json({ status: 'error', error: err.message });
-  }
-});
 
 // API routes
 app.use('/api/auth', require('./routes/auth'));
