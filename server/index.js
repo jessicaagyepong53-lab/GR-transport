@@ -48,6 +48,23 @@ if (!process.env.VERCEL) {
   app.use(express.static(path.join(__dirname, '..')));
 }
 
+// Health check — test DB connection on Vercel
+app.get('/api/health', async (req, res) => {
+  try {
+    await dbReady;
+    const mongoose = require('mongoose');
+    const state = mongoose.connection.readyState; // 1 = connected
+    res.json({ status: 'ok', db: state === 1 ? 'connected' : 'disconnected', env: {
+      MONGO_URI: process.env.MONGO_URI ? 'set (' + process.env.MONGO_URI.slice(0, 20) + '...)' : 'NOT SET',
+      JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'NOT SET (using fallback)',
+      NODE_ENV: process.env.NODE_ENV || 'not set',
+      VERCEL: process.env.VERCEL || 'not set'
+    }});
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
+  }
+});
+
 // API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/trucks', require('./routes/trucks'));
