@@ -303,6 +303,8 @@
 </style>
 </head>
 <body>
+<div id="loadingOverlay" style="position:fixed;inset:0;background:var(--bg,#0a0e1a);display:flex;align-items:center;justify-content:center;z-index:9999;"><div style="text-align:center;color:var(--muted,#8899aa);font-family:system-ui;"><div style="width:40px;height:40px;border:3px solid #333;border-top-color:#4ecdc4;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;"></div>Loading dashboard…</div></div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <div class="wrapper">
 
   <!-- HEADER -->
@@ -1621,36 +1623,34 @@ DATA.drivers = DATA.drivers || {
 };
 
 rebuildAllMonthlyData();
-renderYearTabs();
-updateHeaderSubtitle();
-renderKPIs('all');
-renderMonthly('all');
-renderTruckIncome('all');
-renderExpBreakdown('all');
-renderYearly();
-renderEfficiency('all');
-renderHeatmap();
-renderBreakeven('all');
-populatePnLSelect();
-renderPnL();
-renderTable('all');
-renderWeeksBreakdown('all');
-renderSpreadsheetEditor();
+
+function renderAll(year) {
+  renderYearTabs();
+  updateHeaderSubtitle();
+  renderKPIs(year);
+  renderMonthly(year);
+  renderTruckIncome(year);
+  renderExpBreakdown(year);
+  renderYearly();
+  renderEfficiency(year);
+  renderHeatmap();
+  renderBreakeven(year);
+  populatePnLSelect();
+  renderPnL();
+  renderTable(year);
+  renderWeeksBreakdown(year);
+  renderSpreadsheetEditor();
+}
 
 // Load saved timestamp
 const _savedTs = localStorage.getItem('dashboard_lastSaved');
 if (_savedTs) updateDashTimestamp(new Date(_savedTs));
 
-localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
-
 // ─── SYNC FROM API ───────────────────────────────────────────────────────────
-// Fetch latest truck data from the server so settings edits (renames, driver
-// changes, cost changes) propagate to the dashboard automatically.
 async function syncFromAPI() {
   try {
     const fresh = await API.get('/api/dashboard/full');
-    if (!fresh || !fresh.trucks) return;
-    // Overwrite trucks, drivers, truckCost, endOfTerm with API data
+    if (!fresh || !fresh.trucks) return false;
     DATA.trucks = fresh.trucks;
     DATA.drivers = fresh.drivers || {};
     DATA.truckCost = fresh.truckCost || {};
@@ -1659,28 +1659,25 @@ async function syncFromAPI() {
     if (fresh.expBreakdown) DATA.expBreakdown = fresh.expBreakdown;
     if (fresh.yearlyTotals) DATA.yearlyTotals = fresh.yearlyTotals;
     localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
-    // Re-render everything with fresh data
     rebuildAllMonthlyData();
-    renderYearTabs();
-    updateHeaderSubtitle();
-    renderKPIs(currentYear);
-    renderMonthly(currentYear);
-    renderTruckIncome(currentYear);
-    renderExpBreakdown(currentYear);
-    renderYearly();
-    renderEfficiency(currentYear);
-    renderHeatmap();
-    renderBreakeven(currentYear);
-    renderPnL();
-    renderTable(currentYear);
-    renderWeeksBreakdown(currentYear);
-  } catch(e) { console.error('syncFromAPI failed:', e); }
+    return true;
+  } catch(e) { console.error('syncFromAPI failed:', e); return false; }
 }
-syncFromAPI();
+
+// Initial load: try API first, then render
+(async function init() {
+  await syncFromAPI();
+  renderAll(currentYear || 'all');
+  // Remove loading overlay
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.remove();
+})();
 
 // Auto-refresh when tab gains focus (cross-computer sync)
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') syncFromAPI();
+  if (document.visibilityState === 'visible') {
+    syncFromAPI().then(() => renderAll(currentYear || 'all'));
+  }
 });
 </script>
 </body>
