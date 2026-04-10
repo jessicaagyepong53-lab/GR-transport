@@ -8,6 +8,9 @@ const connectDB = require('./config/db');
 
 const app = express();
 
+// Quick ping — no DB, no middleware — tests if serverless function loads at all
+app.get('/api/ping', (req, res) => res.json({ pong: true, ts: Date.now() }));
+
 // Connect to MongoDB
 const dbReady = connectDB();
 
