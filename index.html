@@ -1674,7 +1674,7 @@ async function syncFromAPI() {
     renderPnL();
     renderTable(currentYear);
     renderWeeksBreakdown(currentYear);
-  } catch(e) { /* offline or API unavailable — keep using hardcoded data */ }
+  } catch(e) { console.error('syncFromAPI failed:', e); }
 }
 syncFromAPI();
 
