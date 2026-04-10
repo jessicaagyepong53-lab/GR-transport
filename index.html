@@ -305,6 +305,7 @@
 <body>
 <div id="loadingOverlay" style="position:fixed;inset:0;background:var(--bg,#0a0e1a);display:flex;align-items:center;justify-content:center;z-index:9999;"><div style="text-align:center;color:var(--muted,#8899aa);font-family:system-ui;"><div style="width:40px;height:40px;border:3px solid #333;border-top-color:#4ecdc4;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;"></div>Loading dashboard…</div></div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<script>setTimeout(function(){var o=document.getElementById('loadingOverlay');if(o)o.remove();},6000);</script>
 <div class="wrapper">
 
   <!-- HEADER -->
@@ -633,9 +634,11 @@ const DATA = {
 };
 
 // ─── CHART DEFAULTS ──────────────────────────────────────────────────────────
-Chart.defaults.color = '#6b7a96';
-Chart.defaults.font.family = 'DM Sans';
-Chart.defaults.plugins.legend.display = false;
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.color = '#6b7a96';
+  Chart.defaults.font.family = 'DM Sans';
+  Chart.defaults.plugins.legend.display = false;
+}
 const COLORS = { accent:'#f5a623',green:'#2de08a',red:'#e0443a',blue:'#4a9eff',purple:'#9b72ff' };
 const TRUCK_COLOR_MAP = {
   'GT 6350-19':  '#f5a623',
