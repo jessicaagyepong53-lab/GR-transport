@@ -10,7 +10,10 @@ async function connectDB() {
   if (!uri) {
     throw new Error('MONGO_URI not set');
   }
-  cachedConnection = await mongoose.connect(uri);
+  cachedConnection = await mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 5000,
+  });
   console.log('MongoDB connected');
   return cachedConnection;
 }
