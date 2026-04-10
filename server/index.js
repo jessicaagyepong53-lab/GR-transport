@@ -8,14 +8,10 @@ const connectDB = require('./config/db');
 
 const app = express();
 
-// Connect to MongoDB
-const dbReady = connectDB();
-dbReady.catch(() => {}); // prevent unhandled rejection from crashing serverless function
-
-// Ensure DB is connected before handling any request (critical for serverless cold starts)
+// Ensure DB is connected before handling any request (retries on failure)
 app.use(async (req, res, next) => {
   try {
-    await dbReady;
+    await connectDB();
     next();
   } catch (err) {
     res.status(500).json({ error: 'Database connection failed' });
