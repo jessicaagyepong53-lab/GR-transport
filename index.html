@@ -1666,11 +1666,17 @@ async function syncFromAPI() {
 
 // Initial load: try API first, then render
 (async function init() {
-  await syncFromAPI();
-  renderAll(currentYear || 'all');
-  // Remove loading overlay
   const overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.remove();
+  try {
+    await syncFromAPI();
+    renderAll(currentYear || 'all');
+  } catch(e) {
+    console.error('init error:', e);
+    // Still try to render with whatever data we have
+    try { renderAll(currentYear || 'all'); } catch(e2) { console.error('renderAll error:', e2); }
+  } finally {
+    if (overlay) overlay.remove();
+  }
 })();
 
 // Auto-refresh when tab gains focus (cross-computer sync)
