@@ -8,45 +8,6 @@ const connectDB = require('./config/db');
 
 const app = express();
 
-// Quick ping — no DB, no middleware — tests if serverless function loads at all
-app.get('/api/ping', (req, res) => res.json({ pong: true, ts: Date.now() }));
-
-// Health check — test DB connection on Vercel (before middleware so it always responds)
-app.get('/api/health', async (req, res) => {
-  try {
-    const mongoose = require('mongoose');
-    const uri = process.env.MONGO_URI || '';
-    // Extract just the hostname (no credentials) for diagnostics
-    let host = 'unknown';
-    try { host = new URL(uri.replace('mongodb+srv://', 'https://')).hostname; } catch(e) {}
-    const envInfo = {
-      MONGO_URI: uri ? 'set' : 'NOT SET',
-      MONGO_HOST: host,
-      MONGO_URI_LENGTH: uri.length,
-      MONGO_URI_START: uri.substring(0, 14),
-      MONGO_URI_HAS_QUOTES: uri.includes('"') || uri.includes("'"),
-      MONGO_URI_HAS_SPACES: uri !== uri.trim(),
-      JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'NOT SET (using fallback)',
-      NODE_ENV: process.env.NODE_ENV || 'not set',
-      VERCEL: process.env.VERCEL || 'not set'
-    };
-    const state = mongoose.connection.readyState;
-    if (state === 1) {
-      res.json({ status: 'ok', db: 'connected', env: envInfo });
-    } else {
-      // Try a fresh connection instead of relying on cached promise
-      try {
-        await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 });
-        res.json({ status: 'ok', db: 'connected', env: envInfo });
-      } catch (e) {
-        res.status(500).json({ status: 'error', db: 'failed', error: e.message, env: envInfo });
-      }
-    }
-  } catch (err) {
-    res.status(500).json({ status: 'error', error: err.message });
-  }
-});
-
 // Connect to MongoDB
 const dbReady = connectDB();
 dbReady.catch(() => {}); // prevent unhandled rejection from crashing serverless function
