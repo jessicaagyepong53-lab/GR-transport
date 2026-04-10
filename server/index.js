@@ -13,6 +13,7 @@ app.get('/api/ping', (req, res) => res.json({ pong: true, ts: Date.now() }));
 
 // Connect to MongoDB
 const dbReady = connectDB();
+dbReady.catch(() => {}); // prevent unhandled rejection from crashing serverless function
 
 // Ensure DB is connected before handling any request (critical for serverless cold starts)
 app.use(async (req, res, next) => {
