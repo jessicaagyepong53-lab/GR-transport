@@ -6,6 +6,7 @@ let currentEntry = null;
 let yearlyTotals = { gross: 0, maint: 0, other: 0 };
 let currentWeekOriginal = { gross: 0, maint: 0, other: 0 };
 let totalsMode = 'year'; // 'year' or 'week'
+let weeklyCache = { truckId: null, year: null, data: [] }; // shared cache to avoid duplicate fetches
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
@@ -35,8 +36,7 @@ async function init() {
   populateTruckSelect();
   populateYearSelect();
   populateWeekSelect();
-  await loadHistory();
-  await loadWeek();
+  await refreshData();
 }
 
 function populateTruckSelect() {
@@ -205,19 +205,28 @@ function clearEntries(silent) {
 }
 
 // ─── LOAD / SAVE ─────────────────────────────────────────────────────────────
-async function loadWeek() {
+
+// Single fetch that populates both the form and the history table
+async function refreshData() {
   const { truckId, year, week } = getSelected();
   if (!truckId) return;
   try {
     const data = await API.get(`/api/weekly/${encodeURIComponent(truckId)}/${year}`);
-    const entry = Array.isArray(data) ? data.find(e => e.week === week) : null;
-    currentEntry = entry;
-    if (entry) {
-      fillEntry(entry);
-    } else {
-      clearEntries(true);
-    }
+    weeklyCache = { truckId, year, data: data || [] };
   } catch {
+    weeklyCache = { truckId, year, data: [] };
+  }
+  fillWeekFromCache();
+  renderHistory();
+}
+
+function fillWeekFromCache() {
+  const { week } = getSelected();
+  const entry = weeklyCache.data.find(e => e.week === week) || null;
+  currentEntry = entry;
+  if (entry) {
+    fillEntry(entry);
+  } else {
     clearEntries(true);
   }
 }
@@ -242,8 +251,7 @@ async function saveWeek() {
     currentWeekOriginal = { gross, maint, other };
     showToast(`Week ${week} saved for ${truckId}`, 'success');
     updateWeekTimestamp();
-    await loadHistory();
-    await loadWeek();
+    await refreshData();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   }
@@ -255,8 +263,7 @@ async function nextWeek() {
   const current = parseInt(sel.value);
   if (current < 52) {
     sel.value = current + 1;
-    await loadWeek();
-    await loadHistory();
+    await refreshData();
   }
 }
 
@@ -264,12 +271,11 @@ async function onSelectChange() {
   populateTruckSelect();
   populateWeekSelect();
   setTotalsMode('year');
-  await loadHistory();
-  await loadWeek();
+  await refreshData();
 }
 
-async function onWeekChange() {
-  await loadWeek();
+function onWeekChange() {
+  fillWeekFromCache();
 }
 
 // ─── HISTORY TABLE ───────────────────────────────────────────────────────────
@@ -281,19 +287,16 @@ function fmtGHS(v) {
   return n < 0 ? `-GH\u20B5 ${formatted}` : `GH\u20B5 ${formatted}`;
 }
 
-async function loadHistory() {
+function renderHistory() {
   const { truckId, year, week: currentWeek } = getSelected();
   if (!truckId) return;
   const tbody = document.getElementById('historyBody');
   const tfoot = document.getElementById('historyFoot');
 
   try {
-    const [data, trucks] = await Promise.all([
-      API.get(`/api/weekly/${encodeURIComponent(truckId)}/${year}`),
-      API.get('/api/trucks')
-    ]);
+    const data = weeklyCache.data;
 
-    const truck = trucks.find(t => t.truckId === truckId);
+    const truck = allTrucks.find(t => t.truckId === truckId);
     const truckCost = truck && truck.cost ? truck.cost.initialValue || 0 : 0;
 
     if (!data || !data.length) {
@@ -387,14 +390,14 @@ async function loadHistory() {
 function jumpToWeek(w) {
   document.getElementById('weekSelect').value = w;
   setTotalsMode('week', w);
-  onWeekChange();
+  fillWeekFromCache();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-async function editWeekEntry(w) {
+function editWeekEntry(w) {
   document.getElementById('weekSelect').value = w;
   setTotalsMode('week', w);
-  await loadWeek();
+  fillWeekFromCache();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   showToast(`Editing Week ${w} — make changes and Save`, '');
 }
@@ -416,7 +419,7 @@ async function deleteWeekEntry(w) {
       currentEntry = null;
       clearEntries(true);
     }
-    await loadHistory();
+    await refreshData();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   }
@@ -425,22 +428,17 @@ async function deleteWeekEntry(w) {
 async function addNewEntry() {
   const { truckId, year } = getSelected();
   if (!truckId) return showToast('Select a truck first', 'error');
-  try {
-    const data = await API.get(`/api/weekly/${encodeURIComponent(truckId)}/${year}`);
-    const usedWeeks = new Set((data || []).map(e => e.week));
+  const usedWeeks = new Set(weeklyCache.data.map(e => e.week));
     let nextFree = null;
     for (let w = 1; w <= 52; w++) {
       if (!usedWeeks.has(w)) { nextFree = w; break; }
     }
-    if (!nextFree) return showToast('All 52 weeks have entries', 'error');
-    document.getElementById('weekSelect').value = nextFree;
-    clearEntries(true);
-    currentEntry = null;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    showToast(`Adding Week ${nextFree} — fill in data and Save`, '');
-  } catch {
-    showToast('Error finding next week', 'error');
-  }
+  if (!nextFree) return showToast('All 52 weeks have entries', 'error');
+  document.getElementById('weekSelect').value = nextFree;
+  clearEntries(true);
+  currentEntry = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast(`Adding Week ${nextFree} — fill in data and Save`, '');
 }
 
 function updateWeekTimestamp() {
@@ -457,7 +455,6 @@ document.addEventListener('DOMContentLoaded', init);
 // Auto-refresh when tab gains focus (another computer may have edited data)
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    loadHistory();
-    loadWeek();
+    refreshData();
   }
 });
