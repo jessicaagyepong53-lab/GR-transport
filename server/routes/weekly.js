@@ -30,7 +30,7 @@ async function recomputeYearFromWeekly(truckId, year) {
       gross += e.gross || 0;
       maint += e.maint || 0;
       other += e.other || 0;
-      if (e.daysWorked != null) weeks++;
+      weeks++;
     });
     const exp = maint + other;
     const net = gross - exp;
@@ -57,9 +57,7 @@ async function recomputeYearFromWeekly(truckId, year) {
     await ExpenseBreakdown.deleteOne({ year });
   }
 
-  // Recompute fleet-wide monthly entries for this year
-  // Delete all existing fleet monthly entries for this year first, then rebuild
-  await MonthlyEntry.deleteMany({ year, truckId: '_fleet' });
+  // Recompute fleet-wide monthly entries for this year using upserts (race-safe)
   const allEntries = await WeeklyEntry.find({ year });
   const monthMap = {};
   allEntries.forEach(e => {
@@ -68,12 +66,19 @@ async function recomputeYearFromWeekly(truckId, year) {
     monthMap[mon].gross += e.gross || 0;
     monthMap[mon].exp += (e.maint || 0) + (e.other || 0);
   });
-  const monthDocs = Object.entries(monthMap).map(([month, data]) => ({
-    year, month, truckId: '_fleet', gross: data.gross, exp: data.exp
-  }));
-  if (monthDocs.length) {
-    await MonthlyEntry.insertMany(monthDocs);
+  const activeMonths = Object.keys(monthMap);
+  if (activeMonths.length) {
+    const ops = activeMonths.map(month => ({
+      updateOne: {
+        filter: { year, month, truckId: '_fleet' },
+        update: { $set: { gross: monthMap[month].gross, exp: monthMap[month].exp } },
+        upsert: true
+      }
+    }));
+    await MonthlyEntry.bulkWrite(ops);
   }
+  // Remove months that no longer have data
+  await MonthlyEntry.deleteMany({ year, truckId: '_fleet', month: { $nin: activeMonths } });
 }
 
 // GET /api/weekly/year/:year — all weekly entries for ALL trucks in a year (for data management)
@@ -171,6 +176,14 @@ router.delete('/:truckId/:year/:week', requireAdmin, async (req, res) => {
     });
     if (!entry) return res.status(404).json({ error: 'Entry not found' });
 
+    // Save to trash for recovery
+    const Trash = require('../models/Trash');
+    await Trash.create({
+      type: 'weeklyEntry',
+      label: `${req.params.truckId} / ${req.params.year} / Week ${req.params.week}`,
+      data: entry.toObject()
+    });
+
     // Auto-rollup: recompute YearEntry + ExpenseBreakdown
     await recomputeYearFromWeekly(req.params.truckId, parseInt(req.params.year));
 
@@ -181,3 +194,4 @@ router.delete('/:truckId/:year/:week', requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.recomputeYearFromWeekly = recomputeYearFromWeekly;

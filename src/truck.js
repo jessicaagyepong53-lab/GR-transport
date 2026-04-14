@@ -308,7 +308,7 @@ function openAddYearModal() {
   openModal('addYearModal');
 }
 
-function submitAddYear() {
+async function submitAddYear() {
   if (!isAdmin()) return showToast('View only', true);
   const year = parseInt(document.getElementById('addYear').value);
   const weeks = parseInt(document.getElementById('addWeeks').value) || 0;
@@ -317,11 +317,16 @@ function submitAddYear() {
   if (!year) return showToast('Enter a valid year', true);
   if (!DATA.trucks[TRUCK_ID]) DATA.trucks[TRUCK_ID] = {};
   if (DATA.trucks[TRUCK_ID][year]) return showToast('Year already exists — edit it instead', true);
-  DATA.trucks[TRUCK_ID][year] = { gross, exp, net: gross - exp, weeks };
-  saveData();
-  closeModal('addYearModal');
-  showToast(`${year} added for ${TRUCK_ID}`);
-  refreshAll();
+  try {
+    await API.post('/api/trucks/' + encodeURIComponent(TRUCK_ID) + '/years', { year, gross, exp, weeks });
+    DATA.trucks[TRUCK_ID][year] = { gross, exp, net: gross - exp, weeks };
+    saveData();
+    closeModal('addYearModal');
+    showToast(`${year} added for ${TRUCK_ID}`);
+    refreshAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to add year', true);
+  }
 }
 
 // ─── EDIT YEAR ───────────────────────────────────────────────────────────────
@@ -339,27 +344,37 @@ function openEditYear(year) {
   openModal('editYearModal');
 }
 
-function submitEditYear() {
+async function submitEditYear() {
   if (!isAdmin()) return showToast('View only', true);
   const weeks = parseInt(document.getElementById('editWeeks').value) || 0;
   const gross = parseFloat(document.getElementById('editGross').value) || 0;
   const exp = parseFloat(document.getElementById('editExp').value) || 0;
   if (!DATA.trucks[TRUCK_ID]) DATA.trucks[TRUCK_ID] = {};
-  DATA.trucks[TRUCK_ID][editingYear] = { gross, exp, net: gross - exp, weeks };
-  saveData();
-  closeModal('editYearModal');
-  showToast(`${editingYear} updated`);
-  refreshAll();
+  try {
+    await API.post('/api/trucks/' + encodeURIComponent(TRUCK_ID) + '/years', { year: editingYear, gross, exp, weeks });
+    DATA.trucks[TRUCK_ID][editingYear] = { gross, exp, net: gross - exp, weeks };
+    saveData();
+    closeModal('editYearModal');
+    showToast(`${editingYear} updated`);
+    refreshAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to update year', true);
+  }
 }
 
-function deleteYearEntry() {
+async function deleteYearEntry() {
   if (!isAdmin()) return showToast('View only', true);
   if (!confirm(`Delete year ${editingYear} data for ${TRUCK_ID}?`)) return;
-  if (DATA.trucks[TRUCK_ID]) delete DATA.trucks[TRUCK_ID][editingYear];
-  saveData();
-  closeModal('editYearModal');
-  showToast(`${editingYear} deleted`);
-  refreshAll();
+  try {
+    await API.del('/api/trucks/' + encodeURIComponent(TRUCK_ID) + '/years/' + editingYear);
+    if (DATA.trucks[TRUCK_ID]) delete DATA.trucks[TRUCK_ID][editingYear];
+    saveData();
+    closeModal('editYearModal');
+    showToast(`${editingYear} deleted`);
+    refreshAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to delete year', true);
+  }
 }
 
 // ─── EDIT DRIVER / TRUCK SETTINGS ────────────────────────────────────────────
@@ -381,7 +396,7 @@ function updateTruckTotalPreview() {
   if (el) el.textContent = `Total Cost: GHS ${(pp + ins + mc).toLocaleString()}`;
 }
 
-function submitDriver() {
+async function submitDriver() {
   if (!isAdmin()) return showToast('View only', true);
   const newName = (document.getElementById('truckNameInput').value || '').trim().toUpperCase();
   const name = document.getElementById('driverNameInput').value.trim();
@@ -425,10 +440,14 @@ function submitDriver() {
       })
       .catch(err => showToast(err.message || 'API rename failed', true));
   } else {
-    API.put('/api/trucks/' + encodeURIComponent(TRUCK_ID), { driver: name, cost: { pricePaid: pp, insurance: ins, maintenanceCost: mc, initialValue: pp + ins + mc } }).catch(() => {});
-    closeModal('editDriverModal');
-    showToast('Truck settings saved');
-    refreshAll();
+    try {
+      await API.put('/api/trucks/' + encodeURIComponent(TRUCK_ID), { driver: name, cost: { pricePaid: pp, insurance: ins, maintenanceCost: mc, initialValue: pp + ins + mc } });
+      closeModal('editDriverModal');
+      showToast('Truck settings saved');
+      refreshAll();
+    } catch (err) {
+      showToast(err.message || 'Failed to save truck settings', true);
+    }
   }
 }
 
@@ -439,24 +458,21 @@ function openDeleteTruckModal() {
   openModal('deleteTruckModal');
 }
 
-function confirmDeleteTruck() {
+async function confirmDeleteTruck() {
   if (!isAdmin()) return showToast('View only', true);
-  // Save to recovery
-  const recovery = JSON.parse(localStorage.getItem('truck_recovery') || '[]');
-  recovery.push({
-    type: 'truck',
-    data: { truckId: TRUCK_ID, years: DATA.trucks[TRUCK_ID], driver: DATA.drivers[TRUCK_ID] },
-    deletedAt: new Date().toISOString()
-  });
-  localStorage.setItem('truck_recovery', JSON.stringify(recovery));
-  // Remove from data
-  delete DATA.trucks[TRUCK_ID];
-  delete DATA.drivers[TRUCK_ID];
-  if (DATA.truckCost) delete DATA.truckCost[TRUCK_ID];
-  if (DATA.endOfTerm) delete DATA.endOfTerm[TRUCK_ID];
-  saveData();
-  showToast(`${TRUCK_ID} deleted — recoverable for 30 days`);
-  setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  try {
+    await API.del('/api/trucks/' + encodeURIComponent(TRUCK_ID));
+    // Also clean up localStorage
+    delete DATA.trucks[TRUCK_ID];
+    delete DATA.drivers[TRUCK_ID];
+    if (DATA.truckCost) delete DATA.truckCost[TRUCK_ID];
+    if (DATA.endOfTerm) delete DATA.endOfTerm[TRUCK_ID];
+    saveData();
+    showToast(`${TRUCK_ID} deleted — recoverable for 30 days`);
+    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  } catch (err) {
+    showToast(err.message || 'Failed to delete truck', true);
+  }
 }
 
 // ─── MONTHLY / WEEKLY STUBS ─────────────────────────────────────────────────

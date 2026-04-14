@@ -230,7 +230,6 @@ async function saveAll() {
 
       const gross = parseFloat(tr.querySelector('.truck-gross')?.value) || 0;
       const exp = parseFloat(tr.querySelector('.truck-exp')?.value) || 0;
-      const weeks = 0;
 
       // If new truck, create it first
       if (newIdInput) {
@@ -243,7 +242,7 @@ async function saveAll() {
       }
 
       await API.post(`/api/trucks/${encodeURIComponent(truckId)}/years`, {
-        year: currentYear, gross, exp, weeks
+        year: currentYear, gross, exp
       });
     }
 

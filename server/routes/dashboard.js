@@ -80,7 +80,6 @@ router.get('/full', async (req, res) => {
       MonthlyEntry.find().sort('year month'),
       ExpenseBreakdown.find().sort('year'),
       WeeklyEntry.aggregate([
-        { $match: { daysWorked: { $ne: null } } },
         { $group: { _id: { truckId: '$truckId', year: '$year' }, weeksWorked: { $sum: 1 } } }
       ])
     ]);

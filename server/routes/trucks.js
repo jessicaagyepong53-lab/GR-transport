@@ -3,8 +3,56 @@ const Truck = require('../models/Truck');
 const YearEntry = require('../models/YearEntry');
 const MonthlyEntry = require('../models/MonthlyEntry');
 const WeeklyEntry = require('../models/WeeklyEntry');
+const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const Trash = require('../models/Trash');
 const { requireAdmin } = require('../middleware/auth');
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function getWeekMonth(year, week) {
+  const jan4 = new Date(year, 0, 4);
+  const dayOfWeek = jan4.getDay() || 7;
+  const w1Monday = new Date(jan4);
+  w1Monday.setDate(jan4.getDate() - (dayOfWeek - 1));
+  const monday = new Date(w1Monday);
+  monday.setDate(w1Monday.getDate() + (week - 1) * 7);
+  return MONTH_NAMES[monday.getMonth()];
+}
+
+// Recompute fleet-wide ExpenseBreakdown + MonthlyEntry for a year
+async function recomputeFleetAggregates(year) {
+  const allWeekly = await WeeklyEntry.aggregate([
+    { $match: { year } },
+    { $group: { _id: null, maint: { $sum: '$maint' }, other: { $sum: '$other' } } }
+  ]);
+  if (allWeekly.length) {
+    await ExpenseBreakdown.findOneAndUpdate({ year }, { maint: allWeekly[0].maint, other: allWeekly[0].other }, { upsert: true });
+  } else {
+    await ExpenseBreakdown.deleteOne({ year });
+  }
+
+  const allEntries = await WeeklyEntry.find({ year });
+  const monthMap = {};
+  allEntries.forEach(e => {
+    const mon = getWeekMonth(year, e.week);
+    if (!monthMap[mon]) monthMap[mon] = { gross: 0, exp: 0 };
+    monthMap[mon].gross += e.gross || 0;
+    monthMap[mon].exp += (e.maint || 0) + (e.other || 0);
+  });
+
+  await MonthlyEntry.deleteMany({ year, truckId: '_fleet', month: { $nin: Object.keys(monthMap) } });
+  const activeMonths = Object.keys(monthMap);
+  if (activeMonths.length) {
+    const ops = activeMonths.map(month => ({
+      updateOne: {
+        filter: { year, month, truckId: '_fleet' },
+        update: { $set: { gross: monthMap[month].gross, exp: monthMap[month].exp } },
+        upsert: true
+      }
+    }));
+    await MonthlyEntry.bulkWrite(ops);
+  }
+}
 
 // GET /api/trucks — list all trucks
 router.get('/', async (req, res) => {
@@ -126,18 +174,29 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     if (!truck) return res.status(404).json({ error: 'Truck not found' });
 
     const yearEntries = await YearEntry.find({ truckId: truck.truckId });
+    const weeklyEntries = await WeeklyEntry.find({ truckId: truck.truckId });
 
     await Trash.create({
       type: 'truck',
       label: truck.truckId,
       data: {
         truck: truck.toObject(),
-        yearEntries: yearEntries.map(ye => ye.toObject())
+        yearEntries: yearEntries.map(ye => ye.toObject()),
+        weeklyEntries: weeklyEntries.map(we => we.toObject())
       }
     });
 
+    // Collect affected years before deleting
+    const affectedYears = [...new Set(weeklyEntries.map(e => e.year))];
+
     await YearEntry.deleteMany({ truckId: truck.truckId });
+    await WeeklyEntry.deleteMany({ truckId: truck.truckId });
     await truck.deleteOne();
+
+    // Recompute fleet-wide aggregates for each affected year
+    for (const year of affectedYears) {
+      await recomputeFleetAggregates(year);
+    }
 
     res.json({ success: true, message: `Truck ${req.params.id} moved to trash` });
   } catch (err) {
@@ -161,9 +220,12 @@ router.post('/:id/years', requireAdmin, async (req, res) => {
     const { year, gross, exp, weeks } = req.body;
     if (!year) return res.status(400).json({ error: 'year required' });
 
+    const update = { gross: gross || 0, exp: exp || 0, net: (gross || 0) - (exp || 0) };
+    if (weeks !== undefined) update.weeks = weeks;
+
     const entry = await YearEntry.findOneAndUpdate(
       { truckId: req.params.id, year },
-      { gross: gross || 0, exp: exp || 0, net: (gross || 0) - (exp || 0), weeks: weeks || 0 },
+      update,
       { upsert: true, new: true }
     );
 
@@ -177,9 +239,12 @@ router.post('/:id/years', requireAdmin, async (req, res) => {
 router.put('/:id/years/:year', requireAdmin, async (req, res) => {
   try {
     const { gross, exp, weeks } = req.body;
+    const update = { gross: gross || 0, exp: exp || 0, net: (gross || 0) - (exp || 0) };
+    if (weeks !== undefined) update.weeks = weeks;
+
     const entry = await YearEntry.findOneAndUpdate(
       { truckId: req.params.id, year: parseInt(req.params.year) },
-      { gross: gross || 0, exp: exp || 0, net: (gross || 0) - (exp || 0), weeks: weeks || 0 },
+      update,
       { new: true }
     );
 
