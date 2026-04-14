@@ -88,10 +88,7 @@ function renderTruckTable() {
 
   let totGross = 0, totExp = 0, totNet = 0, totWeeksWorked = 0, totInsurance = 0;
   rows.forEach(r => {
-    // Only add active trucks to totals
-    if (!r.eot) {
-      totGross += r.gross; totExp += r.exp; totNet += r.net; totWeeksWorked += r.weeksWorked; totInsurance += r.insurance;
-    }
+    totGross += r.gross; totExp += r.exp; totNet += r.net; totWeeksWorked += r.weeksWorked; totInsurance += r.insurance;
     const netClass = r.net >= 0 ? 'positive' : 'negative';
     const eotClass = r.eot ? ' eot-row' : '';
     html += `<tr class="${eotClass}">
@@ -123,7 +120,9 @@ function renderTruckTable() {
     <td class="computed neutral">${totInsurance ? fmt(totInsurance) : '—'}</td>
     <td class="computed neutral">${totWeeksWorked}</td>
     ${admin ? '<td></td>' : ''}
-  </tr></tbody>`;
+  </tr>`;
+
+  html += '</tbody>';
 
   table.innerHTML = html;
 }

@@ -6,7 +6,7 @@ let currentEntry = null;
 let yearlyTotals = { gross: 0, maint: 0, other: 0 };
 let currentWeekOriginal = { gross: 0, maint: 0, other: 0 };
 let totalsMode = 'year'; // 'year' or 'week'
-let weeklyCache = { truckId: null, year: null, data: [] }; // shared cache to avoid duplicate fetches
+let weeklyCache = { truckId: null, year: null, data: [] };
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
@@ -33,10 +33,17 @@ async function init() {
       }
     } catch { /* ignore */ }
   }
+  // Build truckYearMap from API response so truck dropdown filters by year
+  if (allTrucks.length && !Object.keys(truckYearMap).length) {
+    allTrucks.forEach(t => {
+      if (t.years) truckYearMap[t.truckId] = t.years;
+    });
+  }
   populateTruckSelect();
   populateYearSelect();
   populateWeekSelect();
   await refreshData();
+  autoSelectNextWeek();
 }
 
 function populateTruckSelect() {
@@ -110,6 +117,14 @@ function populateWeekSelect() {
     html += `<option value="${w}"${selected}>${label}</option>`;
   }
   sel.innerHTML = html;
+}
+
+function autoSelectNextWeek() {
+  if (!weeklyCache.data.length) return;
+  const maxWeek = Math.max(...weeklyCache.data.map(e => e.week));
+  const nextWeek = Math.min(maxWeek + 1, 52);
+  document.getElementById('weekSelect').value = nextWeek;
+  fillWeekFromCache();
 }
 
 function getISOWeek(dt) {
@@ -272,6 +287,7 @@ async function onSelectChange() {
   populateWeekSelect();
   setTotalsMode('year');
   await refreshData();
+  autoSelectNextWeek();
 }
 
 function onWeekChange() {

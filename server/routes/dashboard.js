@@ -5,6 +5,7 @@ const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const Truck = require('../models/Truck');
 const WeeklyEntry = require('../models/WeeklyEntry');
 
+
 // GET /api/dashboard/kpis?year= — computed KPIs
 router.get('/kpis', async (req, res) => {
   try {

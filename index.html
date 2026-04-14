@@ -68,6 +68,9 @@
 
   /* ── BREAKEVEN SECTION ── */
   .breakeven-section{margin-bottom:20px;}
+
+
+
   .breakeven-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
   .be-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
   .be-card:hover{border-color:var(--accent);}
@@ -390,6 +393,7 @@
     <div class="breakeven-grid" id="breakevenGrid"></div>
   </div>
 
+
   <!-- ══════════════════════════════════════════════ -->
   <!--   PROFIT & LOSS GRAPH                         -->
   <!-- ══════════════════════════════════════════════ -->
@@ -690,6 +694,15 @@ function syncExpBreakdownYears() {
   });
   next.all={maint:am,other:ao}; DATA.expBreakdown=next;
 }
+function isTruckEndOfTerm(truckId, year) {
+  if (!DATA.endOfTerm || !DATA.endOfTerm[truckId]) return false;
+  const eotDate = DATA.endOfTerm[truckId].date;
+  if (!eotDate) return true;
+  const eotYear = parseInt(eotDate.slice(0, 4));
+  if (!year || year === 'all') return true;
+  return parseInt(year) >= eotYear;
+}
+
 function renderYearTabs() {
   const tabs=document.getElementById('yearTabs'); if(!tabs) return;
   const years=getSortedYears();
@@ -898,17 +911,25 @@ function renderBreakeven(year) {
     }
 
     const isBroken = cumulativeNet >= totalCost;
+    const isEOT = isTruckEndOfTerm(id, year);
     const pct = Math.min(Math.round(cumulativeNet / totalCost * 100), 100);
     const remaining = totalCost - cumulativeNet;
     const breakdown = getTruckCostBreakdown(id);
+
+    let statusBadge;
+    if (isBroken) {
+      statusBadge = `<span class="be-status-badge broken"><i class="fa-solid fa-trophy"></i>BROKEN EVEN ✓</span>`;
+    } else if (isEOT) {
+      statusBadge = `<span class="be-status-badge not-broken" style="background:rgba(224,68,58,0.12);color:var(--red)"><i class="fa-solid fa-ban"></i>NOT BROKEN EVEN (EOT)</span>`;
+    } else {
+      statusBadge = `<span class="be-status-badge not-broken"><i class="fa-solid fa-hourglass-half"></i>In Progress</span>`;
+    }
 
     html += `
       <div class="be-card ${isBroken ? 'broken' : 'not-broken'}">
         <div class="be-truck-id">${id}</div>
         <div class="be-driver"><i class="fa-solid fa-user" style="margin-right:5px;opacity:0.5"></i>${driver}</div>
-        ${isBroken
-          ? `<span class="be-status-badge broken"><i class="fa-solid fa-trophy"></i>BROKEN EVEN ✓</span>`
-          : `<span class="be-status-badge not-broken"><i class="fa-solid fa-hourglass-half"></i>In Progress</span>`}
+        ${statusBadge}
         <div class="be-row">
           <span class="be-row-label">Total Investment</span>
           <span class="be-row-val">GHS ${totalCost.toLocaleString()}</span>
@@ -932,7 +953,9 @@ function renderBreakeven(year) {
         <div class="be-surplus ${isBroken?'pos':'neg'}">
           ${isBroken
             ? `<i class="fa-solid fa-circle-check"></i> Surplus: GHS ${(cumulativeNet - totalCost).toLocaleString()} profit after breakeven`
-            : `<i class="fa-solid fa-circle-arrow-up"></i> Still needs GHS ${remaining.toLocaleString()} to break even`}
+            : isEOT
+              ? `<i class="fa-solid fa-ban"></i> Ended GHS ${remaining.toLocaleString()} short of breakeven`
+              : `<i class="fa-solid fa-circle-arrow-up"></i> Still needs GHS ${remaining.toLocaleString()} to break even`}
         </div>
       </div>`;
   });
@@ -1119,13 +1142,15 @@ function renderTable(year) {
     const tData = DATA.trucks[t.id];
     const totalCost = getTruckTotalCost(t.id);
     const cumNet = getTruckCumulativeNet(t.id);
-    const isEOT = tData?.endOfTerm === true;
+    const isEOT = isTruckEndOfTerm(t.id, year);
     const eotTag = isEOT ? '<span class="eot-label">EOT</span>' : '';
     let beHtml;
     if (!totalCost) {
       beHtml = `<span class="be-table-badge na"><i class="fa-solid fa-minus"></i>N/A</span>`;
     } else if (cumNet >= totalCost) {
       beHtml = `<span class="be-table-badge yes"><i class="fa-solid fa-check"></i>BROKEN EVEN</span>`;
+    } else if (isEOT) {
+      beHtml = `<span class="be-table-badge no" style="background:rgba(224,68,58,0.12);color:var(--red)"><i class="fa-solid fa-ban"></i>NOT EVEN</span>`;
     } else {
       const bePct = Math.min(Math.round(cumNet / totalCost * 100), 99);
       beHtml = `<span class="be-table-badge no"><i class="fa-solid fa-hourglass-half"></i>${bePct}%</span>`;
@@ -1205,8 +1230,19 @@ function saveAndRefresh() {
   rebuildAllMonthlyData(); syncExpBreakdownYears(); renderYearTabs(); updateHeaderSubtitle();
   setYear(currentYear); renderYearly(); renderHeatmap(); renderWeeksBreakdown(currentYear);
   renderBreakeven(currentYear); renderPnL(); populatePnLSelect();
+  if (typeof renderBreakEvenChart === 'function') renderBreakEvenChart();
 }
-function doAddTruck() {
+function showToast(msg, isError) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, { position:'fixed',bottom:'24px',right:'24px',padding:'12px 20px',borderRadius:'8px',
+    color:'#fff',fontSize:'0.82rem',fontWeight:'600',zIndex:'9999',opacity:'0',transition:'opacity 0.3s',
+    background: isError ? 'var(--red,#e0443a)' : 'var(--green,#22c55e)' });
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.style.opacity = '1');
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+async function doAddTruck() {
   const id = document.getElementById('m_truckId').value.trim();
   const driver = document.getElementById('m_truckDriver').value.trim();
   const year = Number(document.getElementById('m_truckYear').value);
@@ -1214,23 +1250,54 @@ function doAddTruck() {
   const weeks = Number(document.getElementById('m_truckWeeks').value || 52);
   if (!id) return alert('Enter a Truck ID');
   if (!Number.isFinite(year) || year < 2024) return alert('Enter a valid year');
-  if (!DATA.trucks[id]) DATA.trucks[id] = {};
-  DATA.trucks[id].purchasePrice = purchase;
-  DATA.trucks[id][String(year)] = { gross: 0, exp: 0, net: 0, weeks };
-  if (!DATA.drivers) DATA.drivers = {};
-  if (driver) DATA.drivers[id] = driver;
-  if (!DATA.yearlyTotals[String(year)]) DATA.yearlyTotals[String(year)] = { gross: 0, exp: 0, net: 0 };
-  saveAndRefresh(); closeModal('addTruckModal');
+  try {
+    await API.post('/api/trucks', {
+      truckId: id, driver,
+      cost: { pricePaid: purchase, maintenanceCost: 0, initialValue: 0 },
+      yearEntry: { year, gross: 0, exp: 0, weeks }
+    });
+    await syncFromAPI();
+    rebuildAllMonthlyData(); saveAndRefresh();
+    showToast('Truck added successfully');
+    closeModal('addTruckModal');
+  } catch(e) { showToast('Failed to add truck: ' + e.message, true); }
 }
-function doAddYear() {
+async function doAddYear() {
   const year = Number(document.getElementById('m_addYear').value);
   const gross = Number(document.getElementById('m_addYearGross').value || 0);
   const exp = Number(document.getElementById('m_addYearExp').value || 0);
   if (!Number.isFinite(year) || year < 2024 || year > 2040) return alert('Enter a valid year (2024–2040)');
   const yKey = String(year);
-  DATA.yearlyTotals[yKey] = { gross, exp, net: gross - exp };
-  if (!DATA.monthly[yKey]) DATA.monthly[yKey] = { labels: [], gross: [], exp: [] };
-  saveAndRefresh(); closeModal('addYearModal');
+  try {
+    const truckIds = Object.keys(DATA.trucks);
+    if (!truckIds.length) {
+      showToast('Add at least one truck before adding a year', true);
+      return;
+    }
+
+    const missingTruckIds = truckIds.filter(tid => !DATA.trucks[tid]?.[yKey]);
+    if (!missingTruckIds.length) {
+      showToast('Year ' + year + ' already exists');
+      return;
+    }
+
+    // Create year entries only for trucks that do not already have this year
+    for (const tid of missingTruckIds) {
+      await API.post('/api/trucks/' + encodeURIComponent(tid) + '/years', {
+        year, gross: 0, exp: 0, weeks: 0
+      });
+    }
+
+    // Ensure monthly collection has this year key available
+    await API.put('/api/monthly/bulk/' + year, { entries: [] });
+
+    await syncFromAPI();
+    DATA.yearlyTotals[yKey] = DATA.yearlyTotals[yKey] || { gross, exp, net: gross - exp };
+    if (!DATA.monthly[yKey]) DATA.monthly[yKey] = { labels: [], gross: [], exp: [] };
+    rebuildAllMonthlyData(); saveAndRefresh();
+    showToast('Year ' + year + ' added successfully');
+    closeModal('addYearModal');
+  } catch(e) { showToast('Failed to add year: ' + e.message, true); }
 }
 function populateManageYears() {
   const body = document.getElementById('manageYearsBody');
@@ -1244,13 +1311,8 @@ function populateManageYears() {
   }).join('');
 }
 function doSaveYears() {
-  document.querySelectorAll('#manageYearsBody .my-gross').forEach(inp => {
-    const y = inp.dataset.year; const gross = Number(inp.value || 0);
-    const expInp = document.querySelector(`#manageYearsBody .my-exp[data-year="${y}"]`);
-    const exp = Number(expInp?.value || 0);
-    DATA.yearlyTotals[y] = { gross, exp, net: gross - exp };
-  });
-  saveAndRefresh(); closeModal('manageYearsModal');
+  closeModal('manageYearsModal');
+  showToast('Year totals are auto-computed from truck entries. Edit truck/year rows instead.');
 }
 function populateManageDrivers() {
   if (!DATA.drivers) DATA.drivers = {};
@@ -1273,10 +1335,23 @@ function addNewDriverToTruck() {
   if (!DATA.drivers) DATA.drivers = {};
   DATA.drivers[truckId] = name; populateManageDrivers(); populateNewDriverTruckSelect();
 }
-function doSaveDrivers() {
+async function doSaveDrivers() {
   if (!DATA.drivers) DATA.drivers = {};
-  document.querySelectorAll('#manageDriversBody .md-driver').forEach(inp => { DATA.drivers[inp.dataset.truck] = inp.value.trim(); });
-  saveAndRefresh(); closeModal('manageDriversModal');
+  try {
+    const driverUpdates = [];
+    document.querySelectorAll('#manageDriversBody .md-driver').forEach(inp => {
+      const truckId = inp.dataset.truck;
+      const driver = inp.value.trim();
+      DATA.drivers[truckId] = driver;
+      driverUpdates.push({ truckId, driver });
+    });
+    for (const d of driverUpdates) {
+      await API.put('/api/drivers/' + encodeURIComponent(d.truckId), { driver: d.driver });
+    }
+    saveAndRefresh();
+    showToast('Drivers saved to server');
+  } catch(e) { showToast('Failed to save drivers: ' + e.message, true); }
+  closeModal('manageDriversModal');
 }
 function populateMonthlyEditor() {
   const year = document.getElementById('m_monthlyYear')?.value;
@@ -1295,7 +1370,7 @@ function populateMonthlyEditor() {
     }).join('')}
   </div>`;
 }
-function doSaveMonthly() {
+async function doSaveMonthly() {
   const year = document.getElementById('m_monthlyYear')?.value; if (!year) return;
   const labels = [], gross = [], exp = [];
   document.querySelectorAll('#monthlyEditorBody .mm-gross').forEach(inp => {
@@ -1304,7 +1379,13 @@ function doSaveMonthly() {
     if (g > 0 || e > 0) { labels.push(m); gross.push(g); exp.push(e); }
   });
   DATA.monthly[year] = { labels, gross, exp };
-  saveAndRefresh(); closeModal('editMonthlyModal');
+  try {
+    const entries = labels.map((m, i) => ({ month: m, gross: gross[i], exp: exp[i] }));
+    await API.put('/api/monthly/bulk/' + year, { entries });
+    saveAndRefresh();
+    showToast('Monthly data saved to server');
+  } catch(e) { showToast('Failed to save monthly: ' + e.message, true); saveAndRefresh(); }
+  closeModal('editMonthlyModal');
 }
 function populateExpEditor() {
   const year = document.getElementById('m_expYear')?.value;
@@ -1314,7 +1395,7 @@ function populateExpEditor() {
   body.innerHTML = `<label>Maintenance / Oil Changes (GHS)</label><input type="number" id="m_expMaint" value="${d.maint||0}">
     <label>Other Expenses / Parts (GHS)</label><input type="number" id="m_expOther" value="${d.other||0}">`;
 }
-function doSaveExpenses() {
+async function doSaveExpenses() {
   const year = document.getElementById('m_expYear')?.value; if (!year) return;
   const maint = Number(document.getElementById('m_expMaint')?.value || 0);
   const other = Number(document.getElementById('m_expOther')?.value || 0);
@@ -1323,25 +1404,35 @@ function doSaveExpenses() {
   let am = 0, ao = 0;
   getSortedYears().forEach(y => { const e = DATA.expBreakdown[String(y)] || {}; am += e.maint || 0; ao += e.other || 0; });
   DATA.expBreakdown.all = { maint: am, other: ao };
-  saveAndRefresh(); closeModal('editExpensesModal');
+  try {
+    await API.put('/api/expenses/' + year, { maint, other });
+    saveAndRefresh();
+    showToast('Expenses saved to server');
+  } catch(e) { showToast('Failed to save expenses: ' + e.message, true); saveAndRefresh(); }
+  closeModal('editExpensesModal');
 }
-function doDeleteYear() {
+async function doDeleteYear() {
   const year = document.getElementById('m_deleteYear')?.value; if (!year) return;
   if (!confirm(`Delete ALL data for ${year}? Sends data to Recovery Bin.`)) return;
   const yKey = String(year);
-  const recovery = JSON.parse(localStorage.getItem('truck_recovery') || '[]');
-  recovery.push({ id: Date.now()+'_yr', type:'year_full', data:{ year:yKey, yearly:DATA.yearlyTotals[yKey], monthly:DATA.monthly[yKey] }, deletedAt:new Date().toISOString() });
-  Object.keys(DATA.trucks).forEach(tid => {
-    if (DATA.trucks[tid][yKey]) {
-      recovery.push({ id:Date.now()+'_t_'+tid, type:'truck', data:{ truckId:tid, year:yKey, ...DATA.trucks[tid][yKey] }, deletedAt:new Date().toISOString() });
-      delete DATA.trucks[tid][yKey];
+  try {
+    const truckIds = Object.keys(DATA.trucks).filter(tid => DATA.trucks[tid]?.[yKey]);
+    for (const tid of truckIds) {
+      await API.del('/api/trucks/' + encodeURIComponent(tid) + '/years/' + yKey);
     }
-  });
-  localStorage.setItem('truck_recovery', JSON.stringify(recovery));
-  delete DATA.yearlyTotals[yKey]; delete DATA.monthly[yKey];
-  if (DATA.expBreakdown) delete DATA.expBreakdown[yKey];
-  if (currentYear === yKey) currentYear = 'all';
-  saveAndRefresh(); closeModal('deleteYearModal');
+
+    // Clear fleet monthly/expense data for this year so all devices stay in sync
+    await API.put('/api/monthly/bulk/' + yKey, { entries: [] });
+    await API.put('/api/expenses/' + yKey, { maint: 0, other: 0 });
+
+    await syncFromAPI();
+    if (currentYear === yKey) currentYear = 'all';
+    saveAndRefresh();
+    showToast('Year ' + yKey + ' deleted');
+    closeModal('deleteYearModal');
+  } catch (e) {
+    showToast('Failed to delete year: ' + e.message, true);
+  }
 }
 
 // ─── SPREADSHEET EDITOR ───────────────────────────────────────────────────────
@@ -1499,49 +1590,73 @@ function xlsReadTable(tableId) {
   });
   return rows;
 }
-function applySpreadsheetData() {
-  const nextYearly = {};
-  xlsReadTable('yearXls').forEach(r => {
-    const year = Number(r[0]); const gross = Number(r[1]||0); const exp = Number(r[2]||0);
-    if (Number.isFinite(year) && year > 0) nextYearly[String(year)] = { gross, exp, net: gross-exp };
-  });
-  DATA.yearlyTotals = nextYearly;
+async function applySpreadsheetData() {
+  try {
+    const prevTrucks = JSON.parse(JSON.stringify(DATA.trucks || {}));
 
-  const nextMonthly = {};
-  xlsReadTable('monthlyXls').forEach(r => {
-    const year = Number(r[0]); const month = String(r[1]||'').trim().slice(0,3);
-    const gross = Number(r[2]||0); const exp = Number(r[3]||0);
-    if (!Number.isFinite(year)||year<=0||!MONTH_ORDER.includes(month)) return;
-    const yKey = String(year);
-    if (!nextMonthly[yKey]) nextMonthly[yKey] = [];
-    nextMonthly[yKey].push({ month, gross, exp });
-  });
-  DATA.monthly = { all: { labels:[], gross:[], exp:[] } };
-  Object.keys(nextMonthly).forEach(y => {
-    const rows = nextMonthly[y].sort((a,b)=>monthToIndex(a.month)-monthToIndex(b.month));
-    DATA.monthly[y] = { labels:rows.map(r=>r.month), gross:rows.map(r=>r.gross), exp:rows.map(r=>r.exp) };
-  });
+    const nextMonthly = {};
+    xlsReadTable('monthlyXls').forEach(r => {
+      const year = Number(r[0]); const month = String(r[1]||'').trim().slice(0,3);
+      const gross = Number(r[2]||0); const exp = Number(r[3]||0);
+      if (!Number.isFinite(year)||year<=0||!MONTH_ORDER.includes(month)) return;
+      const yKey = String(year);
+      if (!nextMonthly[yKey]) nextMonthly[yKey] = [];
+      nextMonthly[yKey].push({ month, gross, exp });
+    });
 
-  const nextTrucks = {};
-  xlsReadTable('truckXls').forEach(r => {
-    const id = String(r[0]||'').trim(); const year = Number(r[1]); const gross = Number(r[2]||0);
-    const exp = Number(r[3]||0); const weeks = Number(r[4]||0); const purchasePrice = Number(r[5]||0);
-    if (!id||!Number.isFinite(year)||year<=0) return;
-    if (!nextTrucks[id]) nextTrucks[id] = {};
-    if (purchasePrice) nextTrucks[id].purchasePrice = purchasePrice;
-    nextTrucks[id][String(year)] = { gross, exp, net: gross-exp, weeks };
-  });
-  // Preserve purchase prices from existing data for trucks not modified
-  Object.keys(DATA.trucks).forEach(id => {
-    if (DATA.trucks[id].purchasePrice && nextTrucks[id] && !nextTrucks[id].purchasePrice) {
-      nextTrucks[id].purchasePrice = DATA.trucks[id].purchasePrice;
+    const nextTrucks = {};
+    xlsReadTable('truckXls').forEach(r => {
+      const id = String(r[0]||'').trim(); const year = Number(r[1]); const gross = Number(r[2]||0);
+      const exp = Number(r[3]||0); const weeks = Number(r[4]||0);
+      if (!id||!Number.isFinite(year)||year<=0) return;
+      if (!nextTrucks[id]) nextTrucks[id] = {};
+      nextTrucks[id][String(year)] = { gross, exp, net: gross-exp, weeks };
+    });
+
+    const nextTruckIds = Object.keys(nextTrucks);
+    for (const id of nextTruckIds) {
+      if (!DATA.trucks[id]) {
+        await API.post('/api/trucks', { truckId: id, driver: (DATA.drivers && DATA.drivers[id]) || '' });
+      }
+      const years = Object.keys(nextTrucks[id]).filter(k => !isNaN(k));
+      for (const y of years) {
+        const d = nextTrucks[id][y];
+        await API.post('/api/trucks/' + encodeURIComponent(id) + '/years', {
+          year: Number(y), gross: d.gross || 0, exp: d.exp || 0, weeks: d.weeks || 0
+        });
+      }
     }
-  });
-  DATA.trucks = nextTrucks;
 
-  rebuildAllMonthlyData(); syncExpBreakdownYears(); renderYearTabs(); updateHeaderSubtitle();
-  setYear(currentYear); renderYearly(); renderHeatmap(); renderPnL(); populatePnLSelect();
-  renderSpreadsheetEditor();
+    // Delete removed year rows
+    for (const id of Object.keys(prevTrucks)) {
+      const prevYears = Object.keys(prevTrucks[id] || {}).filter(k => !isNaN(k));
+      for (const y of prevYears) {
+        if (!nextTrucks[id] || !nextTrucks[id][y]) {
+          await API.del('/api/trucks/' + encodeURIComponent(id) + '/years/' + y);
+        }
+      }
+      if (!nextTrucks[id]) {
+        await API.del('/api/trucks/' + encodeURIComponent(id));
+      }
+    }
+
+    // Save monthly sheets by year (empty array clears that year)
+    const yearSet = new Set([
+      ...Object.keys(nextMonthly),
+      ...Object.keys(DATA.monthly || {}).filter(y => y !== 'all')
+    ]);
+    for (const y of yearSet) {
+      const entries = (nextMonthly[y] || []).sort((a,b)=>monthToIndex(a.month)-monthToIndex(b.month));
+      await API.put('/api/monthly/bulk/' + y, { entries });
+    }
+
+    await syncFromAPI();
+    saveAndRefresh();
+    renderSpreadsheetEditor();
+    showToast('Spreadsheet changes saved to server');
+  } catch (e) {
+    showToast('Failed to apply spreadsheet data: ' + e.message, true);
+  }
 }
 
 // ─── TRUCK ACTIONS (leaderboard) ──────────────────────────────────────────────
@@ -1551,15 +1666,29 @@ function editTruckEntry(truckId) {
 function toggleEOT(truckId) {
   const tData = DATA.trucks[truckId];
   if (!tData) return;
-  const isEOT = tData.endOfTerm === true;
+  const isEOT = isTruckEndOfTerm(truckId);
   const action = isEOT ? 'reactivate' : 'mark as End-of-Term';
   openConfirm(
     isEOT ? 'Reactivate Truck' : 'End of Term',
     `Are you sure you want to ${action} <b>${truckId}</b>?${!isEOT ? '<br><small style="color:var(--muted)">Its data will be preserved but no new data can be entered.</small>' : ''}`,
-    () => {
-      DATA.trucks[truckId].endOfTerm = !isEOT;
-      saveAndRefresh();
-      closeConfirm();
+    async () => {
+      const newEOT = isEOT
+        ? { active: false, date: '' }
+        : { active: true, date: new Date().toISOString().split('T')[0] };
+      try {
+        await API.put('/api/trucks/' + encodeURIComponent(truckId), { endOfTerm: newEOT });
+        if (!DATA.endOfTerm) DATA.endOfTerm = {};
+        if (isEOT) {
+          delete DATA.endOfTerm[truckId];
+        } else {
+          DATA.endOfTerm[truckId] = { date: newEOT.date };
+        }
+        saveAndRefresh();
+        closeConfirm();
+      } catch(e) {
+        showToast('Failed to update: ' + e.message, true);
+        closeConfirm();
+      }
     }
   );
 }
@@ -1567,17 +1696,17 @@ function confirmDeleteTruck(truckId) {
   openConfirm(
     'Delete Truck',
     `Delete <b>${truckId}</b> and all its year data?<br><small style="color:var(--muted)">Recoverable from Recovery Bin.</small>`,
-    () => {
-      let recovery = JSON.parse(localStorage.getItem('truck_recovery') || '[]');
-      const tData = DATA.trucks[truckId];
-      Object.keys(tData).filter(k => !isNaN(k)).forEach(y => {
-        recovery.push({ id: Date.now()+'_t_'+truckId+'_'+y, type:'truck', data:{ truckId, year:y, ...tData[y] }, deletedAt:new Date().toISOString() });
-      });
-      localStorage.setItem('truck_recovery', JSON.stringify(recovery));
-      delete DATA.trucks[truckId];
-      if (DATA.drivers) delete DATA.drivers[truckId];
-      saveAndRefresh();
-      closeConfirm();
+    async () => {
+      try {
+        await API.del('/api/trucks/' + encodeURIComponent(truckId));
+        await syncFromAPI();
+        saveAndRefresh();
+        showToast('Truck deleted: ' + truckId);
+        closeConfirm();
+      } catch (e) {
+        showToast('Failed to delete truck: ' + e.message, true);
+        closeConfirm();
+      }
     }
   );
 }
@@ -1601,6 +1730,7 @@ function setYear(year) {
   renderKPIs(year); renderMonthly(year); renderTruckIncome(year);
   renderExpBreakdown(year); renderEfficiency(year); renderTable(year);
   renderWeeksBreakdown(year); renderBreakeven(year);
+  if (typeof renderBreakEvenChart === 'function') renderBreakEvenChart();
   const mgmt = document.getElementById('mgmtPanel');
   if (mgmt) mgmt.style.display = (year !== 'all' && isAdmin()) ? '' : 'none';
   const sheetBtn = document.getElementById('spreadsheetBtn');
@@ -1643,6 +1773,9 @@ function renderAll(year) {
   renderTable(year);
   renderWeeksBreakdown(year);
   renderSpreadsheetEditor();
+  // Show data management panel for admin on specific year
+  const mgmt = document.getElementById('mgmtPanel');
+  if (mgmt) mgmt.style.display = (year !== 'all' && isAdmin()) ? '' : 'none';
 }
 
 // Load saved timestamp
@@ -1658,6 +1791,7 @@ async function syncFromAPI() {
     DATA.drivers = fresh.drivers || {};
     DATA.truckCost = fresh.truckCost || {};
     DATA.endOfTerm = fresh.endOfTerm || {};
+
     if (fresh.monthly) DATA.monthly = fresh.monthly;
     if (fresh.expBreakdown) DATA.expBreakdown = fresh.expBreakdown;
     if (fresh.yearlyTotals) DATA.yearlyTotals = fresh.yearlyTotals;
@@ -1671,7 +1805,7 @@ async function syncFromAPI() {
 (async function init() {
   const overlay = document.getElementById('loadingOverlay');
   try {
-    await syncFromAPI();
+    await Promise.all([syncFromAPI(), refreshAdminStatus()]);
     renderAll(currentYear || 'all');
   } catch(e) {
     console.error('init error:', e);
@@ -1685,7 +1819,7 @@ async function syncFromAPI() {
 // Auto-refresh when tab gains focus (cross-computer sync)
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    syncFromAPI().then(() => renderAll(currentYear || 'all'));
+    Promise.all([syncFromAPI(), refreshAdminStatus()]).then(() => renderAll(currentYear || 'all'));
   }
 });
 </script>

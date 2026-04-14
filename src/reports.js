@@ -70,23 +70,25 @@ async function loadReport() {
 function renderSummary() {
   if (!reportData) return;
   const d = reportData;
-  const eff = d.totalGross ? Math.round(d.totalNet / d.totalGross * 100) : 0;
+  const adjGross = d.totalGross;
+  const adjNet = adjGross - d.totalExp;
+  const eff = adjGross ? Math.round(adjNet / adjGross * 100) : 0;
 
   document.getElementById('summaryGrid').innerHTML = `
     <div class="summary-card">
-      <div class="summary-label">Total Truck Gross</div>
-      <div class="summary-value" style="color:var(--accent)">${fmt(d.totalGross)}</div>
+      <div class="summary-label">Total Gross Income</div>
+      <div class="summary-value" style="color:var(--accent)">${fmt(adjGross)}</div>
       <div class="summary-sub">${d.activeCount || d.truckCount} active trucks${d.eotCount ? ` · ${d.eotCount} end of term` : ''}</div>
     </div>
     <div class="summary-card">
-      <div class="summary-label">Total Truck Net</div>
-      <div class="summary-value" style="color:var(--green)">${fmt(d.totalNet)}</div>
-      <div class="summary-sub">${eff}% truck efficiency</div>
+      <div class="summary-label">Total Net Income</div>
+      <div class="summary-value" style="color:var(--green)">${fmt(adjNet)}</div>
+      <div class="summary-sub">${eff}% efficiency</div>
     </div>
     <div class="summary-card">
       <div class="summary-label">Total Expenditure</div>
       <div class="summary-value" style="color:var(--red)">${fmt(d.totalExp)}</div>
-      <div class="summary-sub">${d.totalGross ? Math.round(d.totalExp/d.totalGross*100) : 0}% of gross</div>
+      <div class="summary-sub">${adjGross ? Math.round(d.totalExp/adjGross*100) : 0}% of gross</div>
     </div>
     ${d.topPerformer ? `<div class="summary-card">
       <div class="summary-label">Top Performer</div>
@@ -145,22 +147,20 @@ function renderAnnualSummary() {
     <th>Ranks</th>
   </tr></thead><tbody>`;
 
-  let totExp = 0, totIncome = 0, totAmount = 0, totMinor = 0, totMajor = 0, totAvgIncome = 0;
+  let totExp = 0, totIncome = 0, totAmount = 0, totMinor = 0, totMajor = 0, totWeeks = 0;
 
   trucks.forEach(t => {
     const rankClass = t.rank === 1 ? 'rank-1' : t.rank === 2 ? 'rank-2' : t.rank === 3 ? 'rank-3' : 'rank-other';
     const eotStyle = t.eot ? 'opacity:0.5;' : '';
     const eotLabel = t.eot ? ' <span style="color:var(--red);font-size:0.65rem;font-family:DM Sans,sans-serif;font-weight:400;">EOT</span>' : '';
 
-    // Only add active trucks to totals
-    if (!t.eot) {
-      totExp += t.exp;
-      totIncome += t.net;
-      totAmount += t.totalAmount;
-      totMinor += t.minorExp;
-      totMajor += t.majorExp;
-      totAvgIncome += t.avgIncome;
-    }
+    // Include ALL trucks in totals (EOT trucks still have real data for their years)
+    totExp += t.exp;
+    totIncome += t.net;
+    totAmount += t.totalAmount;
+    totMinor += t.minorExp;
+    totMajor += t.majorExp;
+    totWeeks += (t.weeks || 0);
 
     html += `<tr style="${eotStyle}">
       <td><a href="truck.html?id=${encodeURIComponent(t.truckId)}" style="color:${getTruckColor(t.truckId)};text-decoration:none">${t.truckId}</a>${eotLabel}</td>
@@ -181,6 +181,7 @@ function renderAnnualSummary() {
   const totPctExp = totAmount ? Math.round(totExp / totAmount * 100) : 0;
   const totPctIncome = totAmount ? Math.round(totIncome / totAmount * 100) : 0;
   const totRatio = totIncome ? (totExp / totIncome).toFixed(2) : '0.00';
+  const totAvgIncome = totWeeks ? parseFloat((totIncome / totWeeks).toFixed(2)) : 0;
 
   html += `<tr class="totals-row">
     <td>TOTAL</td>

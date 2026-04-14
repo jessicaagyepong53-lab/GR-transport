@@ -8,7 +8,23 @@ let TRUCK_ID = '';
 let charts = {};
 
 // ─── DATA LOADING ────────────────────────────────────────────────────────────
-function loadData() {
+async function loadData() {
+  try {
+    const fresh = await API.get('/api/dashboard/full');
+    if (fresh && fresh.trucks) {
+      DATA.trucks = fresh.trucks;
+      DATA.drivers = fresh.drivers || {};
+      DATA.truckCost = fresh.truckCost || {};
+      DATA.endOfTerm = fresh.endOfTerm || {};
+      DATA.monthly = fresh.monthly || {};
+      DATA.expBreakdown = fresh.expBreakdown || {};
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+      return;
+    }
+  } catch (e) {
+    // Fallback to local cache when offline
+  }
+
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
     try { DATA = JSON.parse(raw); } catch(e) { DATA = {}; }
@@ -319,8 +335,7 @@ async function submitAddYear() {
   if (DATA.trucks[TRUCK_ID][year]) return showToast('Year already exists — edit it instead', true);
   try {
     await API.post('/api/trucks/' + encodeURIComponent(TRUCK_ID) + '/years', { year, gross, exp, weeks });
-    DATA.trucks[TRUCK_ID][year] = { gross, exp, net: gross - exp, weeks };
-    saveData();
+    await syncFromAPI();
     closeModal('addYearModal');
     showToast(`${year} added for ${TRUCK_ID}`);
     refreshAll();
@@ -352,8 +367,7 @@ async function submitEditYear() {
   if (!DATA.trucks[TRUCK_ID]) DATA.trucks[TRUCK_ID] = {};
   try {
     await API.post('/api/trucks/' + encodeURIComponent(TRUCK_ID) + '/years', { year: editingYear, gross, exp, weeks });
-    DATA.trucks[TRUCK_ID][editingYear] = { gross, exp, net: gross - exp, weeks };
-    saveData();
+    await syncFromAPI();
     closeModal('editYearModal');
     showToast(`${editingYear} updated`);
     refreshAll();
@@ -367,8 +381,7 @@ async function deleteYearEntry() {
   if (!confirm(`Delete year ${editingYear} data for ${TRUCK_ID}?`)) return;
   try {
     await API.del('/api/trucks/' + encodeURIComponent(TRUCK_ID) + '/years/' + editingYear);
-    if (DATA.trucks[TRUCK_ID]) delete DATA.trucks[TRUCK_ID][editingYear];
-    saveData();
+    await syncFromAPI();
     closeModal('editYearModal');
     showToast(`${editingYear} deleted`);
     refreshAll();
@@ -404,50 +417,25 @@ async function submitDriver() {
   const ins = parseFloat(document.getElementById('truckInsuranceInput').value) || 0;
   const mc = parseFloat(document.getElementById('truckMaintCostInput').value) || 0;
 
-  // Handle truck rename
   const renamed = newName && newName !== TRUCK_ID;
-  if (renamed) {
-    if (DATA.trucks[newName]) return showToast('A truck with that name already exists', true);
-    // Move all data keys from old to new
-    DATA.trucks[newName] = DATA.trucks[TRUCK_ID];
-    delete DATA.trucks[TRUCK_ID];
-    if (DATA.drivers[TRUCK_ID]) { DATA.drivers[newName] = DATA.drivers[TRUCK_ID]; delete DATA.drivers[TRUCK_ID]; }
-    if (DATA.truckCost?.[TRUCK_ID]) { DATA.truckCost[newName] = DATA.truckCost[TRUCK_ID]; delete DATA.truckCost[TRUCK_ID]; }
-    if (DATA.endOfTerm?.[TRUCK_ID]) { DATA.endOfTerm[newName] = DATA.endOfTerm[TRUCK_ID]; delete DATA.endOfTerm[TRUCK_ID]; }
-    if (DATA.monthly?.[TRUCK_ID]) { DATA.monthly[newName] = DATA.monthly[TRUCK_ID]; delete DATA.monthly[TRUCK_ID]; }
-    TRUCK_ID = newName;
-  }
-
-  if (name) DATA.drivers[TRUCK_ID] = name;
-  if (pp > 0 || ins > 0 || mc > 0) {
-    if (!DATA.truckCost) DATA.truckCost = {};
-    DATA.truckCost[TRUCK_ID] = { initialValue: pp + ins + mc, pricePaid: pp, insurance: ins, maintenanceCost: mc };
-  }
-  saveData();
-
-  // Also update via API if rename happened
-  if (renamed) {
-    const oldId = new URLSearchParams(window.location.search).get('id');
-    API.put('/api/trucks/' + encodeURIComponent(oldId), { newTruckId: TRUCK_ID, driver: name, cost: { pricePaid: pp, insurance: ins, maintenanceCost: mc, initialValue: pp + ins + mc } })
-      .then(() => {
-        closeModal('editDriverModal');
-        showToast('Truck renamed to ' + TRUCK_ID);
-        // Update URL without full reload
-        const url = new URL(window.location);
-        url.searchParams.set('id', TRUCK_ID);
-        window.history.replaceState({}, '', url);
-        refreshAll();
-      })
-      .catch(err => showToast(err.message || 'API rename failed', true));
-  } else {
-    try {
-      await API.put('/api/trucks/' + encodeURIComponent(TRUCK_ID), { driver: name, cost: { pricePaid: pp, insurance: ins, maintenanceCost: mc, initialValue: pp + ins + mc } });
-      closeModal('editDriverModal');
-      showToast('Truck settings saved');
-      refreshAll();
-    } catch (err) {
-      showToast(err.message || 'Failed to save truck settings', true);
+  try {
+    await API.put('/api/trucks/' + encodeURIComponent(TRUCK_ID), {
+      newTruckId: renamed ? newName : undefined,
+      driver: name,
+      cost: { pricePaid: pp, insurance: ins, maintenanceCost: mc, initialValue: pp + ins + mc }
+    });
+    if (renamed) {
+      TRUCK_ID = newName;
+      const url = new URL(window.location);
+      url.searchParams.set('id', TRUCK_ID);
+      window.history.replaceState({}, '', url);
     }
+    await syncFromAPI();
+    closeModal('editDriverModal');
+    showToast(renamed ? ('Truck renamed to ' + TRUCK_ID) : 'Truck settings saved');
+    refreshAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to save truck settings', true);
   }
 }
 
@@ -462,12 +450,6 @@ async function confirmDeleteTruck() {
   if (!isAdmin()) return showToast('View only', true);
   try {
     await API.del('/api/trucks/' + encodeURIComponent(TRUCK_ID));
-    // Also clean up localStorage
-    delete DATA.trucks[TRUCK_ID];
-    delete DATA.drivers[TRUCK_ID];
-    if (DATA.truckCost) delete DATA.truckCost[TRUCK_ID];
-    if (DATA.endOfTerm) delete DATA.endOfTerm[TRUCK_ID];
-    saveData();
     showToast(`${TRUCK_ID} deleted — recoverable for 30 days`);
     setTimeout(() => { window.location.href = 'index.html'; }, 1200);
   } catch (err) {
@@ -499,11 +481,11 @@ function refreshAll() {
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
-(function init() {
+(async function init() {
   const params = new URLSearchParams(window.location.search);
   TRUCK_ID = params.get('id') || '';
 
-  loadData();
+  await loadData();
 
   if (!TRUCK_ID || !DATA.trucks[TRUCK_ID]) {
     document.getElementById('truckTitle').textContent = TRUCK_ID || 'Unknown';

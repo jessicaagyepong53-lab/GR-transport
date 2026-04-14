@@ -57,6 +57,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/drivers', require('./routes/drivers'));
 app.use('/api/settings', require('./routes/settings'));
 
+
 // SPA fallback — local dev only
 if (!process.env.VERCEL) {
   app.get('*', (req, res) => {

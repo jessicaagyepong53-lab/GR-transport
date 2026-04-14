@@ -67,12 +67,21 @@ router.get('/summary', async (req, res) => {
       truckSummary[e.truckId].weeks += (e.weeks || 0);
     });
 
-    // Build truck cost lookup and EOT lookup
+    // Build truck cost lookup and EOT lookup (year-aware)
     const truckCostMap = {};
     const truckEOTMap = {};
     trucks.forEach(t => {
       if (t.cost) truckCostMap[t.truckId] = t.cost;
-      if (t.endOfTerm?.active) truckEOTMap[t.truckId] = true;
+      if (t.endOfTerm?.active && t.endOfTerm.date) {
+        const eotYear = parseInt(t.endOfTerm.date.slice(0, 4));
+        // Only mark as EOT if viewing that year or later (or all years)
+        if (!yearFilter || yearFilter >= eotYear) {
+          truckEOTMap[t.truckId] = true;
+        }
+      } else if (t.endOfTerm?.active) {
+        // No date — fallback to always EOT
+        truckEOTMap[t.truckId] = true;
+      }
     });
 
     // Compute ratio for ranking (lower ratio = better)
@@ -89,21 +98,18 @@ router.get('/summary', async (req, res) => {
       })
       .sort((a, b) => a.ratio - b.ratio);
 
-    // Assign ranks (only among active trucks)
-    const activeTrucks = ranked.filter(t => !t.eot);
-    activeTrucks.forEach((t, i) => { t.rank = i + 1; });
-    // EOT trucks get no rank
-    ranked.filter(t => t.eot).forEach(t => { t.rank = null; });
+    // Assign ranks — all trucks get ranked (EOT trucks still contributed data)
+    ranked.forEach((t, i) => { t.rank = i + 1; });
 
-    // Compute fleet totals excluding EOT trucks
-    activeTrucks.forEach(t => {
+    // Compute fleet totals including ALL trucks (EOT trucks still have real data)
+    ranked.forEach(t => {
       totalGross += t.gross;
       totalExp += t.exp;
       totalNet += t.net;
     });
 
-    const activeCount = activeTrucks.length;
-    const eotCount = ranked.length - activeCount;
+    const eotCount = ranked.filter(t => t.eot).length;
+    const activeCount = ranked.length - eotCount;
 
     // Expense breakdown (fleet-wide)
     let totalMaint = 0, totalOther = 0;
@@ -131,8 +137,8 @@ router.get('/summary', async (req, res) => {
       truckCount: trucks.length,
       activeCount,
       eotCount,
-      topPerformer: activeTrucks[0] || null,
-      bottomPerformer: activeTrucks[activeTrucks.length - 1] || null,
+      topPerformer: ranked[0] || null,
+      bottomPerformer: ranked[ranked.length - 1] || null,
       truckRanking: ranked,
       expBreakdown: { maint: totalMaint, other: totalOther }
     });

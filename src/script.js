@@ -335,8 +335,20 @@ function populateYearSelect(selectId, selectedYear) {
   sel.innerHTML = html;
 }
 
-function isTruckEndOfTerm(truckId) {
-  return !!(DATA.endOfTerm && DATA.endOfTerm[truckId]);
+function isTruckEndOfTerm(truckId, year) {
+  if (!DATA.endOfTerm || !DATA.endOfTerm[truckId]) return false;
+  const eotDate = DATA.endOfTerm[truckId].date;
+  if (!eotDate) return true; // old-style flag with no date — treat as globally EOT
+  const eotYear = parseInt(eotDate.slice(0, 4));
+  if (!year || year === 'all') return true; // "all" view — truck IS end of term
+  return parseInt(year) >= eotYear;
+}
+
+// Get the year a truck was marked end-of-term (or null)
+function getEOTYear(truckId) {
+  if (!DATA.endOfTerm || !DATA.endOfTerm[truckId]) return null;
+  const eotDate = DATA.endOfTerm[truckId].date;
+  return eotDate ? parseInt(eotDate.slice(0, 4)) : null;
 }
 
 function getTruckData(year) {
@@ -361,7 +373,7 @@ function getTruckData(year) {
     const profitAfterBE = beTotal > 0 ? cumulativeNet - beTotal : null;
     const breakEvenDuration = brokenEven ? getBreakEvenDuration(id) : null;
     const totalAmount = getTruckTotalAmount(id);
-    return { id, gross, exp, net, weeks, eff: gross ? Math.round(net/gross*100) : 0, endOfTerm: isTruckEndOfTerm(id), truckCost, beTotal, totalAmount, brokenEven, profitAfterBE, cumulativeNet, breakEvenDuration };
+    return { id, gross, exp, net, weeks, eff: gross ? Math.round(net/gross*100) : 0, endOfTerm: isTruckEndOfTerm(id, year), truckCost, beTotal, totalAmount, brokenEven, profitAfterBE, cumulativeNet, breakEvenDuration };
   }).filter(t => t).sort((a,b) => b.net - a.net);
 }
 
@@ -383,8 +395,11 @@ function getYearlyKPIs(year) {
 // ─── KPIs ────────────────────────────────────────────────────────────────────
 function renderKPIs(year) {
   const {gross,exp,net,weeks} = getYearlyKPIs(year);
-  const eff = gross ? Math.round(net/gross*100) : 0;
-  const avgWeek = weeks ? Math.round(gross/weeks) : 0;
+
+  const totalGross = gross;
+  const totalNet = totalGross - exp;
+  const eff = totalGross ? Math.round(totalNet/totalGross*100) : 0;
+  const avgWeek = weeks ? Math.round(totalGross/weeks) : 0;
 
   // Build per-truck weeks breakdown
   let truckWeeksHtml = '';
@@ -393,25 +408,25 @@ function renderKPIs(year) {
     let tw = 0;
     if (year === 'all') { for (const y in DATA.trucks[t]) tw += DATA.trucks[t][y].weeks; }
     else if (DATA.trucks[t][year]) tw = DATA.trucks[t][year].weeks;
-    if (tw > 0) truckWeeksHtml += `<span style="display:inline-block;font-size:0.62rem;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.05);border:1px solid ${isTruckEndOfTerm(t) ? 'rgba(224,68,58,0.3)' : 'var(--border)'};margin:2px;color:var(--label)">${t} <b style="color:${isTruckEndOfTerm(t) ? 'var(--red)' : 'var(--accent)'}">${tw}w</b>${isTruckEndOfTerm(t) ? ' <span style="font-size:0.5rem;color:var(--red)">EOT</span>' : ''}</span>`;
+    if (tw > 0) truckWeeksHtml += `<span style="display:inline-block;font-size:0.62rem;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.05);border:1px solid ${isTruckEndOfTerm(t, year) ? 'rgba(224,68,58,0.3)' : 'var(--border)'};margin:2px;color:var(--label)">${t} <b style="color:${isTruckEndOfTerm(t, year) ? 'var(--red)' : 'var(--accent)'}">${tw}w</b>${isTruckEndOfTerm(t, year) ? ' <span style="font-size:0.5rem;color:var(--red)">EOT</span>' : ''}</span>`;
   });
 
   const el = document.getElementById('kpiStrip');
   el.innerHTML = `
     <div class="kpi">
       <div class="kpi-label">Total Gross Income</div>
-      <div class="kpi-value">${fmt(gross)}</div>
+      <div class="kpi-value">${fmt(totalGross)}</div>
       <div class="kpi-sub">${weeks} operational weeks</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Total Net Income</div>
-      <div class="kpi-value">${fmt(net)}</div>
+      <div class="kpi-value">${fmt(totalNet)}</div>
       <span class="kpi-badge badge-up">▲ ${eff}% efficiency</span>
     </div>
     <div class="kpi">
       <div class="kpi-label">Total Expenditure</div>
       <div class="kpi-value">${fmt(exp)}</div>
-      <div class="kpi-sub">${gross ? Math.round(exp/gross*100) : 0}% of gross income</div>
+      <div class="kpi-sub">${totalGross ? Math.round(exp/totalGross*100) : 0}% of gross income</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Avg Weekly Gross</div>
@@ -746,7 +761,7 @@ function renderTable(year) {
     const meta = showEntryMeta ? getEntryMeta(t.id, year) : null;
     const createdText = showEntryMeta ? fmtDateTime(meta?.createdAt) : '';
     const updatedText = showEntryMeta ? fmtDateTime(meta?.updatedAt) : '';
-    html += `<tr>
+    html += `<tr style="${t.endOfTerm ? 'opacity:0.5;' : ''}">
       <td><span class="rank-badge ${rankClasses[i%rankClasses.length]}">${i+1}</span></td>
       <td>
         <a href="truck.html?id=${encodeURIComponent(t.id)}" class="truck-id" style="text-decoration:none;color:${getTruckColor(t.id)}">${t.id}</a>
@@ -861,18 +876,28 @@ function showToast(msg, isError) {
 }
 
 // ─── END OF TERM ─────────────────────────────────────────────────────────────
-function toggleEndOfTerm(truckId) {
+async function toggleEndOfTerm(truckId) {
   if (!isAdmin()) return showToast('View only — contact admin to edit', true);
   if (!DATA.endOfTerm) DATA.endOfTerm = {};
-  if (DATA.endOfTerm[truckId]) {
-    delete DATA.endOfTerm[truckId];
-    showToast(`${truckId} is back in service`);
-  } else {
-    DATA.endOfTerm[truckId] = { date: new Date().toISOString().split('T')[0] };
-    showToast(`${truckId} marked as end of term`);
+  const wasActive = !!DATA.endOfTerm[truckId];
+  const newEOT = wasActive
+    ? { active: false, date: '' }
+    : { active: true, date: new Date().toISOString().split('T')[0] };
+
+  try {
+    await API.put('/api/trucks/' + encodeURIComponent(truckId), { endOfTerm: newEOT });
+    if (wasActive) {
+      delete DATA.endOfTerm[truckId];
+      showToast(`${truckId} is back in service`);
+    } else {
+      DATA.endOfTerm[truckId] = { date: newEOT.date };
+      showToast(`${truckId} marked as end of term`);
+    }
+    saveData();
+    refreshAll();
+  } catch(e) {
+    showToast('Failed to update end of term: ' + e.message, true);
   }
-  saveData();
-  refreshAll();
 }
 
 // ─── ADD TRUCK ───────────────────────────────────────────────────────────────
@@ -933,7 +958,8 @@ function updateNewTruckTotalAmount() {
 // ─── ADD YEAR ENTRY ──────────────────────────────────────────────────────────
 function populateTruckSelect() {
   const sel = document.getElementById('entryTruckSelect');
-  const trucks = Object.keys(DATA.trucks).filter(id => !isTruckEndOfTerm(id));
+  const entryYear = currentYear !== 'all' ? currentYear : new Date().getFullYear();
+  const trucks = Object.keys(DATA.trucks).filter(id => !isTruckEndOfTerm(id, entryYear));
   sel.innerHTML = trucks.map(id =>
     `<option value="${id}">${id} (${DATA.drivers[id]||'—'})</option>`
   ).join('');
