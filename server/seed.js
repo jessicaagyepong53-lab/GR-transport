@@ -177,68 +177,82 @@ function seedWeeklyFromXlsx() {
 
 async function seed() {
   await connectDB();
-  console.log('Seeding database...');
+  console.log('Seeding database (non-destructive upsert mode)...');
 
-  // Clear existing data
-  await Promise.all([
-    Truck.deleteMany({}),
-    YearEntry.deleteMany({}),
-    MonthlyEntry.deleteMany({}),
-    ExpenseBreakdown.deleteMany({}),
-    WeeklyEntry.deleteMany({})
-  ]);
-  console.log('Cleared existing data');
-
-  // Seed trucks and year entries
+  // Seed trucks (upsert — won't overwrite user edits if truck already exists)
   for (const [truckId, data] of Object.entries(DEFAULT_DATA.trucks)) {
-    await Truck.create({
-      truckId,
-      driver: data.driver,
-      driverNotes: data.driverNotes || '',
-      startDates: data.startDates || {},
-      purchaseYear: data.purchaseYear || undefined,
-      cost: data.cost || { initialValue: 0, pricePaid: 0, maintenanceCost: 0 },
-      endOfTerm: data.endOfTerm || { active: false, date: '' }
-    });
+    await Truck.findOneAndUpdate(
+      { truckId },
+      {
+        $setOnInsert: {
+          truckId,
+          driver: data.driver,
+          driverNotes: data.driverNotes || '',
+          startDates: data.startDates || {},
+          purchaseYear: data.purchaseYear || undefined,
+          cost: data.cost || { initialValue: 0, pricePaid: 0, maintenanceCost: 0 },
+          endOfTerm: data.endOfTerm || { active: false, date: '' }
+        }
+      },
+      { upsert: true }
+    );
 
     for (const [year, entry] of Object.entries(data.years)) {
-      await YearEntry.create({
-        truckId,
-        year: parseInt(year),
-        gross: entry.gross,
-        exp: entry.exp,
-        net: entry.net,
-        weeks: entry.weeks
-      });
+      await YearEntry.findOneAndUpdate(
+        { truckId, year: parseInt(year) },
+        {
+          $setOnInsert: {
+            truckId,
+            year: parseInt(year),
+            gross: entry.gross,
+            exp: entry.exp,
+            net: entry.net,
+            weeks: entry.weeks
+          }
+        },
+        { upsert: true }
+      );
     }
     console.log(`  Truck ${truckId} seeded`);
   }
 
-  // Seed monthly entries
+  // Seed monthly entries (upsert by year+month+truckId)
   for (const [year, data] of Object.entries(DEFAULT_DATA.monthly)) {
     for (let i = 0; i < data.labels.length; i++) {
-      await MonthlyEntry.create({
-        truckId: '_fleet',
-        year: parseInt(year),
-        month: data.labels[i],
-        gross: data.gross[i],
-        exp: data.exp[i]
-      });
+      await MonthlyEntry.findOneAndUpdate(
+        { truckId: '_fleet', year: parseInt(year), month: data.labels[i] },
+        {
+          $setOnInsert: {
+            truckId: '_fleet',
+            year: parseInt(year),
+            month: data.labels[i],
+            gross: data.gross[i],
+            exp: data.exp[i]
+          }
+        },
+        { upsert: true }
+      );
     }
     console.log(`  Monthly ${year} seeded (${data.labels.length} months)`);
   }
 
-  // Seed expense breakdowns
+  // Seed expense breakdowns (upsert by year)
   for (const [year, data] of Object.entries(DEFAULT_DATA.expBreakdown)) {
-    await ExpenseBreakdown.create({
-      year: parseInt(year),
-      maint: data.maint,
-      other: data.other
-    });
+    await ExpenseBreakdown.findOneAndUpdate(
+      { year: parseInt(year) },
+      {
+        $setOnInsert: {
+          year: parseInt(year),
+          maint: data.maint,
+          other: data.other
+        }
+      },
+      { upsert: true }
+    );
     console.log(`  Expense breakdown ${year} seeded`);
   }
 
-  // Seed weekly entries from xlsx (deduplicated by truckId/year/week)
+  // Seed weekly entries from xlsx (upsert — won't overwrite entries saved by users)
   const xlsxEntries = seedWeeklyFromXlsx();
   if (xlsxEntries && xlsxEntries.length > 0) {
     const seen = new Set();
@@ -248,8 +262,16 @@ async function seed() {
       seen.add(key);
       return true;
     });
-    await WeeklyEntry.insertMany(deduped);
-    console.log(`  Weekly entries seeded from xlsx: ${deduped.length} entries`);
+    let inserted = 0;
+    for (const e of deduped) {
+      const result = await WeeklyEntry.findOneAndUpdate(
+        { truckId: e.truckId, year: e.year, week: e.week },
+        { $setOnInsert: e },
+        { upsert: true, new: false }
+      );
+      if (!result) inserted++;
+    }
+    console.log(`  Weekly entries from xlsx: ${deduped.length} total, ${inserted} new, ${deduped.length - inserted} already existed (kept)`);
   } else {
     console.log('  No xlsx weekly data found — weekly entries skipped');
   }

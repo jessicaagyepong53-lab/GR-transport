@@ -243,6 +243,7 @@ async function saveWeek() {
     showToast(`Week ${week} saved for ${truckId}`, 'success');
     updateWeekTimestamp();
     await loadHistory();
+    await loadWeek();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   }
@@ -361,7 +362,7 @@ async function loadHistory() {
         <td class="col-be" style="color:${breakEven >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(breakEven)}</td>
         <td class="notes-cell">${e.notes || '\u2014'}</td>
         <td class="notes-cell">${e.remarks || '\u2014'}</td>
-        <td><button class="edit-btn" data-admin-only onclick="editWeekEntry(${e.week})"><i class="fa-solid fa-pen-to-square"></i></button></td>
+        <td><button class="edit-btn" data-admin-only onclick="editWeekEntry(${e.week})"><i class="fa-solid fa-pen-to-square"></i></button><button class="delete-btn" data-admin-only onclick="deleteWeekEntry(${e.week})"><i class="fa-solid fa-trash"></i></button></td>
       </tr>`;
     });
     tbody.innerHTML = html;
@@ -390,12 +391,35 @@ function jumpToWeek(w) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function editWeekEntry(w) {
+async function editWeekEntry(w) {
   document.getElementById('weekSelect').value = w;
   setTotalsMode('week', w);
-  loadWeek();
+  await loadWeek();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   showToast(`Editing Week ${w} — make changes and Save`, '');
+}
+
+async function deleteWeekEntry(w) {
+  const { truckId, year } = getSelected();
+  if (!truckId) return;
+  const mon = getWeekMonday(year, w);
+  const sat = new Date(mon);
+  sat.setDate(mon.getDate() + 5);
+  const range = `${fmtDateRange(mon)} - ${fmtDateRange(sat)}`;
+  if (!confirm(`Delete entry for Week ${w} (${range})?\nThis cannot be undone.`)) return;
+  try {
+    await API.del(`/api/weekly/${encodeURIComponent(truckId)}/${year}/${w}`);
+    showToast(`Week ${w} deleted`, 'success');
+    // If we just deleted the currently loaded week, clear the form
+    const currentWeek = parseInt(document.getElementById('weekSelect').value);
+    if (currentWeek === w) {
+      currentEntry = null;
+      clearEntries(true);
+    }
+    await loadHistory();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 }
 
 async function addNewEntry() {
