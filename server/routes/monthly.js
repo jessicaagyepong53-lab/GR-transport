@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const MonthlyEntry = require('../models/MonthlyEntry');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, touchLastSaved } = require('../middleware/auth');
 
 // GET /api/monthly/:year — all monthly entries for a year
 router.get('/:year', async (req, res) => {
@@ -76,6 +76,7 @@ router.put('/bulk/:year', requireAdmin, async (req, res) => {
 
     if (docs.length) await MonthlyEntry.insertMany(docs);
 
+    await touchLastSaved();
     res.json({ success: true, count: docs.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -91,6 +92,7 @@ router.put('/:truckId/:year/:month', requireAdmin, async (req, res) => {
       { gross: gross || 0, exp: exp || 0 },
       { upsert: true, new: true }
     );
+    await touchLastSaved();
     res.json(entry);
   } catch (err) {
     res.status(500).json({ error: err.message });

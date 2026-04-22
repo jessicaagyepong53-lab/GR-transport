@@ -5,7 +5,7 @@ const MonthlyEntry = require('../models/MonthlyEntry');
 const WeeklyEntry = require('../models/WeeklyEntry');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const Trash = require('../models/Trash');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, touchLastSaved } = require('../middleware/auth');
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -112,6 +112,7 @@ router.post('/', requireAdmin, async (req, res) => {
       });
     }
 
+    await touchLastSaved();
     res.status(201).json(truck);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -161,6 +162,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (endOfTerm !== undefined) truck.endOfTerm = endOfTerm;
 
     await truck.save();
+    await touchLastSaved();
     res.json(truck);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -198,6 +200,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
       await recomputeFleetAggregates(year);
     }
 
+    await touchLastSaved();
     res.json({ success: true, message: `Truck ${req.params.id} moved to trash` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -229,6 +232,7 @@ router.post('/:id/years', requireAdmin, async (req, res) => {
       { upsert: true, new: true }
     );
 
+    await touchLastSaved();
     res.status(201).json(entry);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -249,6 +253,7 @@ router.put('/:id/years/:year', requireAdmin, async (req, res) => {
     );
 
     if (!entry) return res.status(404).json({ error: 'Year entry not found' });
+    await touchLastSaved();
     res.json(entry);
   } catch (err) {
     res.status(500).json({ error: err.message });

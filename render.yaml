@@ -10,8 +10,8 @@ services:
         value: production
       - key: MONGO_URI
         fromGroup: gr-transport-env
-      - key: SESSION_SECRET
-        generateValue: true
+      - key: JWT_SECRET
+        fromGroup: gr-transport-env
       - key: ADMIN_PIN
         fromGroup: gr-transport-env
 
@@ -19,6 +19,8 @@ envVarGroups:
   - name: gr-transport-env
     envVars:
       - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
         sync: false
       - key: ADMIN_PIN
         sync: false

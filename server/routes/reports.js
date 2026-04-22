@@ -3,6 +3,7 @@ const YearEntry = require('../models/YearEntry');
 const MonthlyEntry = require('../models/MonthlyEntry');
 const Truck = require('../models/Truck');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
+const QuarterlyTax = require('../models/QuarterlyTax');
 
 // GET /api/reports/export?format=csv|json&year=
 router.get('/export', async (req, res) => {
@@ -10,11 +11,12 @@ router.get('/export', async (req, res) => {
     const format = req.query.format || 'json';
     const yearFilter = req.query.year && req.query.year !== 'all' ? parseInt(req.query.year) : null;
 
-    const [trucks, yearEntries, monthlyEntries, expenses] = await Promise.all([
+    const [trucks, yearEntries, monthlyEntries, expenses, quarterlyTaxesExport] = await Promise.all([
       Truck.find().sort('truckId').lean(),
       yearFilter ? YearEntry.find({ year: yearFilter }).lean() : YearEntry.find().lean(),
       yearFilter ? MonthlyEntry.find({ year: yearFilter }).lean() : MonthlyEntry.find().lean(),
-      yearFilter ? ExpenseBreakdown.find({ year: yearFilter }).lean() : ExpenseBreakdown.find().lean()
+      yearFilter ? ExpenseBreakdown.find({ year: yearFilter }).lean() : ExpenseBreakdown.find().lean(),
+      yearFilter ? QuarterlyTax.find({ year: yearFilter }).lean() : QuarterlyTax.find().lean()
     ]);
 
     if (format === 'csv') {
@@ -32,13 +34,17 @@ router.get('/export', async (req, res) => {
         csv += `Expense,,${e.year},,${e.maint},${e.other},,\n`;
       });
 
+      quarterlyTaxesExport.forEach(e => {
+        csv += `IncomeTax,${e.truckId},${e.year},,,,${e.quarter},${e.amount}\n`;
+      });
+
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=gr-transport-report${yearFilter ? '-' + yearFilter : ''}.csv`);
       return res.send(csv);
     }
 
     // JSON export
-    res.json({ trucks, yearEntries, monthlyEntries, expenses });
+    res.json({ trucks, yearEntries, monthlyEntries, expenses, quarterlyTaxes: quarterlyTaxesExport });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -50,10 +56,11 @@ router.get('/summary', async (req, res) => {
     const yearFilter = req.query.year && req.query.year !== 'all' ? parseInt(req.query.year) : null;
     const filter = yearFilter ? { year: yearFilter } : {};
 
-    const [entries, trucks, expBreakdowns] = await Promise.all([
+    const [entries, trucks, expBreakdowns, quarterlyTaxes] = await Promise.all([
       YearEntry.find(filter),
       Truck.find().lean(),
-      ExpenseBreakdown.find(filter)
+      ExpenseBreakdown.find(filter),
+      QuarterlyTax.find(yearFilter ? { year: yearFilter } : {})
     ]);
 
     let totalGross = 0, totalExp = 0, totalNet = 0;
@@ -66,6 +73,10 @@ router.get('/summary', async (req, res) => {
       truckSummary[e.truckId].net += e.net;
       truckSummary[e.truckId].weeks += (e.weeks || 0);
     });
+
+    // Add fleet-wide quarterly taxes to fleet totals (not per-truck)
+    let totalQTax = 0;
+    quarterlyTaxes.forEach(qt => { totalQTax += qt.amount; });
 
     // Build truck cost lookup and EOT lookup (year-aware)
     const truckCostMap = {};
@@ -107,6 +118,9 @@ router.get('/summary', async (req, res) => {
       totalExp += t.exp;
       totalNet += t.net;
     });
+    // Add fleet-wide quarterly taxes as additional income (not expense)
+    totalGross += totalQTax;
+    totalNet += totalQTax;
 
     const eotCount = ranked.filter(t => t.eot).length;
     const activeCount = ranked.length - eotCount;

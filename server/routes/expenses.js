@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, touchLastSaved } = require('../middleware/auth');
 
 // GET /api/expenses/:year
 router.get('/:year', async (req, res) => {
@@ -41,6 +41,7 @@ router.put('/:year', requireAdmin, async (req, res) => {
       { maint: maint || 0, other: other || 0 },
       { upsert: true, new: true }
     );
+    await touchLastSaved();
     res.json(entry);
   } catch (err) {
     res.status(500).json({ error: err.message });

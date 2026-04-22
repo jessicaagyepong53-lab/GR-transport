@@ -35,4 +35,23 @@ async function setAdminPin(newPin) {
   );
 }
 
-module.exports = { requireAdmin, getAdminPin, setAdminPin };
+// Record a global last-saved timestamp in the DB (called after any data write)
+async function touchLastSaved() {
+  try {
+    await AppSettings.findOneAndUpdate(
+      { key: 'lastSaved' },
+      { value: new Date().toISOString() },
+      { upsert: true }
+    );
+  } catch { /* non-critical — don't fail the request */ }
+}
+
+// Read the global last-saved timestamp from the DB
+async function getLastSaved() {
+  try {
+    const doc = await AppSettings.findOne({ key: 'lastSaved' });
+    return doc ? doc.value : null;
+  } catch { return null; }
+}
+
+module.exports = { requireAdmin, getAdminPin, setAdminPin, touchLastSaved, getLastSaved };

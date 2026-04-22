@@ -3,7 +3,7 @@ const WeeklyEntry = require('../models/WeeklyEntry');
 const YearEntry = require('../models/YearEntry');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const MonthlyEntry = require('../models/MonthlyEntry');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, touchLastSaved } = require('../middleware/auth');
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -160,6 +160,7 @@ router.put('/:truckId/:year/:week', requireAdmin, async (req, res) => {
     // Auto-rollup: recompute YearEntry + ExpenseBreakdown
     await recomputeYearFromWeekly(req.params.truckId, parseInt(req.params.year));
 
+    await touchLastSaved();
     res.json(entry);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -187,6 +188,7 @@ router.delete('/:truckId/:year/:week', requireAdmin, async (req, res) => {
     // Auto-rollup: recompute YearEntry + ExpenseBreakdown
     await recomputeYearFromWeekly(req.params.truckId, parseInt(req.params.year));
 
+    await touchLastSaved();
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -265,7 +265,21 @@ async function saveWeek() {
     // Update currentWeekOriginal to match what was just saved
     currentWeekOriginal = { gross, maint, other };
     showToast(`Week ${week} saved for ${truckId}`, 'success');
-    updateWeekTimestamp();
+    // Fetch server timestamp so all devices show the same value
+    try {
+      const dash = await API.get('/api/dashboard/full');
+      if (dash && dash.lastSaved) {
+        const el = document.getElementById('weekLastSaved');
+        if (el) {
+          const d = new Date(dash.lastSaved);
+          const day = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+          const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+          el.innerHTML = `<i class="fa-regular fa-clock" style="color:#f5a623"></i>Saved: ${day} at ${time}`;
+        }
+      } else {
+        updateWeekTimestamp();
+      }
+    } catch { updateWeekTimestamp(); }
     await refreshData();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
@@ -397,7 +411,7 @@ function renderHistory() {
       <td class="col-be" style="color:${breakEven >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(breakEven)}</td>
       <td colspan="3"></td>
     </tr>`;
-  } catch {
+  } catch (err) {
     tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px;">Could not load history</td></tr>';
     tfoot.innerHTML = '';
   }

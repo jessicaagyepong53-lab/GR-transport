@@ -163,10 +163,18 @@ function renderMonthlyTable() {
 }
 
 // ─── RENDER EXPENSE TABLE ────────────────────────────────────────────────────
+function getFleetQuarterlyTaxesByQuarter() {
+  // quarterlyTaxes is now fleet-wide: { year: { quarter: amount } }
+  const qt = yearData.quarterlyTaxes || {};
+  const yearQt = qt[currentYear] || {};
+  return { 1: yearQt[1] || 0, 2: yearQt[2] || 0, 3: yearQt[3] || 0, 4: yearQt[4] || 0 };
+}
+
 function renderExpTable() {
   const table = document.getElementById('expTable');
   const e = yearData.expBreakdown?.[currentYear] || { maint: 0, other: 0 };
   const total = (e.maint || 0) + (e.other || 0);
+  const pct = (n) => total ? Math.round(n / total * 100) : 0;
 
   table.innerHTML = `<thead><tr>
     <th>Category</th><th class="num">Amount (GHS)</th><th class="num">% of Total</th>
@@ -174,17 +182,44 @@ function renderExpTable() {
     <tr>
       <td class="label-cell"><i class="fa-solid fa-oil-can" style="color:var(--green);margin-right:6px"></i>Maintenance (Oil Changes)</td>
       <td><input id="expMaint" type="number" value="${e.maint || 0}" onchange="markDirty()"${!isAdmin() ? ' disabled' : ''}></td>
-      <td class="computed neutral">${total ? Math.round((e.maint || 0)/total*100) : 0}%</td>
+      <td class="computed neutral">${pct(e.maint || 0)}%</td>
     </tr>
     <tr>
       <td class="label-cell"><i class="fa-solid fa-gear" style="color:var(--red);margin-right:6px"></i>Other Expenses (Parts)</td>
       <td><input id="expOther" type="number" value="${e.other || 0}" onchange="markDirty()"${!isAdmin() ? ' disabled' : ''}></td>
-      <td class="computed neutral">${total ? Math.round((e.other || 0)/total*100) : 0}%</td>
+      <td class="computed neutral">${pct(e.other || 0)}%</td>
     </tr>
     <tr class="total-row">
       <td class="label-cell">TOTAL</td>
       <td class="computed negative">${fmt(total)}</td>
       <td class="computed neutral">100%</td>
+    </tr>
+  </tbody>`;
+}
+
+function renderIncomeTable() {
+  const table = document.getElementById('incomeTable');
+  if (!table) return;
+  const qtax = getFleetQuarterlyTaxesByQuarter();
+  const grandTotal = qtax[1] + qtax[2] + qtax[3] + qtax[4];
+  const admin = isAdmin();
+
+  const qLabels = { 1: 'Q1 (Jan–Mar)', 2: 'Q2 (Apr–Jun)', 3: 'Q3 (Jul–Sep)', 4: 'Q4 (Oct–Dec)' };
+  const rows = [1, 2, 3, 4].map(q => `
+    <tr>
+      <td class="label-cell"><i class="fa-solid fa-receipt" style="color:var(--accent);margin-right:6px"></i>${qLabels[q]} Income Tax</td>
+      <td><input id="qtax${q}" type="number" value="${qtax[q]}" onchange="markDirty()"${!admin ? ' disabled' : ''}></td>
+      <td class="computed positive">${qtax[q] > 0 ? fmt(qtax[q]) : '—'}</td>
+    </tr>`).join('');
+
+  table.innerHTML = `<thead><tr>
+    <th>Quarter</th><th class="num">Amount (GHS)</th><th class="num">Added to Income</th>
+  </tr></thead><tbody>
+    ${rows}
+    <tr class="total-row">
+      <td class="label-cell">TOTAL ADDITIONAL INCOME</td>
+      <td class="computed positive">${fmt(grandTotal)}</td>
+      <td class="computed positive">${fmt(grandTotal)}</td>
     </tr>
   </tbody>`;
 }
@@ -261,9 +296,14 @@ async function saveAll() {
     const other = parseFloat(document.getElementById('expOther')?.value) || 0;
     await API.put(`/api/expenses/${currentYear}`, { maint, other });
 
+    // Save quarterly income taxes (fleet-wide)
+    for (const q of [1, 2, 3, 4]) {
+      const amount = parseFloat(document.getElementById(`qtax${q}`)?.value) || 0;
+      await API.put(`/api/quarterly-tax/_fleet/${currentYear}/${q}`, { amount });
+    }
+
     isDirty = false;
     const now = new Date();
-    localStorage.setItem(`year_lastSaved_${currentYear}`, now.toISOString());
     updateLastSaved(now);
     const status = document.getElementById('saveStatus');
     if (status) { status.innerHTML = '<i class="fa-solid fa-check"></i>All changes saved'; status.classList.add('show'); }
@@ -293,7 +333,9 @@ function renderAll() {
   renderTruckTable();
   renderMonthlyTable();
   renderExpTable();
-  loadLastSaved();
+  renderIncomeTable();
+  // Show server timestamp if available, otherwise clear
+  updateLastSaved(yearData.lastSaved ? new Date(yearData.lastSaved) : null);
 }
 
 function updateLastSaved(date) {
@@ -303,11 +345,6 @@ function updateLastSaved(date) {
   const day = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
   const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
   el.innerHTML = `<i class="fa-regular fa-clock" style="color:var(--accent)"></i>Last saved: ${day} at ${time}`;
-}
-
-function loadLastSaved() {
-  const raw = localStorage.getItem(`year_lastSaved_${currentYear}`);
-  updateLastSaved(raw ? new Date(raw) : null);
 }
 
 // ─── TRUCK ACTIONS ───────────────────────────────────────────────────────────

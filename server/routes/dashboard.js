@@ -4,6 +4,8 @@ const MonthlyEntry = require('../models/MonthlyEntry');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const Truck = require('../models/Truck');
 const WeeklyEntry = require('../models/WeeklyEntry');
+const QuarterlyTax = require('../models/QuarterlyTax');
+const { getLastSaved } = require('../middleware/auth');
 
 
 // GET /api/dashboard/kpis?year= — computed KPIs
@@ -75,14 +77,16 @@ router.get('/heatmap', async (req, res) => {
 // GET /api/dashboard/full — full dashboard data in one call
 router.get('/full', async (req, res) => {
   try {
-    const [trucks, yearEntries, monthlyEntries, expenses, weeklyDaysAgg] = await Promise.all([
+    const [trucks, yearEntries, monthlyEntries, expenses, weeklyDaysAgg, lastSaved, quarterlyTaxes] = await Promise.all([
       Truck.find().sort('truckId'),
       YearEntry.find(),
       MonthlyEntry.find().sort('year month'),
       ExpenseBreakdown.find().sort('year'),
       WeeklyEntry.aggregate([
         { $group: { _id: { truckId: '$truckId', year: '$year' }, weeksWorked: { $sum: 1 } } }
-      ])
+      ]),
+      getLastSaved(),
+      QuarterlyTax.find()
     ]);
 
     // Build trucks object
@@ -132,13 +136,30 @@ router.get('/full', async (req, res) => {
       };
     }
 
-    // Build yearly totals
+    // Build quarterly taxes map (fleet-wide): { year: { 1: n, 2: n, 3: n, 4: n } }
+    const qtaxFleetMap = {};
+    quarterlyTaxes.forEach(qt => {
+      if (qt.truckId !== '_fleet') return;
+      if (!qtaxFleetMap[qt.year]) qtaxFleetMap[qt.year] = {};
+      qtaxFleetMap[qt.year][qt.quarter] = qt.amount;
+    });
+
+    // Build yearly totals (operational only first)
     const yearlyTotals = {};
     yearEntries.forEach(ye => {
       if (!yearlyTotals[ye.year]) yearlyTotals[ye.year] = { gross: 0, exp: 0, net: 0 };
       yearlyTotals[ye.year].gross += ye.gross;
       yearlyTotals[ye.year].exp += ye.exp;
       yearlyTotals[ye.year].net += ye.net;
+    });
+    // Add fleet-wide quarterly taxes to yearly totals (as additional income)
+    Object.entries(qtaxFleetMap).forEach(([year, quarters]) => {
+      const y = parseInt(year);
+      if (!yearlyTotals[y]) yearlyTotals[y] = { gross: 0, exp: 0, net: 0 };
+      Object.values(quarters).forEach(amt => {
+        yearlyTotals[y].gross += amt;
+        yearlyTotals[y].net += amt;
+      });
     });
 
     // Build expense breakdown
@@ -173,7 +194,9 @@ router.get('/full', async (req, res) => {
       weeksWorked: weeksWorkedMap,
       monthly,
       yearlyTotals,
-      expBreakdown
+      expBreakdown,
+      quarterlyTaxes: qtaxFleetMap,
+      lastSaved
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
