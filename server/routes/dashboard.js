@@ -111,7 +111,7 @@ router.get('/full', async (req, res) => {
       trucksObj[ye.truckId][ye.year] = { gross: ye.gross, exp: ye.exp, net: ye.net, weeks: ye.weeks };
     });
 
-    // Build weeksWorked map from weekly entries aggregation (count of weeks where daysWorked is not N/A)
+    // Build weeksWorked map from weekly entries aggregation (count of weeks present in DB for that truck/year)
     const weeksWorkedMap = {};
     weeklyDaysAgg.forEach(d => {
       if (!weeksWorkedMap[d._id.truckId]) weeksWorkedMap[d._id.truckId] = {};

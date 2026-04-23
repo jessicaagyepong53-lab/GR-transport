@@ -626,14 +626,14 @@ const DATA = {
     'GN 626-26 BLUE':'','GN 4107-26 GREEN':''
   },
   truckCost:{
-    'GT 6350-19':{ initialValue:395000, pricePaid:330000, maintenanceCost:65000 },
-    'GN 4106-18':{ initialValue:335000, pricePaid:270000, maintenanceCost:65000 },
-    'GW 1568-22 OLD':{ initialValue:580000, pricePaid:550000, maintenanceCost:3000 },
-    'GN 1674-21':{ initialValue:661000, pricePaid:650000, maintenanceCost:11000 },
-    'GN 4394-25':{ initialValue:866000, pricePaid:856000, maintenanceCost:80000 },
-    'GX 4502-22 NEW':{ initialValue:568000, pricePaid:500000, maintenanceCost:68000 },
-    'GN 626-26 BLUE':{ initialValue:0, pricePaid:0, maintenanceCost:0 },
-    'GN 4107-26 GREEN':{ initialValue:0, pricePaid:0, maintenanceCost:0 },
+    'GT 6350-19':{ initialValue:395000, pricePaid:330000, insurance:0, maintenanceCost:65000 },
+    'GN 4106-18':{ initialValue:335000, pricePaid:270000, insurance:0, maintenanceCost:65000 },
+    'GW 1568-22 OLD':{ initialValue:553000, pricePaid:550000, insurance:0, maintenanceCost:3000 },
+    'GN 1674-21':{ initialValue:661000, pricePaid:650000, insurance:0, maintenanceCost:11000 },
+    'GN 4394-25':{ initialValue:936000, pricePaid:856000, insurance:0, maintenanceCost:80000 },
+    'GX 4502-22 NEW':{ initialValue:568000, pricePaid:500000, insurance:0, maintenanceCost:68000 },
+    'GN 626-26 BLUE':{ initialValue:930600, pricePaid:888000, insurance:37000, maintenanceCost:5600 },
+    'GN 4107-26 GREEN':{ initialValue:930600, pricePaid:888000, insurance:37000, maintenanceCost:5600 },
   },
   quarterlyTaxes: {}
 };
@@ -858,17 +858,17 @@ function renderHeatmap() {
 //   BREAKEVEN TRACKER
 // ─────────────────────────────────────────────────────────────────────────────
 function getTruckTotalCost(truckId) {
-  // Break-even target = pricePaid + maintenanceCost (initialValue is the sum, not separate)
+  // Break-even target = pricePaid + insurance + maintenanceCost
   const c = DATA.truckCost?.[truckId];
-  if (c) return (Number(c.pricePaid || 0) + Number(c.maintenanceCost || 0));
+  if (c) return (Number(c.pricePaid || 0) + Number(c.insurance || 0) + Number(c.maintenanceCost || 0));
   // Fallback to legacy purchasePrice
   return Number(DATA.trucks[truckId]?.purchasePrice || 0);
 }
 function getTruckCostBreakdown(truckId) {
   const c = DATA.truckCost?.[truckId];
-  if (c) return { initialValue: Number(c.initialValue || 0), pricePaid: Number(c.pricePaid || 0), maintenanceCost: Number(c.maintenanceCost || 0) };
+  if (c) return { initialValue: Number(c.initialValue || 0), pricePaid: Number(c.pricePaid || 0), insurance: Number(c.insurance || 0), maintenanceCost: Number(c.maintenanceCost || 0) };
   const pp = Number(DATA.trucks[truckId]?.purchasePrice || 0);
-  return pp ? { initialValue: 0, pricePaid: pp, maintenanceCost: 0 } : null;
+  return pp ? { initialValue: 0, pricePaid: pp, insurance: 0, maintenanceCost: 0 } : null;
 }
 function getTruckCumulativeNet(truckId) {
   const t = DATA.trucks[truckId];
@@ -936,6 +936,7 @@ function renderBreakeven(year) {
           <span class="be-row-val">GHS ${totalCost.toLocaleString()}</span>
         </div>
         ${breakdown && breakdown.pricePaid ? `<div class="be-row"><span class="be-row-label" style="padding-left:10px;font-size:0.68rem;opacity:0.7"><i class="fa-solid fa-money-bill-transfer" style="margin-right:4px"></i>Amount Paid</span><span class="be-row-val" style="font-size:0.8rem;color:var(--label)">GHS ${breakdown.pricePaid.toLocaleString()}</span></div>` : ''}
+        ${breakdown && breakdown.insurance ? `<div class="be-row"><span class="be-row-label" style="padding-left:10px;font-size:0.68rem;opacity:0.7"><i class="fa-solid fa-shield-halved" style="margin-right:4px"></i>Insurance</span><span class="be-row-val" style="font-size:0.8rem;color:var(--label)">GHS ${breakdown.insurance.toLocaleString()}</span></div>` : ''}
         ${breakdown && breakdown.maintenanceCost ? `<div class="be-row"><span class="be-row-label" style="padding-left:10px;font-size:0.68rem;opacity:0.7"><i class="fa-solid fa-wrench" style="margin-right:4px"></i>Repairs & Maint.</span><span class="be-row-val" style="font-size:0.8rem;color:var(--label)">GHS ${breakdown.maintenanceCost.toLocaleString()}</span></div>` : ''}
         ${breakdown && breakdown.initialValue ? `<div class="be-row"><span class="be-row-label" style="padding-left:10px;font-size:0.68rem;opacity:0.6;font-style:italic"><i class="fa-solid fa-tag" style="margin-right:4px"></i>Initial Value (ref)</span><span class="be-row-val" style="font-size:0.75rem;color:var(--muted);font-style:italic">GHS ${breakdown.initialValue.toLocaleString()}</span></div>` : ''}
         <div class="be-row">

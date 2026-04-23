@@ -79,13 +79,19 @@ function seedWeeklyFromXlsx() {
   if (!fs.existsSync(XLSX_PATH)) { console.log('  xlsx file not found, skipping weekly import'); return null; }
 
   const MONTHS = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 };
-  function parseDateRange(s) {
-    // "08 Apr  2024 - 14 Apr  2024" → ISO week of first date
-    const m = String(s).match(/(\d{1,2})\s+(\w{3})\s+(\d{4})/);
-    if (!m) return null;
-    const mon = MONTHS[m[2].toUpperCase().slice(0,3)];
-    if (mon === undefined) return null;
-    return new Date(parseInt(m[3]), mon, parseInt(m[1]));
+  function parseDateRange(s, targetYear) {
+    // Try every date match in the string and return the first one with a valid year
+    // This handles typos like "09 Mar 0225 - 14 Mar 2026" by finding the correct date
+    const re = /(\d{1,2})\s+(\w{3})\s+(\d{4})/g;
+    let m;
+    while ((m = re.exec(String(s))) !== null) {
+      const mon = MONTHS[m[2].toUpperCase().slice(0,3)];
+      if (mon === undefined) continue;
+      const year = parseInt(m[3]);
+      const d = new Date(year, mon, parseInt(m[1]));
+      if (!targetYear || year === targetYear) return d;
+    }
+    return null;
   }
 
   const wb = XLSX.readFile(XLSX_PATH);
@@ -138,7 +144,14 @@ function seedWeeklyFromXlsx() {
 
       if (weekOffset >= 53) break;
 
-      const week = startWeek + weekOffset;
+      // Use the actual date from the Date Range column to get the correct ISO week
+      // Try all date matches in the cell to handle typos in year (e.g. "0225" instead of "2026")
+      let week;
+      if (ci.dateRange >= 0) {
+        const rowDate = parseDateRange(row[ci.dateRange], meta.year);
+        if (rowDate) week = dateToISOWeek(rowDate);
+      }
+      if (!week) week = startWeek + weekOffset;
       weekOffset++;
 
       const grossVal = parseFloat(row[ci.gross]) || 0;
@@ -155,8 +168,12 @@ function seedWeeklyFromXlsx() {
       let remarksVal = ci.remarks >= 0 ? String(row[ci.remarks] || '') : '';
       if (remarksVal === 'N/A' || remarksVal === 'n/a') remarksVal = '';
 
-      // Skip empty template rows (all zeros and no meaningful notes)
-      if (grossVal === 0 && maintVal === 0 && otherVal === 0 && !notesVal && daysVal === null) continue;
+      // Skip all-zero future entries for the current year (template rows not yet filled in)
+      const nowDate = new Date();
+      const currentISOWeek = dateToISOWeek(nowDate);
+      if (meta.year === nowDate.getFullYear() && week >= currentISOWeek && grossVal === 0 && maintVal === 0 && otherVal === 0 && !notesVal && daysVal === null) continue;
+      // Skip empty template rows with no real date
+      if (grossVal === 0 && maintVal === 0 && otherVal === 0 && !notesVal && daysVal === null && !week) continue;
 
       allEntries.push({
         truckId: meta.truckId,
@@ -180,17 +197,20 @@ async function seed() {
   console.log('Seeding database (non-destructive upsert mode)...');
 
   // Seed trucks (upsert — won't overwrite user edits if truck already exists)
+  // cost is always updated via $set (configuration data, not user data)
   for (const [truckId, data] of Object.entries(DEFAULT_DATA.trucks)) {
     await Truck.findOneAndUpdate(
       { truckId },
       {
+        $set: {
+          cost: data.cost || { initialValue: 0, pricePaid: 0, insurance: 0, maintenanceCost: 0 }
+        },
         $setOnInsert: {
           truckId,
           driver: data.driver,
           driverNotes: data.driverNotes || '',
           startDates: data.startDates || {},
           purchaseYear: data.purchaseYear || undefined,
-          cost: data.cost || { initialValue: 0, pricePaid: 0, maintenanceCost: 0 },
           endOfTerm: data.endOfTerm || { active: false, date: '' }
         }
       },
@@ -252,7 +272,8 @@ async function seed() {
     console.log(`  Expense breakdown ${year} seeded`);
   }
 
-  // Seed weekly entries from xlsx (upsert — won't overwrite entries saved by users)
+  // Seed weekly entries from xlsx — delete existing entries for xlsx-covered truck/year combos
+  // then reinsert fresh so week numbers always reflect the xlsx date ranges exactly
   const xlsxEntries = seedWeeklyFromXlsx();
   if (xlsxEntries && xlsxEntries.length > 0) {
     const seen = new Set();
@@ -262,16 +283,41 @@ async function seed() {
       seen.add(key);
       return true;
     });
-    let inserted = 0;
-    for (const e of deduped) {
-      const result = await WeeklyEntry.findOneAndUpdate(
-        { truckId: e.truckId, year: e.year, week: e.week },
-        { $setOnInsert: e },
-        { upsert: true, new: false }
-      );
-      if (!result) inserted++;
+
+    // Collect unique truck+year combos from xlsx
+    const truckYearCombos = [...new Set(deduped.map(e => `${e.truckId}|${e.year}`))].map(k => {
+      const [truckId, year] = k.split('|');
+      return { truckId, year: parseInt(year) };
+    });
+    // Wipe existing entries for those combos so old wrong-numbered entries don't linger
+    for (const { truckId, year } of truckYearCombos) {
+      await WeeklyEntry.deleteMany({ truckId, year });
     }
-    console.log(`  Weekly entries from xlsx: ${deduped.length} total, ${inserted} new, ${deduped.length - inserted} already existed (kept)`);
+    console.log(`  Cleared old weekly entries for ${truckYearCombos.length} truck/year combos`);
+
+    for (const e of deduped) {
+      await WeeklyEntry.create(e);
+    }
+    console.log(`  Weekly entries from xlsx: ${deduped.length} inserted fresh`);
+
+    // Recompute YearEntries from actual weekly data so totals stay accurate
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    for (const { truckId, year } of truckYearCombos) {
+      const entries = await WeeklyEntry.find({ truckId, year });
+      if (!entries.length) { await YearEntry.deleteOne({ truckId, year }); continue; }
+      let gross = 0, maint = 0, other = 0;
+      entries.forEach(e => { gross += e.gross || 0; maint += e.maint || 0; other += e.other || 0; });
+      const exp = maint + other;
+      const net = gross - exp;
+      // Count only weeks that have any activity (gross or expenses > 0)
+      const activeWeeks = entries.filter(e => (e.gross || 0) + (e.maint || 0) + (e.other || 0) > 0).length;
+      await YearEntry.findOneAndUpdate(
+        { truckId, year },
+        { gross, exp, net, weeks: activeWeeks },
+        { upsert: true }
+      );
+      console.log(`  Recomputed YearEntry ${truckId} ${year}: gross=${gross} net=${net} activeWeeks=${activeWeeks}`);
+    }
   } else {
     console.log('  No xlsx weekly data found — weekly entries skipped');
   }

@@ -327,7 +327,7 @@ function renderHistory() {
     const data = weeklyCache.data;
 
     const truck = allTrucks.find(t => t.truckId === truckId);
-    const truckCost = truck && truck.cost ? truck.cost.initialValue || 0 : 0;
+    const truckCost = truck && truck.cost ? (truck.cost.pricePaid || 0) + (truck.cost.insurance || 0) + (truck.cost.maintenanceCost || 0) : 0;
 
     if (!data || !data.length) {
       tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px;">No entries yet for this truck & year.</td></tr>';
@@ -338,7 +338,13 @@ function renderHistory() {
     }
 
     const sorted = data.sort((a, b) => a.week - b.week);
+    // Start break-even at -initialCost, then carry over net from all prior years
     let breakEven = -truckCost;
+    if (truck && truck.years) {
+      Object.entries(truck.years).forEach(([y, d]) => {
+        if (parseInt(y) < year) breakEven += d.net || 0;
+      });
+    }
     let lastMonth = '';
     let monthWeekCounter = 0;
     let totGross = 0, totMaint = 0, totOther = 0, totExp = 0, totNet = 0;

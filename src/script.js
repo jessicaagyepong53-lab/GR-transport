@@ -172,15 +172,15 @@ function getTruckCost(id) {
   return null;
 }
 
-// Break-even target = price paid + initial maintenance/repairs
+// Break-even target = price paid + insurance + initial maintenance/repairs
 function getTruckBreakEvenTotal(id) {
   const c = getTruckCost(id);
-  return c ? ((c.pricePaid || 0) + (c.maintenanceCost || 0)) : 0;
+  return c ? ((c.pricePaid || 0) + (c.insurance || 0) + (c.maintenanceCost || 0)) : 0;
 }
 
 function getTruckTotalAmount(id) {
   const c = getTruckCost(id);
-  return c ? ((c.initialValue || 0) + (c.pricePaid || 0) + (c.maintenanceCost || 0)) : 0;
+  return c ? ((c.pricePaid || 0) + (c.insurance || 0) + (c.maintenanceCost || 0)) : 0;
 }
 
 // Year in which the truck's cumulative net first reached the break-even target
@@ -674,8 +674,8 @@ function renderBreakEvenChart() {
               const cn = truck ? truck.cumulativeNet : 0;
               const dur = truck?.breakEvenDuration;
               return v >= 0
-                ? [` ✓ Broken Even${dur ? ' in ' + dur + ' yr' + (dur !== 1 ? 's' : '') : ''}`, ` Profit after BE: +GHS ${v.toLocaleString()}`, ` Cumulative Net: GHS ${cn.toLocaleString()}`, ` BE Target: GHS ${beTarget.toLocaleString()}`, ...(cost ? [` Initial Value: GHS ${(cost.initialValue||0).toLocaleString()}`, ` Price Paid: GHS ${(cost.pricePaid||0).toLocaleString()}`, ` Maint/Repairs: GHS ${(cost.maintenanceCost||0).toLocaleString()}`, ` Total Amount: GHS ${((cost.initialValue||0) + (cost.pricePaid||0) + (cost.maintenanceCost||0)).toLocaleString()}`] : [])]
-                : [` ✗ Not yet broken even`, ` Shortfall: GHS ${Math.abs(v).toLocaleString()}`, ` Cumulative Net: GHS ${cn.toLocaleString()}`, ` BE Target: GHS ${beTarget.toLocaleString()}`, ...(cost ? [` Initial Value: GHS ${(cost.initialValue||0).toLocaleString()}`, ` Price Paid: GHS ${(cost.pricePaid||0).toLocaleString()}`, ` Maint/Repairs: GHS ${(cost.maintenanceCost||0).toLocaleString()}`, ` Total Amount: GHS ${((cost.initialValue||0) + (cost.pricePaid||0) + (cost.maintenanceCost||0)).toLocaleString()}`] : [])];
+                ? [` ✓ Broken Even${dur ? ' in ' + dur + ' yr' + (dur !== 1 ? 's' : '') : ''}`, ` Profit after BE: +GHS ${v.toLocaleString()}`, ` Cumulative Net: GHS ${cn.toLocaleString()}`, ` BE Target: GHS ${beTarget.toLocaleString()}`, ...(cost ? [` Price Paid: GHS ${(cost.pricePaid||0).toLocaleString()}`, ...(cost.insurance ? [` Insurance: GHS ${(cost.insurance||0).toLocaleString()}`] : []), ` Maint/Repairs: GHS ${(cost.maintenanceCost||0).toLocaleString()}`, ` Total: GHS ${((cost.pricePaid||0)+(cost.insurance||0)+(cost.maintenanceCost||0)).toLocaleString()}`] : [])]
+                : [` ✗ Not yet broken even`, ` Shortfall: GHS ${Math.abs(v).toLocaleString()}`, ` Cumulative Net: GHS ${cn.toLocaleString()}`, ` BE Target: GHS ${beTarget.toLocaleString()}`, ...(cost ? [` Price Paid: GHS ${(cost.pricePaid||0).toLocaleString()}`, ...(cost.insurance ? [` Insurance: GHS ${(cost.insurance||0).toLocaleString()}`] : []), ` Maint/Repairs: GHS ${(cost.maintenanceCost||0).toLocaleString()}`, ` Total: GHS ${((cost.pricePaid||0)+(cost.insurance||0)+(cost.maintenanceCost||0)).toLocaleString()}`] : [])];
             }
           }
         }
@@ -769,7 +769,7 @@ function renderTable(year) {
         ${t.endOfTerm ? '<span style="display:inline-block;font-size:0.55rem;padding:1px 5px;border-radius:3px;background:rgba(224,68,58,0.15);color:var(--red);border:1px solid rgba(224,68,58,0.3);margin-left:6px;font-weight:700;letter-spacing:0.5px;vertical-align:middle">END OF TERM</span>' : ''}
         ${t.brokenEven ? '<span style="display:inline-block;font-size:0.55rem;padding:1px 5px;border-radius:3px;background:rgba(45,224,138,0.15);color:var(--green);border:1px solid rgba(45,224,138,0.3);margin-left:6px;font-weight:700;letter-spacing:0.5px;vertical-align:middle">BROKEN EVEN</span>' : ''}
         ${t.brokenEven && t.breakEvenDuration ? `<span style="display:inline-block;font-size:0.5rem;padding:1px 5px;border-radius:3px;background:rgba(45,224,138,0.08);color:var(--green);border:1px solid rgba(45,224,138,0.2);margin-left:4px;font-weight:600;vertical-align:middle">in ${t.breakEvenDuration} yr${t.breakEvenDuration !== 1 ? 's' : ''}</span>` : ''}
-        ${t.profitAfterBE !== null ? `<div style="margin-top:4px;font-size:0.65rem;font-weight:600;${t.profitAfterBE >= 0 ? 'color:var(--green)' : 'color:var(--red)'}"><i class="fa-solid fa-${t.profitAfterBE >= 0 ? 'arrow-trend-up' : 'arrow-trend-down'}" style="margin-right:2px"></i>${t.profitAfterBE >= 0 ? '+' + fmt(t.profitAfterBE) + ' profit after BE' : fmt(Math.abs(t.profitAfterBE)) + ' away from BE'}${t.truckCost ? ` <span style="font-weight:400;color:var(--muted)">(Total GHS ${(t.totalAmount||0).toLocaleString()} = init GHS ${(t.truckCost.initialValue||0).toLocaleString()} + paid GHS ${(t.truckCost.pricePaid||0).toLocaleString()} + maint GHS ${(t.truckCost.maintenanceCost||0).toLocaleString()})</span>` : ''}</div>` : ''}
+        ${t.profitAfterBE !== null ? `<div style="margin-top:4px;font-size:0.65rem;font-weight:600;${t.profitAfterBE >= 0 ? 'color:var(--green)' : 'color:var(--red)'}"><i class="fa-solid fa-${t.profitAfterBE >= 0 ? 'arrow-trend-up' : 'arrow-trend-down'}" style="margin-right:2px"></i>${t.profitAfterBE >= 0 ? '+' + fmt(t.profitAfterBE) + ' profit after BE' : fmt(Math.abs(t.profitAfterBE)) + ' away from BE'}${t.truckCost ? ` <span style="font-weight:400;color:var(--muted)">(Total GHS ${(t.totalAmount||0).toLocaleString()} = paid GHS ${(t.truckCost.pricePaid||0).toLocaleString()}${t.truckCost.insurance ? ' + insur GHS ' + (t.truckCost.insurance||0).toLocaleString() : ''} + maint GHS ${(t.truckCost.maintenanceCost||0).toLocaleString()})</span>` : ''}</div>` : ''}
       </td>
       <td style="color:var(--label)">${driver}</td>
       <td style="color:var(--accent);font-weight:600">${t.gross.toLocaleString()}</td>
