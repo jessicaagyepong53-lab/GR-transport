@@ -1805,15 +1805,15 @@ async function syncFromAPI() {
 // Initial load: try API first, then render
 (async function init() {
   const overlay = document.getElementById('loadingOverlay');
-  // Render from cache immediately so the overlay disappears fast
-  try { renderAll(currentYear || 'all'); } catch(e) { /* ignore */ }
-  if (overlay) overlay.remove();
-  // Sync from API in background and re-render silently
   try {
     await Promise.all([syncFromAPI(), refreshAdminStatus()]);
     renderAll(currentYear || 'all');
   } catch(e) {
     console.error('init error:', e);
+    // Still try to render with whatever data we have
+    try { renderAll(currentYear || 'all'); } catch(e2) { console.error('renderAll error:', e2); }
+  } finally {
+    if (overlay) overlay.remove();
   }
 })();
 
