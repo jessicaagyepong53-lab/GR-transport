@@ -634,8 +634,7 @@ const DATA = {
     'GX 4502-22 NEW':{ initialValue:568000, pricePaid:500000, insurance:0, maintenanceCost:68000 },
     'GN 626-26 BLUE':{ initialValue:930600, pricePaid:888000, insurance:37000, maintenanceCost:5600 },
     'GN 4107-26 GREEN':{ initialValue:930600, pricePaid:888000, insurance:37000, maintenanceCost:5600 },
-  },
-  quarterlyTaxes: {}
+  }
 };
 
 // ─── CHART DEFAULTS ──────────────────────────────────────────────────────────
@@ -1796,7 +1795,6 @@ async function syncFromAPI() {
     if (fresh.monthly) DATA.monthly = fresh.monthly;
     if (fresh.expBreakdown) DATA.expBreakdown = fresh.expBreakdown;
     if (fresh.yearlyTotals) DATA.yearlyTotals = fresh.yearlyTotals;
-    if (fresh.quarterlyTaxes) DATA.quarterlyTaxes = fresh.quarterlyTaxes;
     if (fresh.lastSaved) updateDashTimestamp(new Date(fresh.lastSaved));
     localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
     rebuildAllMonthlyData();
@@ -1807,15 +1805,15 @@ async function syncFromAPI() {
 // Initial load: try API first, then render
 (async function init() {
   const overlay = document.getElementById('loadingOverlay');
+  // Render from cache immediately so the overlay disappears fast
+  try { renderAll(currentYear || 'all'); } catch(e) { /* ignore */ }
+  if (overlay) overlay.remove();
+  // Sync from API in background and re-render silently
   try {
     await Promise.all([syncFromAPI(), refreshAdminStatus()]);
     renderAll(currentYear || 'all');
   } catch(e) {
     console.error('init error:', e);
-    // Still try to render with whatever data we have
-    try { renderAll(currentYear || 'all'); } catch(e2) { console.error('renderAll error:', e2); }
-  } finally {
-    if (overlay) overlay.remove();
   }
 })();
 
