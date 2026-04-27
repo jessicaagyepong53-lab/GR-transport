@@ -8,6 +8,7 @@ const YearEntry = require('./models/YearEntry');
 const MonthlyEntry = require('./models/MonthlyEntry');
 const ExpenseBreakdown = require('./models/ExpenseBreakdown');
 const WeeklyEntry = require('./models/WeeklyEntry');
+const QuarterlyTax = require('./models/QuarterlyTax');
 
 const DEFAULT_DATA = {
   trucks: {
@@ -321,6 +322,23 @@ async function seed() {
   } else {
     console.log('  No xlsx weekly data found — weekly entries skipped');
   }
+
+  // Seed quarterly income tax payments (fleet-level, non-destructive)
+  const quarterlyTaxData = [
+    { year: 2026, quarter: 1, amount: 720 },
+    { year: 2026, quarter: 2, amount: 700 },
+  ];
+  for (const entry of quarterlyTaxData) {
+    await QuarterlyTax.findOneAndUpdate(
+      { truckId: '_fleet', year: entry.year, quarter: entry.quarter },
+      {
+        $set: { amount: entry.amount },
+        $setOnInsert: { truckId: '_fleet', year: entry.year, quarter: entry.quarter }
+      },
+      { upsert: true }
+    );
+  }
+  console.log('  Quarterly tax seeded (2026 Q1=720, Q2=700)');
 
   console.log('Seed complete!');
   process.exit(0);

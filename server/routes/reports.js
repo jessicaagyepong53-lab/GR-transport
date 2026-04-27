@@ -3,6 +3,7 @@ const YearEntry = require('../models/YearEntry');
 const MonthlyEntry = require('../models/MonthlyEntry');
 const Truck = require('../models/Truck');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
+const QuarterlyTax = require('../models/QuarterlyTax');
 
 // GET /api/reports/export?format=csv|json&year=
 router.get('/export', async (req, res) => {
@@ -50,10 +51,11 @@ router.get('/summary', async (req, res) => {
     const yearFilter = req.query.year && req.query.year !== 'all' ? parseInt(req.query.year) : null;
     const filter = yearFilter ? { year: yearFilter } : {};
 
-    const [entries, trucks, expBreakdowns] = await Promise.all([
+    const [entries, trucks, expBreakdowns, qTaxEntries] = await Promise.all([
       YearEntry.find(filter),
       Truck.find().lean(),
-      ExpenseBreakdown.find(filter)
+      ExpenseBreakdown.find(filter),
+      QuarterlyTax.find({ truckId: '_fleet', ...filter })
     ]);
 
     let totalGross = 0, totalExp = 0, totalNet = 0;
@@ -107,6 +109,12 @@ router.get('/summary', async (req, res) => {
       totalExp += t.exp;
       totalNet += t.net;
     });
+
+    // Add quarterly income tax as a fleet-level expenditure
+    let totalQTax = 0;
+    qTaxEntries.forEach(e => { totalQTax += e.amount || 0; });
+    totalExp += totalQTax;
+    totalNet -= totalQTax;
     const eotCount = ranked.filter(t => t.eot).length;
     const activeCount = ranked.length - eotCount;
 
@@ -133,6 +141,7 @@ router.get('/summary', async (req, res) => {
       totalGross,
       totalExp,
       totalNet,
+      totalQTax,
       truckCount: trucks.length,
       activeCount,
       eotCount,

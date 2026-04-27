@@ -65,6 +65,7 @@ async function loadReport() {
   } catch (err) {
     document.getElementById('summaryGrid').innerHTML = '<div class="summary-card"><div class="summary-label">Error</div><div class="summary-sub">' + err.message + '</div></div>';
   }
+  loadQuarterlyTax(year);
 }
 
 function renderSummary() {
@@ -207,3 +208,68 @@ document.addEventListener('DOMContentLoaded', init);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') loadReport();
 });
+
+// ─── QUARTERLY INCOME TAX ────────────────────────────────────────────────────
+let qTaxData = { 1: 0, 2: 0, 3: 0, 4: 0 };
+let qTaxYear = null;
+
+async function loadQuarterlyTax(year) {
+  qTaxYear = (year && year !== 'all') ? parseInt(year) : new Date().getFullYear();
+  try {
+    qTaxData = await API.get(`/api/quarterly-tax/_fleet/${qTaxYear}`);
+  } catch (e) {
+    qTaxData = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  }
+  renderQuarterlyTax();
+}
+
+function renderQuarterlyTax() {
+  const el = document.getElementById('quarterlyTaxBody');
+  if (!el) return;
+  const label = document.getElementById('qTaxYearLabel');
+  if (label) label.textContent = qTaxYear;
+
+  const qNames = ['Q1 · Jan–Mar', 'Q2 · Apr–Jun', 'Q3 · Jul–Sep', 'Q4 · Oct–Dec'];
+  const total = [1, 2, 3, 4].reduce((s, q) => s + (qTaxData[q] || 0), 0);
+  const admin = typeof isAdmin === 'function' ? isAdmin() : false;
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+      ${[1, 2, 3, 4].map(q => `
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:18px 16px;text-align:center;">
+          <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin-bottom:10px;">${qNames[q - 1]}</div>
+          ${admin ? `
+            <input type="number" id="qTaxInput${q}" value="${qTaxData[q] || ''}" min="0" placeholder="—"
+              style="width:100%;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:${qTaxData[q] ? 'var(--accent)' : 'var(--muted)'};font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;"
+              oninput="this.style.color=this.value>0?'var(--accent)':'var(--muted)'"
+              onblur="saveQuarterTax(${q})">
+            <div style="font-size:0.64rem;color:var(--muted);margin-top:6px;">GHS · blur to save</div>
+          ` : `
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:2px;color:${qTaxData[q] ? 'var(--accent)' : 'var(--muted)'};">
+              ${qTaxData[q] ? qTaxData[q].toLocaleString() : '—'}
+            </div>
+            <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">GHS</div>
+          `}
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--border);">
+      <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);">Total Tax Paid · ${qTaxYear}</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;color:var(--accent);">GHS ${total.toLocaleString()}</span>
+    </div>
+  `;
+}
+
+async function saveQuarterTax(quarter) {
+  if (typeof isAdmin === 'function' && !isAdmin()) return;
+  const input = document.getElementById(`qTaxInput${quarter}`);
+  if (!input) return;
+  const amount = parseFloat(input.value) || 0;
+  try {
+    await API.put(`/api/quarterly-tax/_fleet/${qTaxYear}/${quarter}`, { amount });
+    qTaxData[quarter] = amount;
+    renderQuarterlyTax();
+  } catch (e) {
+    console.error('Failed to save quarterly tax', e);
+  }
+}
