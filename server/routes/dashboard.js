@@ -4,7 +4,6 @@ const MonthlyEntry = require('../models/MonthlyEntry');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const Truck = require('../models/Truck');
 const WeeklyEntry = require('../models/WeeklyEntry');
-const QuarterlyTax = require('../models/QuarterlyTax');
 const { getLastSaved } = require('../middleware/auth');
 
 
@@ -17,10 +16,7 @@ router.get('/kpis', async (req, res) => {
       filter.year = parseInt(year);
     }
 
-    const [entries, qTaxEntries] = await Promise.all([
-      YearEntry.find(filter),
-      QuarterlyTax.find({ truckId: '_fleet', ...filter })
-    ]);
+    const entries = await YearEntry.find(filter);
     let gross = 0, exp = 0, net = 0, weeks = 0;
     entries.forEach(e => {
       gross += e.gross;
@@ -28,8 +24,6 @@ router.get('/kpis', async (req, res) => {
       net += e.net;
       weeks += e.weeks;
     });
-    // Add quarterly income tax as fleet expenditure
-    qTaxEntries.forEach(e => { exp += e.amount || 0; net -= e.amount || 0; });
 
     const eff = gross ? Math.round(net / gross * 100) : 0;
     const avgWeek = weeks ? Math.round(gross / weeks) : 0;
@@ -43,22 +37,13 @@ router.get('/kpis', async (req, res) => {
 // GET /api/dashboard/yearly-totals — yearly totals
 router.get('/yearly-totals', async (req, res) => {
   try {
-    const [entries, qTaxEntries] = await Promise.all([
-      YearEntry.find(),
-      QuarterlyTax.find({ truckId: '_fleet' })
-    ]);
+    const entries = await YearEntry.find();
     const totals = {};
     entries.forEach(e => {
       if (!totals[e.year]) totals[e.year] = { gross: 0, exp: 0, net: 0 };
       totals[e.year].gross += e.gross;
       totals[e.year].exp += e.exp;
       totals[e.year].net += e.net;
-    });
-    // Add quarterly income tax as fleet expenditure per year
-    qTaxEntries.forEach(e => {
-      if (!totals[e.year]) totals[e.year] = { gross: 0, exp: 0, net: 0 };
-      totals[e.year].exp += e.amount || 0;
-      totals[e.year].net -= e.amount || 0;
     });
     res.json(totals);
   } catch (err) {
@@ -91,7 +76,7 @@ router.get('/heatmap', async (req, res) => {
 // GET /api/dashboard/full — full dashboard data in one call
 router.get('/full', async (req, res) => {
   try {
-    const [trucks, yearEntries, monthlyEntries, expenses, weeklyDaysAgg, lastSaved, qTaxEntries] = await Promise.all([
+    const [trucks, yearEntries, monthlyEntries, expenses, weeklyDaysAgg, lastSaved] = await Promise.all([
       Truck.find().sort('truckId'),
       YearEntry.find(),
       MonthlyEntry.find().sort('year month'),
@@ -99,8 +84,7 @@ router.get('/full', async (req, res) => {
       WeeklyEntry.aggregate([
         { $group: { _id: { truckId: '$truckId', year: '$year' }, weeksWorked: { $sum: 1 } } }
       ]),
-      getLastSaved(),
-      QuarterlyTax.find({ truckId: '_fleet' })
+      getLastSaved()
     ]);
 
     // Build trucks object
@@ -157,12 +141,6 @@ router.get('/full', async (req, res) => {
       yearlyTotals[ye.year].gross += ye.gross;
       yearlyTotals[ye.year].exp += ye.exp;
       yearlyTotals[ye.year].net += ye.net;
-    });
-    // Add quarterly income tax as fleet-level expenditure per year
-    qTaxEntries.forEach(e => {
-      if (!yearlyTotals[e.year]) yearlyTotals[e.year] = { gross: 0, exp: 0, net: 0 };
-      yearlyTotals[e.year].exp += e.amount || 0;
-      yearlyTotals[e.year].net -= e.amount || 0;
     });
     // Build expense breakdown
     const expBreakdown = {};

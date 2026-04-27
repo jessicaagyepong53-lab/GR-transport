@@ -193,6 +193,44 @@ function seedWeeklyFromXlsx() {
   return allEntries;
 }
 
+/* ── Quarterly income tax parser ──────────────────────────────── */
+// Reads "Summary YYYY" sheets and looks for rows like:
+//   "Q1 Income Tax" | 720
+//   "Q2 Income Tax" | 700
+// First cell must match /Q([1-4])/i, second numeric cell is the amount.
+function seedQuarterlyTaxFromXlsx() {
+  let XLSX;
+  try { XLSX = require('xlsx'); } catch { return []; }
+  const fs = require('fs');
+  if (!fs.existsSync(XLSX_PATH)) return [];
+
+  const wb = XLSX.readFile(XLSX_PATH);
+  const results = [];
+
+  for (const sheetName of wb.SheetNames) {
+    const m = sheetName.match(/^Summary\s+(\d{4})$/i);
+    if (!m) continue;
+    const year = parseInt(m[1]);
+
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    for (const row of rows) {
+      const label = String(row[0] || '').trim();
+      const qm = label.match(/Q([1-4])/i);
+      if (!qm) continue;
+      // Must also look like a tax row
+      if (!/tax/i.test(label) && !/income\s*tax/i.test(label)) continue;
+      const quarter = parseInt(qm[1]);
+      // Find first numeric value in the row (skip empty strings)
+      const amount = row.slice(1).map(c => parseFloat(c)).find(n => !isNaN(n) && n > 0);
+      if (amount === undefined) continue;
+      results.push({ year, quarter, amount });
+    }
+  }
+  return results;
+}
+
 async function seed() {
   await connectDB();
   console.log('Seeding database (non-destructive upsert mode)...');
@@ -323,22 +361,24 @@ async function seed() {
     console.log('  No xlsx weekly data found — weekly entries skipped');
   }
 
-  // Seed quarterly income tax payments (fleet-level, non-destructive)
-  const quarterlyTaxData = [
-    { year: 2026, quarter: 1, amount: 720 },
-    { year: 2026, quarter: 2, amount: 700 },
-  ];
-  for (const entry of quarterlyTaxData) {
-    await QuarterlyTax.findOneAndUpdate(
-      { truckId: '_fleet', year: entry.year, quarter: entry.quarter },
-      {
-        $set: { amount: entry.amount },
-        $setOnInsert: { truckId: '_fleet', year: entry.year, quarter: entry.quarter }
-      },
-      { upsert: true }
-    );
+  // Seed quarterly income tax from Excel Summary sheets
+  const quarterlyTaxData = seedQuarterlyTaxFromXlsx();
+  if (quarterlyTaxData.length > 0) {
+    for (const entry of quarterlyTaxData) {
+      await QuarterlyTax.findOneAndUpdate(
+        { truckId: '_fleet', year: entry.year, quarter: entry.quarter },
+        {
+          $set: { amount: entry.amount },
+          $setOnInsert: { truckId: '_fleet', year: entry.year, quarter: entry.quarter }
+        },
+        { upsert: true }
+      );
+    }
+    const summary = quarterlyTaxData.map(e => `${e.year} Q${e.quarter}=${e.amount}`).join(', ');
+    console.log(`  Quarterly tax seeded from xlsx (${summary})`);
+  } else {
+    console.log('  No quarterly tax rows found in Summary sheets — skipping');
   }
-  console.log('  Quarterly tax seeded (2026 Q1=720, Q2=700)');
 
   console.log('Seed complete!');
   process.exit(0);
