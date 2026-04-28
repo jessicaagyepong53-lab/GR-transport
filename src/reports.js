@@ -66,6 +66,7 @@ async function loadReport() {
     document.getElementById('summaryGrid').innerHTML = '<div class="summary-card"><div class="summary-label">Error</div><div class="summary-sub">' + err.message + '</div></div>';
   }
   loadQuarterlyTax(year);
+  await renderPurchaseBalance();
 }
 
 function renderSummary() {
@@ -202,6 +203,53 @@ function renderAnnualSummary() {
   table.innerHTML = html;
 }
 
+// ─── 26 TRUCKS PURCHASE BALANCE ──────────────────────────────────────────────
+async function renderPurchaseBalance() {
+  const section = document.getElementById('pbalSection');
+  const grid = document.getElementById('pbalGrid');
+  if (!section || !grid) return;
+
+  const year = document.getElementById('yearSelect').value;
+  if (year !== 'all' && year !== '2026') {
+    section.style.display = 'none';
+    return;
+  }
+
+  let trucks = [];
+  try {
+    trucks = await API.get('/api/trucks');
+  } catch { return; }
+
+  const trucks26 = trucks.filter(t => t.purchaseYear === 2026);
+  if (!trucks26.length) { section.style.display = 'none'; return; }
+
+  section.style.display = '';
+  grid.innerHTML = trucks26.map(t => {
+    const totalCost = t.cost?.pricePaid || 0;
+    const initialPmt = t.cost?.initialPayment || 0;
+    const entriesTotal = (t.paymentEntries || []).reduce((s, e) => s + (e.amount || 0), 0);
+    const totalPaid = initialPmt + entriesTotal;
+    const remaining = totalCost - totalPaid;
+    const pct = totalCost ? Math.min(100, Math.round(totalPaid / totalCost * 100)) : 0;
+    const remColor = remaining <= 0 ? 'var(--green)' : 'var(--accent)';
+
+    const entryRows = (t.paymentEntries || []).map((e, i) =>
+      `<div class="pbal-row"><span class="pbal-row-lbl">${e.label || `Payment ${i + 1}`}</span><span class="pbal-row-val" style="color:var(--green)">GHS ${(e.amount||0).toLocaleString()}</span></div>`
+    ).join('');
+
+    return `<div class="pbal-truck">
+      <div class="pbal-truck-id">${t.truckId}${t.driver ? ' — ' + t.driver : ''}</div>
+      <div class="pbal-row"><span class="pbal-row-lbl">Total Cost</span><span class="pbal-row-val" style="color:var(--blue)">GHS ${totalCost.toLocaleString()}</span></div>
+      ${t.cost?.initialPayment ? `<div class="pbal-row"><span class="pbal-row-lbl">Initial Payment</span><span class="pbal-row-val" style="color:var(--green)">GHS ${initialPmt.toLocaleString()}</span></div>` : ''}
+      ${entryRows}
+      <div class="pbal-row" style="margin-top:4px;padding-top:8px;border-top:1px solid var(--border);border-bottom:none;"><span class="pbal-row-lbl" style="font-weight:600;color:var(--text)">Total Paid</span><span class="pbal-row-val" style="color:var(--green)">GHS ${totalPaid.toLocaleString()}</span></div>
+      <div class="pbal-row"><span class="pbal-row-lbl" style="font-weight:600;color:var(--text)">Remaining Balance</span><span class="pbal-row-val" style="color:${remColor}">GHS ${remaining.toLocaleString()}</span></div>
+      <div class="pbal-bar-wrap"><div class="pbal-bar" style="width:${pct}%"></div></div>
+      <div class="pbal-pct">${pct}% paid</div>
+    </div>`;
+  }).join('');
+}
+
 document.addEventListener('DOMContentLoaded', init);
 
 // Auto-refresh when tab gains focus
@@ -242,8 +290,13 @@ function renderQuarterlyTax() {
             <input type="number" id="qTaxInput${q}" value="${qTaxData[q] || ''}" min="0" placeholder="—"
               style="width:100%;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:${qTaxData[q] ? 'var(--accent)' : 'var(--muted)'};font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;"
               oninput="this.style.color=this.value>0?'var(--accent)':'var(--muted)'"
-              onblur="saveQuarterTax(${q})">
-            <div style="font-size:0.64rem;color:var(--muted);margin-top:6px;">GHS · blur to save</div>
+              onkeydown="if(event.key==='Enter')saveQuarterTax(${q})">
+            <button onclick="saveQuarterTax(${q})"
+              style="margin-top:8px;width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--accent);background:rgba(245,166,35,0.1);color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;"
+              onmouseover="this.style.background='var(--accent)';this.style.color='#0a0c10'"
+              onmouseout="this.style.background='rgba(245,166,35,0.1)';this.style.color='var(--accent)'">
+              <i class="fa-solid fa-floppy-disk" style="margin-right:4px"></i>Save
+            </button>
           ` : `
             <div style="font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:2px;color:${qTaxData[q] ? 'var(--accent)' : 'var(--muted)'};">
               ${qTaxData[q] ? qTaxData[q].toLocaleString() : '—'}

@@ -79,9 +79,7 @@ async function main() {
   await connectDB();
   console.log('Connected to MongoDB');
 
-  // Clear all existing weekly entries
-  await WeeklyEntry.deleteMany({});
-  console.log('Cleared existing weekly entries');
+  // NON-DESTRUCTIVE: never wipe existing entries — upsert only
 
   let totalSeeded = 0;
 
@@ -173,27 +171,22 @@ async function main() {
       }
     }
 
-    // Bulk insert
-    try {
-      await WeeklyEntry.insertMany(unique, { ordered: false });
-      console.log('  ' + truckId + ' ' + year + ': seeded ' + unique.length + ' weeks (from ' + sheetName + ')');
-      totalSeeded += unique.length;
-    } catch (err) {
-      if (err.code === 11000) {
-        // Duplicate key — some entries already exist, try one by one
-        let inserted = 0;
-        for (const e of unique) {
-          try {
-            await WeeklyEntry.create(e);
-            inserted++;
-          } catch { /* skip duplicates */ }
-        }
-        console.log('  ' + truckId + ' ' + year + ': seeded ' + inserted + '/' + unique.length + ' weeks (dupes skipped)');
-        totalSeeded += inserted;
-      } else {
-        console.error('  ERROR seeding ' + sheetName + ':', err.message);
+    // Non-destructive upsert — only insert weeks that don't already exist in the DB
+    let inserted = 0;
+    for (const e of unique) {
+      try {
+        const result = await WeeklyEntry.findOneAndUpdate(
+          { truckId: e.truckId, year: e.year, week: e.week },
+          { $setOnInsert: e },
+          { upsert: true, new: false }
+        );
+        if (!result) inserted++;
+      } catch (err) {
+        console.error('  ERROR upserting week ' + e.week + ' for ' + truckId + ' ' + year + ':', err.message);
       }
     }
+    console.log('  ' + truckId + ' ' + year + ': ' + inserted + ' new / ' + (unique.length - inserted) + ' already existed (preserved)');
+    totalSeeded += inserted;
   }
 
   console.log('\nTotal weekly entries seeded: ' + totalSeeded);

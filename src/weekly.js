@@ -233,6 +233,8 @@ async function refreshData() {
   }
   fillWeekFromCache();
   renderHistory();
+  renderTruckBalance();
+  renderSheetNotes();
 }
 
 function fillWeekFromCache() {
@@ -306,6 +308,95 @@ async function onSelectChange() {
 
 function onWeekChange() {
   fillWeekFromCache();
+}
+
+// ─── TRUCK PURCHASE BALANCE (26 trucks only) ─────────────────────────────
+function renderTruckBalance() {
+  const { truckId } = getSelected();
+  const card = document.getElementById('truckBalCard');
+  if (!card) return;
+
+  const truck = allTrucks.find(t => t.truckId === truckId);
+  if (!truck || truck.purchaseYear !== 2026) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const totalCost = truck.cost?.pricePaid || 0;
+  const initialPmt = truck.cost?.initialPayment || 0;
+  const entriesTotal = (truck.paymentEntries || []).reduce((s, e) => s + (e.amount || 0), 0);
+  const totalPaid = initialPmt + entriesTotal;
+  const remaining = totalCost - totalPaid;
+  const pctPaid = totalCost ? Math.min(100, Math.round(totalPaid / totalCost * 100)) : 0;
+
+  card.style.display = '';
+  document.getElementById('truckBalTotal').textContent = `GHS ${totalCost.toLocaleString()}`;
+  document.getElementById('truckBalPaid').textContent = `GHS ${totalPaid.toLocaleString()}`;
+  document.getElementById('truckBalRemain').textContent = `GHS ${remaining.toLocaleString()}`;
+  document.getElementById('truckBalRemain').style.color = remaining <= 0 ? 'var(--green)' : 'var(--accent)';
+  document.getElementById('truckBalPct').textContent = `${pctPaid}% paid`;
+  document.getElementById('truckBalBar').style.width = `${pctPaid}%`;
+}
+
+// ─── SHEET NOTES ─────────────────────────────────────────────────────────────
+function renderSheetNotes() {
+  const { truckId } = getSelected();
+  const card = document.getElementById('sheetNotesCard');
+  const list = document.getElementById('sheetNotesList');
+  if (!card || !list) return;
+
+  const truck = allTrucks.find(t => t.truckId === truckId);
+  const notes = truck?.sheetNotes || [];
+
+  card.style.display = '';
+  list.innerHTML = notes.length
+    ? notes.map((note, i) => noteRowHtml(i, note)).join('')
+    : '<div style="color:var(--muted);font-size:0.82rem;">No notes yet. Click <b>Add Note</b> to get started.</div>';
+}
+
+function noteRowHtml(i, text) {
+  const escaped = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<div class="sheet-note-row">
+    <span class="sheet-note-num">${i + 1}.</span>
+    <textarea class="sheet-note-textarea" rows="2">${escaped}</textarea>
+    <button class="sheet-note-del" onclick="removeSheetNote(this)" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+  </div>`;
+}
+
+function addSheetNote() {
+  const list = document.getElementById('sheetNotesList');
+  if (!list) return;
+  // Clear the empty message if present
+  if (list.querySelector('div:not(.sheet-note-row)')) list.innerHTML = '';
+  const idx = list.querySelectorAll('.sheet-note-row').length;
+  const div = document.createElement('div');
+  div.innerHTML = noteRowHtml(idx, '');
+  list.appendChild(div.firstElementChild);
+  list.lastElementChild?.querySelector('textarea')?.focus();
+}
+
+function removeSheetNote(btn) {
+  btn.closest('.sheet-note-row')?.remove();
+  // Re-number
+  document.querySelectorAll('#sheetNotesList .sheet-note-row').forEach((row, i) => {
+    row.querySelector('.sheet-note-num').textContent = (i + 1) + '.';
+  });
+}
+
+async function saveSheetNotes() {
+  const { truckId } = getSelected();
+  if (!truckId) return;
+  const rows = document.querySelectorAll('#sheetNotesList .sheet-note-row');
+  const notes = Array.from(rows).map(r => r.querySelector('textarea')?.value?.trim() || '').filter(Boolean);
+  try {
+    await API.put('/api/trucks/' + encodeURIComponent(truckId), { sheetNotes: notes });
+    const truck = allTrucks.find(t => t.truckId === truckId);
+    if (truck) truck.sheetNotes = notes;
+    renderSheetNotes();
+    showToast('Notes saved', 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed to save notes', 'error');
+  }
 }
 
 // ─── HISTORY TABLE ───────────────────────────────────────────────────────────

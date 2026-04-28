@@ -105,6 +105,35 @@
   .footer-note{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:28px;letter-spacing:0.5px;}
   .footer-note i{margin-right:6px;color:var(--accent);}
 
+  .sheet-notes-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;animation:fadeUp 0.4s ease both;}
+  .sheet-notes-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap;}
+  .sheet-notes-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;display:flex;align-items:center;gap:8px;}
+  .sheet-notes-title i{color:var(--accent);}
+  .sheet-notes-actions{display:flex;gap:8px;}
+  .sheet-note-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
+  .sheet-note-row:last-child{margin-bottom:0;}
+  .sheet-note-num{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);padding-top:10px;min-width:18px;flex-shrink:0;}
+  .sheet-note-textarea{flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.83rem;font-family:'DM Sans',sans-serif;resize:vertical;min-height:42px;transition:border-color 0.2s;box-sizing:border-box;line-height:1.5;}
+  .sheet-note-textarea:focus{outline:none;border-color:var(--accent);}
+  .sheet-note-del{padding:5px 9px;border-radius:7px;border:1px solid rgba(255,80,80,0.25);background:rgba(255,80,80,0.07);color:#ff5050;cursor:pointer;font-size:0.75rem;flex-shrink:0;margin-top:6px;}
+  .sheet-note-del:hover{background:rgba(255,80,80,0.18);}
+  .sheet-notes-add{margin-top:8px;padding:7px 16px;border-radius:8px;font-size:0.76rem;font-weight:600;cursor:pointer;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .sheet-notes-add:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ── Truck Purchase Balance Card (26 trucks only) ─────────────────────── */
+  .truck-bal-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;animation:fadeUp 0.4s ease both;}
+  .truck-bal-header{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+  .truck-bal-header i{color:var(--accent);}
+  .truck-bal-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;}
+  .truck-bal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+  .truck-bal-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;}
+  .truck-bal-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted);margin-bottom:8px;}
+  .truck-bal-value{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;}
+  .truck-bal-bar-wrap{background:var(--bg3);border-radius:6px;height:7px;overflow:hidden;}
+  .truck-bal-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:6px;transition:width 0.6s ease;}
+  .truck-bal-footer{display:flex;justify-content:space-between;align-items:center;margin-top:6px;}
+  .truck-bal-pct{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--accent);font-weight:600;}
+
   @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 
   @media(max-width:700px){
@@ -201,6 +230,47 @@
     <button class="btn" data-admin-only onclick="nextWeek()"><i class="fa-solid fa-forward"></i>Save &amp; Next Week</button>
     <button class="btn" data-admin-only onclick="clearEntries()"><i class="fa-solid fa-eraser"></i>Clear</button>
     <span id="weekLastSaved" style="margin-left:auto;font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;"></span>
+  </div>
+
+  <!-- Sheet Notes Panel -->
+  <div class="sheet-notes-card" id="sheetNotesCard" style="display:none">
+    <div class="sheet-notes-header">
+      <div class="sheet-notes-title"><i class="fa-solid fa-file-lines"></i>Truck Notes</div>
+      <div class="sheet-notes-actions">
+        <button class="btn" data-admin-only onclick="addSheetNote()"><i class="fa-solid fa-plus"></i> Add Note</button>
+        <button class="btn btn-primary" data-admin-only onclick="saveSheetNotes()"><i class="fa-solid fa-floppy-disk"></i> Save Notes</button>
+      </div>
+    </div>
+    <div id="sheetNotesList"></div>
+  </div>
+
+  <!-- Truck Purchase Balance Card (26 trucks only) -->
+  <div class="truck-bal-card" id="truckBalCard" style="display:none">
+    <div class="truck-bal-header">
+      <i class="fa-solid fa-money-bill-trend-up"></i>
+      <span class="truck-bal-title">Truck Purchase Balance</span>
+    </div>
+    <div class="truck-bal-grid">
+      <div class="truck-bal-item">
+        <div class="truck-bal-label">Total Cost</div>
+        <div class="truck-bal-value" id="truckBalTotal" style="color:var(--blue);">—</div>
+      </div>
+      <div class="truck-bal-item">
+        <div class="truck-bal-label">Total Paid</div>
+        <div class="truck-bal-value" id="truckBalPaid" style="color:var(--green);">—</div>
+      </div>
+      <div class="truck-bal-item">
+        <div class="truck-bal-label">Remaining Balance</div>
+        <div class="truck-bal-value" id="truckBalRemain" style="color:var(--accent);">—</div>
+      </div>
+    </div>
+    <div class="truck-bal-bar-wrap">
+      <div class="truck-bal-bar" id="truckBalBar" style="width:0%"></div>
+    </div>
+    <div class="truck-bal-footer">
+      <span style="font-size:0.72rem;color:var(--muted);">Payment progress</span>
+      <span class="truck-bal-pct" id="truckBalPct">0%</span>
+    </div>
   </div>
 
   <!-- History Table -->

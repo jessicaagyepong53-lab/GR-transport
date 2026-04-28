@@ -1,4 +1,6 @@
 // Seed script — populates MongoDB with the default data from the dashboard
+// ⚠️  FULLY NON-DESTRUCTIVE — uses $setOnInsert upserts throughout.
+//     Manually entered data from the website is NEVER overwritten or deleted.
 require('dotenv').config();
 const mongoose = require('mongoose');
 const path = require('path');
@@ -71,6 +73,45 @@ function getStartWeek(truckId, year) {
   if (!sd) return 1;
   const d = new Date(sd);
   return isNaN(d) ? 1 : dateToISOWeek(d);
+}
+
+function extractSheetNotesFromXlsx() {
+  let XLSX;
+  try { XLSX = require('xlsx'); } catch { return {}; }
+  const fs = require('fs');
+  if (!fs.existsSync(XLSX_PATH)) return {};
+
+  const wb = XLSX.readFile(XLSX_PATH);
+  const result = {}; // truckId -> [string, ...]
+
+  for (const sheetName of wb.SheetNames) {
+    const meta = parseSheetMeta(sheetName);
+    if (!meta) continue;
+    if (result[meta.truckId]) continue; // use first matching sheet per truck
+
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    // Find where the header row is (same logic as seedWeekly)
+    let headerIdx = -1;
+    const HDR_KEYS = ['DATE', 'INCOME', 'MAINT', 'EXPENSE', 'NOTE', 'REMARK', 'WEEK', 'DAY'];
+    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+      if (!rows[i]) continue;
+      const cells = rows[i].map(c => String(c).toUpperCase());
+      const matchCount = HDR_KEYS.filter(k => cells.some(c => c.includes(k))).length;
+      if (matchCount >= 4) { headerIdx = i; break; }
+    }
+    if (headerIdx < 1) continue;
+
+    // Collect non-empty text from rows before the header
+    const notes = [];
+    for (let i = 0; i < headerIdx; i++) {
+      const text = String(rows[i]?.[0] || '').trim();
+      if (text) notes.push(text);
+    }
+    if (notes.length) result[meta.truckId] = notes;
+  }
+  return result;
 }
 
 function seedWeeklyFromXlsx() {
@@ -237,6 +278,7 @@ async function seed() {
 
   // Seed trucks (upsert — won't overwrite user edits if truck already exists)
   // cost is always updated via $set (configuration data, not user data)
+  const xlsxSheetNotes = extractSheetNotesFromXlsx();
   for (const [truckId, data] of Object.entries(DEFAULT_DATA.trucks)) {
     await Truck.findOneAndUpdate(
       { truckId },
@@ -250,11 +292,20 @@ async function seed() {
           driverNotes: data.driverNotes || '',
           startDates: data.startDates || {},
           purchaseYear: data.purchaseYear || undefined,
-          endOfTerm: data.endOfTerm || { active: false, date: '' }
+          endOfTerm: data.endOfTerm || { active: false, date: '' },
+          sheetNotes: xlsxSheetNotes[truckId] || []
         }
       },
       { upsert: true }
     );
+
+    // Backfill sheetNotes for existing trucks that have an empty array
+    if (xlsxSheetNotes[truckId]?.length) {
+      await Truck.updateOne(
+        { truckId, $or: [{ sheetNotes: { $exists: false } }, { sheetNotes: { $size: 0 } }] },
+        { $set: { sheetNotes: xlsxSheetNotes[truckId] } }
+      );
+    }
 
     for (const [year, entry] of Object.entries(data.years)) {
       await YearEntry.findOneAndUpdate(
@@ -328,16 +379,19 @@ async function seed() {
       const [truckId, year] = k.split('|');
       return { truckId, year: parseInt(year) };
     });
-    // Wipe existing entries for those combos so old wrong-numbered entries don't linger
-    for (const { truckId, year } of truckYearCombos) {
-      await WeeklyEntry.deleteMany({ truckId, year });
-    }
-    console.log(`  Cleared old weekly entries for ${truckYearCombos.length} truck/year combos`);
 
+    // NON-DESTRUCTIVE: upsert each weekly entry — only insert if that truck+year+week doesn't exist yet
+    // This preserves manually entered website data
+    let insertedCount = 0;
     for (const e of deduped) {
-      await WeeklyEntry.create(e);
+      const result = await WeeklyEntry.findOneAndUpdate(
+        { truckId: e.truckId, year: e.year, week: e.week },
+        { $setOnInsert: e },
+        { upsert: true, new: false }
+      );
+      if (!result) insertedCount++;
     }
-    console.log(`  Weekly entries from xlsx: ${deduped.length} inserted fresh`);
+    console.log(`  Weekly entries from xlsx: ${insertedCount} new inserted, ${deduped.length - insertedCount} already existed (preserved)`);
 
     // Recompute YearEntries from actual weekly data so totals stay accurate
     const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

@@ -69,6 +69,39 @@
   /* ── BREAKEVEN SECTION ── */
   .breakeven-section{margin-bottom:20px;}
 
+  /* ── NEW 26 TRUCKS PAYMENT TRACKER ── */
+  .payment-tracker-section{margin-bottom:20px;}
+  .pmt-cards-wrap{display:flex;flex-direction:column;gap:14px;}
+  .pmt-card{border-radius:10px;background:var(--bg3);border:1px solid var(--border);overflow:hidden;}
+  .pmt-card-summary{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 180px auto;gap:12px;padding:14px 18px;align-items:center;}
+  @media(max-width:900px){.pmt-card-summary{grid-template-columns:1fr 1fr;}.pmt-card-summary>:last-child{grid-column:1/-1;}}
+  .pmt-summary-label{font-size:0.67rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:3px;}
+  .pmt-summary-val{font-size:0.9rem;font-weight:700;color:var(--text);}
+  .pmt-truck-name{font-family:'JetBrains Mono',monospace;color:var(--accent)!important;}
+  .pmt-progress-track{height:6px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;margin-top:5px;}
+  .pmt-progress-fill{height:100%;border-radius:4px;transition:width 0.4s;}
+  .pmt-edit-btn{padding:7px 14px;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;border:1px solid var(--accent);background:rgba(245,166,35,0.12);color:var(--accent);font-family:'DM Sans',sans-serif;transition:all 0.2s;white-space:nowrap;}
+  .pmt-edit-btn:hover{background:var(--accent);color:#0a0c10;}
+  .pmt-edit-panel{border-top:1px solid var(--border);padding:18px 18px 20px;display:none;}
+  .pmt-edit-panel.open{display:block;}
+  .pmt-month-input{padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.88rem;font-family:'DM Sans',sans-serif;transition:border-color 0.2s;box-sizing:border-box;}
+  .pmt-month-input:focus{outline:none;border-color:var(--accent);}
+  .pmt-notes-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;}
+  .pmt-dyn-row{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;}
+  .pmt-dyn-header{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .pmt-dyn-label-inp{flex:1;min-width:0;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;transition:border-color 0.2s;}
+  .pmt-dyn-label-inp:focus{outline:none;border-color:var(--accent);}
+  .pmt-dyn-amount-inp{width:130px;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;transition:border-color 0.2s;}
+  .pmt-dyn-amount-inp:focus{outline:none;border-color:var(--accent);}
+  .pmt-dyn-del-btn{padding:6px 10px;border-radius:7px;border:1px solid rgba(255,80,80,0.3);background:rgba(255,80,80,0.08);color:#ff5050;cursor:pointer;font-size:0.8rem;flex-shrink:0;}
+  .pmt-dyn-del-btn:hover{background:rgba(255,80,80,0.2);}
+  .pmt-dyn-notes{width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.82rem;font-family:'DM Sans',sans-serif;resize:vertical;min-height:52px;transition:border-color 0.2s;box-sizing:border-box;}
+  .pmt-dyn-notes:focus{outline:none;border-color:var(--accent);}
+  .pmt-add-btn{padding:7px 16px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all 0.2s;margin-top:4px;display:block;}
+  .pmt-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .pmt-save-btn{margin-top:14px;padding:8px 22px;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;border:none;background:var(--accent);color:#0a0c10;font-family:'DM Sans',sans-serif;transition:opacity 0.2s;}
+  .pmt-save-btn:hover{opacity:0.82;}
+
 
 
   .breakeven-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
@@ -393,6 +426,19 @@
     <div class="breakeven-grid" id="breakevenGrid"></div>
   </div>
 
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!--   NEW 26 TRUCKS — PAYMENT TRACKER             -->
+  <!-- ══════════════════════════════════════════════ -->
+  <div class="payment-tracker-section">
+    <div class="chart-card wide">
+      <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-money-bill-transfer"></i>New 26 Trucks — Payment Tracker</span>
+        <span class="card-pill"><i class="fa-solid fa-truck-moving"></i>GN 626-26 &amp; GN 4107-26</span>
+      </div>
+      <div class="pmt-cards-wrap" id="paymentTrackerCards"></div>
+    </div>
+  </div>
 
   <!-- ══════════════════════════════════════════════ -->
   <!--   PROFIT & LOSS GRAPH                         -->
@@ -1734,6 +1780,7 @@ function setYear(year) {
   renderKPIs(year); renderMonthly(year); renderTruckIncome(year);
   renderExpBreakdown(year); renderEfficiency(year); renderTable(year);
   renderWeeksBreakdown(year); renderBreakeven(year);
+  renderPaymentTracker(year);
   if (typeof renderBreakEvenChart === 'function') renderBreakEvenChart();
   const mgmt = document.getElementById('mgmtPanel');
   if (mgmt) mgmt.style.display = (year !== 'all' && isAdmin()) ? '' : 'none';
@@ -1761,6 +1808,156 @@ DATA.drivers = DATA.drivers || {
 
 rebuildAllMonthlyData();
 
+// ─── NEW 26 TRUCKS PAYMENT TRACKER ──────────────────────────────────────────
+const NEW_26_TRUCKS = ['GN 626-26 BLUE', 'GN 4107-26 GREEN'];
+
+function buildPmtRowHtml(safeId, idx, label, amount, rowNotes, admin) {
+  const dis = admin ? '' : ' disabled';
+  const delBtn = admin
+    ? `<button class="pmt-dyn-del-btn" onclick="removePaymentEntry(this)" title="Remove"><i class="fa-solid fa-xmark"></i></button>`
+    : '';
+  const escapedLabel = label.replace(/"/g, '&quot;');
+  return `<div class="pmt-dyn-row">
+    <div class="pmt-dyn-header">
+      <input class="pmt-dyn-label-inp" type="text" placeholder="e.g. Month 1" value="${escapedLabel}"${dis}>
+      <input class="pmt-dyn-amount-inp" type="number" min="0" placeholder="Amount (GHS)" value="${amount}"${dis}>
+      ${delBtn}
+    </div>
+    <textarea class="pmt-dyn-notes" placeholder="Notes for this payment..."${dis}>${rowNotes}</textarea>
+  </div>`;
+}
+
+function renderPaymentTracker(year) {
+  const section = document.querySelector('.payment-tracker-section');
+  const wrap = document.getElementById('paymentTrackerCards');
+  if (!wrap || !section) return;
+
+  const show = (year === 'all' || year === 2026 || year === '2026');
+  section.style.display = show ? '' : 'none';
+  if (!show) return;
+
+  let html = '';
+  const admin = isAdmin();
+
+  NEW_26_TRUCKS.forEach(id => {
+    const cost = DATA.truckCost?.[id] || {};
+    const driver = DATA.drivers?.[id] || '—';
+    const totalCost = (cost.pricePaid || 0) + (cost.insurance || 0) + (cost.maintenanceCost || 0);
+    const entries = cost.paymentEntries || [];
+    const initialPayment = cost.initialPayment || 0;
+    const initialPaymentNotes = cost.initialPaymentNotes || '';
+    const paid = initialPayment + entries.reduce((s, e) => s + (e.amount || 0), 0);
+    const balance = Math.max(totalCost - paid, 0);
+    const pct = totalCost > 0 ? Math.min(Math.round(paid / totalCost * 100), 100) : 0;
+    const barColor = pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--accent)' : 'var(--blue)';
+    const balColor = balance <= 0 ? 'var(--green)' : 'var(--red)';
+    const safeId = id.replace(/\s+/g, '_');
+    const dis = admin ? '' : ' disabled';
+
+    const rowsHtml = entries.map((e, i) =>
+      buildPmtRowHtml(safeId, i, e.label || '', e.amount || 0, e.notes || '', admin)
+    ).join('');
+
+    const editBtn = admin
+      ? `<button class="pmt-edit-btn" onclick="togglePaymentPanel('${safeId}')"><i class="fa-solid fa-pen-to-square"></i> Edit Payments</button>`
+      : '';
+    const addBtn = admin
+      ? `<button class="pmt-add-btn" onclick="addPaymentEntry('${safeId}')"><i class="fa-solid fa-plus"></i> Add Payment Entry</button>`
+      : '';
+    const saveBtn = admin
+      ? `<button class="pmt-save-btn" onclick="savePayment('${id}')"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>`
+      : '';
+
+    html += `
+      <div class="pmt-card" id="pmtCard_${safeId}">
+        <div class="pmt-card-summary">
+          <div>
+            <div class="pmt-summary-label">Truck</div>
+            <div class="pmt-summary-val pmt-truck-name">${id}</div>
+          </div>
+          <div>
+            <div class="pmt-summary-label">Driver</div>
+            <div class="pmt-summary-val" style="color:var(--label)">${driver}</div>
+          </div>
+          <div>
+            <div class="pmt-summary-label">Total Cost</div>
+            <div class="pmt-summary-val">GHS ${totalCost.toLocaleString()}</div>
+          </div>
+          <div>
+            <div class="pmt-summary-label">Total Paid</div>
+            <div class="pmt-summary-val" style="color:var(--green)">GHS ${paid.toLocaleString()}</div>
+          </div>
+          <div>
+            <div class="pmt-summary-label">Balance &middot; ${pct}%</div>
+            <div class="pmt-summary-val" style="color:${balColor}">${balance <= 0 ? 'PAID OFF ✓' : 'GHS ' + balance.toLocaleString()}</div>
+            <div class="pmt-progress-track"><div class="pmt-progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+          </div>
+          ${editBtn}
+        </div>
+        <div class="pmt-edit-panel" id="pmtPanel_${safeId}">
+          <div style="margin-bottom:18px">
+            <div class="pmt-notes-label" style="margin-bottom:6px">Initial Payment (GHS)</div>
+            <input class="pmt-month-input" id="pmtInit_${safeId}" type="number" value="${initialPayment}" min="0" placeholder="0" style="width:220px;display:block;margin-bottom:8px"${dis}>
+            <div class="pmt-notes-label" style="margin-bottom:4px">Initial Payment Notes</div>
+            <textarea class="pmt-dyn-notes" id="pmtInitNotes_${safeId}" placeholder="Notes for initial payment..."${dis}>${initialPaymentNotes}</textarea>
+          </div>
+          <div class="pmt-notes-label" style="margin-bottom:8px">Payment Entries</div>
+          <div id="pmtRows_${safeId}">${rowsHtml}</div>
+          ${addBtn}
+          ${saveBtn}
+        </div>
+      </div>`;
+  });
+
+  wrap.innerHTML = html;
+}
+
+function togglePaymentPanel(safeId) {
+  const panel = document.getElementById('pmtPanel_' + safeId);
+  if (panel) panel.classList.toggle('open');
+}
+
+function addPaymentEntry(safeId) {
+  const container = document.getElementById('pmtRows_' + safeId);
+  if (!container) return;
+  const idx = container.querySelectorAll('.pmt-dyn-row').length;
+  const div = document.createElement('div');
+  div.innerHTML = buildPmtRowHtml(safeId, idx, '', 0, '', true);
+  container.appendChild(div.firstElementChild);
+}
+
+function removePaymentEntry(btn) {
+  btn.closest('.pmt-dyn-row')?.remove();
+}
+
+async function savePayment(truckId) {
+  const safeId = truckId.replace(/\s+/g, '_');
+  const initialPayment = parseFloat(document.getElementById('pmtInit_' + safeId)?.value) || 0;
+  const initialPaymentNotes = document.getElementById('pmtInitNotes_' + safeId)?.value || '';
+  const entries = [];
+  document.getElementById('pmtRows_' + safeId)?.querySelectorAll('.pmt-dyn-row').forEach(row => {
+    const label = row.querySelector('.pmt-dyn-label-inp')?.value?.trim() || '';
+    const amount = parseFloat(row.querySelector('.pmt-dyn-amount-inp')?.value) || 0;
+    const notes = row.querySelector('.pmt-dyn-notes')?.value || '';
+    entries.push({ label, amount, notes });
+  });
+  const totalPaid = initialPayment + entries.reduce((s, e) => s + e.amount, 0);
+  try {
+    await API.put('/api/trucks/' + encodeURIComponent(truckId), {
+      cost: { paymentsMade: totalPaid, initialPayment, initialPaymentNotes },
+      paymentEntries: entries
+    });
+    if (!DATA.truckCost) DATA.truckCost = {};
+    if (!DATA.truckCost[truckId]) DATA.truckCost[truckId] = {};
+    Object.assign(DATA.truckCost[truckId], { paymentsMade: totalPaid, initialPayment, initialPaymentNotes, paymentEntries: entries });
+    renderPaymentTracker(currentYear);
+    document.getElementById('pmtPanel_' + safeId)?.classList.add('open');
+    showToast('Payments saved for ' + truckId);
+  } catch (err) {
+    showToast((err.message || 'Failed to save payment'), true);
+  }
+}
+
 function renderAll(year) {
   renderYearTabs();
   updateHeaderSubtitle();
@@ -1772,6 +1969,7 @@ function renderAll(year) {
   renderEfficiency(year);
   renderHeatmap();
   renderBreakeven(year);
+  renderPaymentTracker(year);
   populatePnLSelect();
   renderPnL();
   renderTable(year);

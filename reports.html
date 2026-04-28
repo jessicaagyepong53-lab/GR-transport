@@ -113,6 +113,20 @@
   .dm-modal-actions .dm-btn.save{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
   .dm-modal-actions .dm-btn.save:hover{background:#ffb940;}
 
+  /* 26 Trucks Purchase Balance */
+  .pbal-section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
+  .pbal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px;}
+  .pbal-truck{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+  .pbal-truck-id{font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:600;color:var(--accent);margin-bottom:12px;}
+  .pbal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(37,45,61,0.5);font-size:0.8rem;}
+  .pbal-row:last-of-type{border-bottom:none;}
+  .pbal-row-lbl{color:var(--muted);}
+  .pbal-row-val{font-family:'JetBrains Mono',monospace;font-weight:600;}
+  .pbal-bar-wrap{background:var(--bg2);border-radius:6px;height:7px;overflow:hidden;margin-top:12px;}
+  .pbal-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:6px;}
+  .pbal-pct{font-size:0.72rem;color:var(--muted);text-align:right;margin-top:5px;}
+  @media(max-width:700px){.pbal-grid{grid-template-columns:1fr;}}
+
   .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
   .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
   .toast.success{border-color:rgba(45,224,138,0.4);color:var(--green);}
@@ -180,6 +194,14 @@
     <div style="overflow-x:auto;">
       <table class="summary-table" id="annualSummaryTable"></table>
     </div>
+  </div>
+
+  <!-- 26 Trucks Purchase Balance -->
+  <div class="pbal-section" id="pbalSection" style="display:none">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-money-bill-trend-up"></i>26 Trucks Purchase Balance</span>
+    </div>
+    <div class="pbal-grid" id="pbalGrid"></div>
   </div>
 
   <!-- Quarterly Income Tax -->

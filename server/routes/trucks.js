@@ -72,8 +72,11 @@ router.get('/', async (req, res) => {
         driver: t.driver,
         driverNotes: t.driverNotes || '',
         startDates: t.startDates || {},
+        purchaseYear: t.purchaseYear,
         cost: t.cost,
+        paymentEntries: t.paymentEntries || [],
         endOfTerm: t.endOfTerm,
+        sheetNotes: t.sheetNotes || [],
         years
       };
     });
@@ -159,6 +162,8 @@ router.put('/:id', requireAdmin, async (req, res) => {
 
     if (driver !== undefined) truck.driver = driver;
     if (cost) truck.cost = { ...truck.cost.toObject?.() || truck.cost, ...cost };
+    if (req.body.paymentEntries !== undefined) truck.paymentEntries = req.body.paymentEntries;
+    if (req.body.sheetNotes !== undefined) truck.sheetNotes = req.body.sheetNotes;
     if (endOfTerm !== undefined) truck.endOfTerm = endOfTerm;
 
     await truck.save();

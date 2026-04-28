@@ -97,7 +97,10 @@ router.get('/full', async (req, res) => {
       trucksObj[t.truckId] = {};
       driversObj[t.truckId] = t.driver || '';
       if (t.cost) {
-        truckCostObj[t.truckId] = t.cost;
+        truckCostObj[t.truckId] = {
+          ...(t.cost.toObject ? t.cost.toObject() : t.cost),
+          paymentEntries: t.paymentEntries || []
+        };
       }
       if (t.endOfTerm?.active) {
         endOfTermObj[t.truckId] = { date: t.endOfTerm.date };
