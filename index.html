@@ -784,16 +784,87 @@ function getYearlyKPIs(year) {
   return {gross:y.gross,exp:y.exp,net:y.gross-y.exp,weeks};
 }
 
+function getMarketGrowthRate(year) {
+  const years = getSortedYears();
+  const targetYear = year === 'all' ? years[years.length - 1] : Number(year);
+  if (!Number.isFinite(targetYear)) {
+    return { rate: null, subtitle: 'No comparable year selected' };
+  }
+
+  const previousYear = targetYear - 1;
+  const nowYear = new Date().getFullYear();
+  const useMonthlyYTD = targetYear >= nowYear;
+
+  if (useMonthlyYTD) {
+    const currentMonthly = DATA.monthly[String(targetYear)] || { labels: [], gross: [] };
+    const prevMonthly = DATA.monthly[String(previousYear)] || { labels: [], gross: [] };
+
+    const rows = currentMonthly.labels
+      .map((m, i) => ({ month: String(m).slice(0, 3), gross: Number(currentMonthly.gross[i] || 0) }))
+      .filter(r => MONTH_ORDER.includes(r.month))
+      .sort((a, b) => monthToIndex(a.month) - monthToIndex(b.month));
+
+    if (!rows.length) {
+      return { rate: null, subtitle: `${targetYear} monthly data not available` };
+    }
+
+    const prevByMonth = {};
+    prevMonthly.labels.forEach((m, i) => {
+      prevByMonth[String(m).slice(0, 3)] = Number(prevMonthly.gross[i] || 0);
+    });
+
+    const months = rows.map(r => r.month);
+    const currentValue = rows.reduce((sum, r) => sum + r.gross, 0);
+    const previousValue = months.reduce((sum, m) => sum + Number(prevByMonth[m] || 0), 0);
+
+    if (previousValue <= 0) {
+      return {
+        rate: null,
+        subtitle: `${targetYear} YTD vs ${previousYear} YTD (monthly): missing prior baseline`
+      };
+    }
+
+    const rate = ((currentValue - previousValue) / previousValue) * 100;
+    return {
+      rate,
+      subtitle: `${targetYear} YTD vs ${previousYear} YTD (${months[0]}-${months[months.length - 1]}, monthly)`
+    };
+  }
+
+  let currentValue = Number(DATA.yearlyTotals[String(targetYear)]?.gross || 0);
+  let previousValue = Number(DATA.yearlyTotals[String(previousYear)]?.gross || 0);
+
+  // Fallback to full-year monthly sums when yearly values are not saved yet.
+  if (currentValue <= 0 && DATA.monthly[String(targetYear)]) {
+    currentValue = (DATA.monthly[String(targetYear)].gross || []).reduce((s, n) => s + Number(n || 0), 0);
+  }
+  if (previousValue <= 0 && DATA.monthly[String(previousYear)]) {
+    previousValue = (DATA.monthly[String(previousYear)].gross || []).reduce((s, n) => s + Number(n || 0), 0);
+  }
+
+  if (previousValue <= 0) {
+    return { rate: null, subtitle: `${targetYear} vs ${previousYear} (yearly): missing prior baseline` };
+  }
+
+  const rate = ((currentValue - previousValue) / previousValue) * 100;
+  return { rate, subtitle: `${targetYear} vs ${previousYear} (yearly gross)` };
+}
+
 // ─── KPIs ──────────────────────────────────────────────────────────────────
 function renderKPIs(year) {
   const {gross,exp,net,weeks}=getYearlyKPIs(year);
-  const eff=Math.round(net/gross*100);
-  const avgWeek=Math.round(gross/Math.max(weeks,1));
+  const eff=gross?Math.round(net/gross*100):0;
+  const expShare=gross?Math.round(exp/gross*100):0;
+  const growth=getMarketGrowthRate(year);
+  const growthValue=growth.rate===null?'N/A':`${growth.rate>=0?'+':''}${growth.rate.toFixed(1)}%`;
+  const growthBadge=growth.rate===null
+    ? `<span class="kpi-badge" style="background:rgba(107,122,150,0.16);color:var(--muted)">Awaiting baseline</span>`
+    : `<span class="kpi-badge ${growth.rate>=0?'badge-up':'badge-down'}">${growth.rate>=0?'▲':'▼'} ${Math.abs(growth.rate).toFixed(1)}%</span>`;
   document.getElementById('kpiStrip').innerHTML=`
     <div class="kpi"><div class="kpi-label">Total Gross Income</div><div class="kpi-value">${fmt(gross)}</div><div class="kpi-sub">${weeks} operational weeks</div></div>
     <div class="kpi"><div class="kpi-label">Total Net Income</div><div class="kpi-value">${fmt(net)}</div><span class="kpi-badge badge-up">▲ ${eff}% efficiency</span></div>
-    <div class="kpi"><div class="kpi-label">Total Expenditure</div><div class="kpi-value">${fmt(exp)}</div><div class="kpi-sub">${Math.round(exp/gross*100)}% of gross income</div></div>
-    <div class="kpi"><div class="kpi-label">Avg Weekly Gross</div><div class="kpi-value">${fmt(avgWeek)}</div><div class="kpi-sub">Per week across all trucks</div></div>
+    <div class="kpi"><div class="kpi-label">Total Expenditure</div><div class="kpi-value">${fmt(exp)}</div><div class="kpi-sub">${expShare}% of gross income</div></div>
+    <div class="kpi"><div class="kpi-label">Market Growth Rate</div><div class="kpi-value">${growthValue}</div>${growthBadge}<div class="kpi-sub">${growth.subtitle}</div></div>
   `;
 }
 
