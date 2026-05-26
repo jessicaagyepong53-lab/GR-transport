@@ -185,29 +185,29 @@
     <div class="entry-grid">
       <div class="week-field">
         <div class="week-field-label"><i class="fa-solid fa-calendar-days"></i>Days Worked</div>
-        <input type="number" class="week-input" id="weekDays" placeholder="0" min="0" max="6" oninput="updateTotals()" data-admin-input>
+        <input type="number" class="week-input" id="weekDays" placeholder="0" min="0" max="6" oninput="updateTotals(); saveFormDraft()" data-admin-input>
       </div>
       <div class="week-field">
         <div class="week-field-label"><i class="fa-solid fa-arrow-trend-up"></i>Gross Income (GHS)</div>
-        <input type="number" class="week-input" id="weekGross" placeholder="0" oninput="updateTotals()" data-admin-input>
+        <input type="number" class="week-input" id="weekGross" placeholder="0" oninput="updateTotals(); saveFormDraft()" data-admin-input>
       </div>
       <div class="week-field">
         <div class="week-field-label"><i class="fa-solid fa-oil-can"></i>Maintenance Cost (GHS)</div>
-        <input type="number" class="week-input" id="weekMaint" placeholder="0" oninput="updateTotals()" data-admin-input>
+        <input type="number" class="week-input" id="weekMaint" placeholder="0" oninput="updateTotals(); saveFormDraft()" data-admin-input>
       </div>
       <div class="week-field">
         <div class="week-field-label"><i class="fa-solid fa-cart-shopping"></i>Other Expenses (GHS)</div>
-        <input type="number" class="week-input" id="weekOther" placeholder="0" oninput="updateTotals()" data-admin-input>
+        <input type="number" class="week-input" id="weekOther" placeholder="0" oninput="updateTotals(); saveFormDraft()" data-admin-input>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
       <div>
         <label class="selector-label" style="margin-bottom:6px;display:block;">Notes</label>
-        <textarea class="notes-input" id="weekNotes" placeholder="Optional notes for this week..." data-admin-input></textarea>
+        <textarea class="notes-input" id="weekNotes" placeholder="Optional notes for this week..." oninput="saveFormDraft()" data-admin-input></textarea>
       </div>
       <div>
         <label class="selector-label" style="margin-bottom:6px;display:block;">Remarks</label>
-        <textarea class="notes-input" id="weekRemarks" placeholder="Optional remarks for this week..." data-admin-input></textarea>
+        <textarea class="notes-input" id="weekRemarks" placeholder="Optional remarks for this week..." oninput="saveFormDraft()" data-admin-input></textarea>
       </div>
     </div>
   </div>

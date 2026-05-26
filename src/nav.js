@@ -10,6 +10,22 @@
     { href: 'settings.html', icon: 'fa-gear', label: 'Settings' },
   ];
 
+  function ensureNavBaseStyles() {
+    if (document.getElementById('siteNavBaseStyles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'siteNavBaseStyles';
+    style.textContent = `
+      body.has-nav .wrapper { margin-left: 220px; }
+
+      @media (max-width: 900px) {
+        body.has-nav .wrapper { margin-left: 0; }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
   function getCurrentPage() {
     const path = window.location.pathname;
     const file = path.split('/').pop() || 'index.html';
@@ -75,9 +91,6 @@
           color: #f5a623; font-size: 1.1rem; cursor: pointer;
           align-items: center; justify-content: center;
         }
-
-        /* Push content right */
-        body.has-nav .wrapper { margin-left: 220px; }
 
         /* Collapsed state — nav hidden, hamburger visible, full-width content */
         body.nav-collapsed #siteNav { transform: translateX(-100%); }
@@ -150,6 +163,9 @@
     // Sync auth button state (auth-modal may have resolved before nav was created)
     if (typeof updateAdminUI === 'function') updateAdminUI();
   }
+
+  ensureNavBaseStyles();
+  if (document.body) document.body.classList.add('has-nav');
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', createNav);

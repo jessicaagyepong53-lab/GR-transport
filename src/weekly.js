@@ -8,6 +8,51 @@ let currentWeekOriginal = { gross: 0, maint: 0, other: 0 };
 let totalsMode = 'year'; // 'year' or 'week'
 let weeklyCache = { truckId: null, year: null, data: [] };
 
+// ─── DRAFT PERSISTENCE ───────────────────────────────────────────────────────
+const WEEKLY_STATE_KEY = 'weekly_last_state';
+
+function _draftKey(truckId, year, week) {
+  return `weekly_draft_${truckId}_${year}_${week}`;
+}
+
+function saveFormDraft() {
+  const { truckId, year, week } = getSelected();
+  if (!truckId) return;
+  localStorage.setItem(_draftKey(truckId, year, week), JSON.stringify({
+    days:    document.getElementById('weekDays').value,
+    gross:   document.getElementById('weekGross').value,
+    maint:   document.getElementById('weekMaint').value,
+    other:   document.getElementById('weekOther').value,
+    notes:   document.getElementById('weekNotes').value,
+    remarks: document.getElementById('weekRemarks').value
+  }));
+  localStorage.setItem(WEEKLY_STATE_KEY, JSON.stringify({ truckId, year, week }));
+}
+
+function clearFormDraft(truckId, year, week) {
+  localStorage.removeItem(_draftKey(truckId, year, week));
+}
+
+function saveSelectorState() {
+  const { truckId, year, week } = getSelected();
+  localStorage.setItem(WEEKLY_STATE_KEY, JSON.stringify({ truckId, year, week }));
+}
+
+function restoreSelectorState() {
+  try {
+    const raw = localStorage.getItem(WEEKLY_STATE_KEY);
+    if (!raw) return false;
+    const { truckId, year, week } = JSON.parse(raw);
+    const ts = document.getElementById('truckSelect');
+    const ys = document.getElementById('yearSelect');
+    const ws = document.getElementById('weekSelect');
+    if (truckId && [...ts.options].some(o => o.value === truckId)) ts.value = truckId;
+    if (year) ys.value = year;
+    if (week) ws.value = week;
+    return !!(truckId || year || week);
+  } catch { return false; }
+}
+
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -42,8 +87,9 @@ async function init() {
   populateTruckSelect();
   populateYearSelect();
   populateWeekSelect();
+  const hadSavedState = restoreSelectorState();
   await refreshData();
-  autoSelectNextWeek();
+  if (!hadSavedState) autoSelectNextWeek();
 }
 
 function populateTruckSelect() {
@@ -216,7 +262,11 @@ function clearEntries(silent) {
   document.getElementById('weekRemarks').value = '';
   currentWeekOriginal = { gross: 0, maint: 0, other: 0 };
   updateTotals();
-  if (!silent) showToast('Entries cleared', '');
+  if (!silent) {
+    const { truckId, year, week } = getSelected();
+    clearFormDraft(truckId, year, week);
+    showToast('Entries cleared', '');
+  }
 }
 
 // ─── LOAD / SAVE ─────────────────────────────────────────────────────────────
@@ -238,7 +288,7 @@ async function refreshData() {
 }
 
 function fillWeekFromCache() {
-  const { week } = getSelected();
+  const { truckId, year, week } = getSelected();
   const entry = weeklyCache.data.find(e => e.week === week) || null;
   currentEntry = entry;
   if (entry) {
@@ -246,6 +296,21 @@ function fillWeekFromCache() {
   } else {
     clearEntries(true);
   }
+  // Restore any unsaved draft on top of server data
+  try {
+    const raw = localStorage.getItem(_draftKey(truckId, year, week));
+    if (raw) {
+      const d = JSON.parse(raw);
+      document.getElementById('weekDays').value    = d.days    ?? document.getElementById('weekDays').value;
+      document.getElementById('weekGross').value   = d.gross   ?? document.getElementById('weekGross').value;
+      document.getElementById('weekMaint').value   = d.maint   ?? document.getElementById('weekMaint').value;
+      document.getElementById('weekOther').value   = d.other   ?? document.getElementById('weekOther').value;
+      document.getElementById('weekNotes').value   = d.notes   ?? document.getElementById('weekNotes').value;
+      document.getElementById('weekRemarks').value = d.remarks ?? document.getElementById('weekRemarks').value;
+      updateTotals();
+      showToast('Draft restored', 'success');
+    }
+  } catch { /* ignore */ }
 }
 
 async function saveWeek() {
@@ -266,6 +331,7 @@ async function saveWeek() {
     });
     // Update currentWeekOriginal to match what was just saved
     currentWeekOriginal = { gross, maint, other };
+    clearFormDraft(truckId, year, week);
     showToast(`Week ${week} saved for ${truckId}`, 'success');
     // Fetch server timestamp so all devices show the same value
     try {
@@ -302,11 +368,13 @@ async function onSelectChange() {
   populateTruckSelect();
   populateWeekSelect();
   setTotalsMode('year');
+  saveSelectorState();
   await refreshData();
   autoSelectNextWeek();
 }
 
 function onWeekChange() {
+  saveSelectorState();
   fillWeekFromCache();
 }
 
