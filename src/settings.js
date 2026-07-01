@@ -1,6 +1,10 @@
 // ─── SETTINGS PAGE ───────────────────────────────────────────────────────────
 
 let trucksData = [];
+let referenceFiles = [];
+let editingReferenceId = null;
+let pendingReferenceUploads = [];
+let referenceFileFilter = { category: 'all', search: '' };
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
@@ -11,11 +15,338 @@ function showToast(msg, type) {
 
 async function loadSettings() {
   try {
-    trucksData = await API.get('/api/trucks');
+    const [trucks, files] = await Promise.all([
+      API.get('/api/trucks'),
+      API.get('/api/settings/files')
+    ]);
+    trucksData = trucks;
+    referenceFiles = files;
     renderDriverTable();
     renderCostTable();
+    renderReferenceFiles();
   } catch (err) {
     showToast('Error loading data: ' + err.message, 'error');
+  }
+}
+
+function formatFileSize(bytes) {
+  if (!bytes || bytes < 1024) return `${bytes || 0} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDateShort(isoDate) {
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return 'Unknown date';
+  return d.toLocaleString();
+}
+
+function getFileIcon(mimeType) {
+  if (mimeType && mimeType.startsWith('image/')) return 'fa-regular fa-image';
+  if (mimeType === 'application/pdf') return 'fa-regular fa-file-pdf';
+  if (mimeType && mimeType.includes('word')) return 'fa-regular fa-file-word';
+  if (mimeType && (mimeType.includes('excel') || mimeType.includes('sheet'))) return 'fa-regular fa-file-excel';
+  return 'fa-regular fa-file-lines';
+}
+
+function isOfficeMimeType(mimeType) {
+  return mimeType === 'application/msword'
+    || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    || mimeType === 'application/vnd.ms-excel'
+    || mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+}
+
+function isPdfFile(file) {
+  const mimeType = String(file?.mimeType || '').toLowerCase();
+  const name = String(file?.originalName || '').toLowerCase();
+  return mimeType === 'application/pdf' || name.endsWith('.pdf');
+}
+
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function closeReferenceViewer() {
+  const modal = document.getElementById('referenceViewerModal');
+  const body = document.getElementById('viewerBody');
+  if (!modal || !body) return;
+  body.innerHTML = '';
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+async function openReferenceViewer(fileId) {
+  const file = referenceFiles.find(f => String(f.id) === String(fileId));
+  if (!file) {
+    showToast('File not found', 'error');
+    return;
+  }
+
+  const modal = document.getElementById('referenceViewerModal');
+  const body = document.getElementById('viewerBody');
+  const title = document.getElementById('viewerTitle');
+  const rawBtn = document.getElementById('viewerDownloadBtn');
+  if (!modal || !body || !title || !rawBtn) return;
+
+  title.textContent = file.originalName || 'Reference File';
+  rawBtn.href = file.url;
+  body.innerHTML = '';
+
+  const mimeType = String(file.mimeType || '').toLowerCase();
+
+  if (mimeType.startsWith('image/')) {
+    body.innerHTML = `<img class="viewer-image" src="${file.url}" alt="${escapeHtml(file.originalName)}">`;
+  } else if (isPdfFile(file)) {
+    body.innerHTML = `<div class="viewer-fallback"><div>Loading PDF preview...</div></div>`;
+    try {
+      const res = await fetch(file.url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch PDF');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      body.innerHTML = `<iframe class="viewer-frame" src="${blobUrl}"></iframe>`;
+    } catch {
+      body.innerHTML = `<div class="viewer-fallback"><div>PDF preview failed in this browser.</div><div>Use <b>Open Raw</b> to open/download it.</div></div>`;
+    }
+  } else if (mimeType === 'text/plain') {
+    try {
+      const res = await fetch(file.url, { credentials: 'include' });
+      const text = await res.text();
+      body.innerHTML = `<pre class="viewer-text">${escapeHtml(text)}</pre>`;
+    } catch {
+      body.innerHTML = `<div class="viewer-fallback"><div>Preview failed for this text file.</div><div>Use <b>Open Raw</b> to open it directly.</div></div>`;
+    }
+  } else if (isOfficeMimeType(mimeType)) {
+    const sourceUrl = `${window.location.origin}${file.url}`;
+    if (window.location.protocol === 'https:') {
+      const officeEmbedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(sourceUrl)}`;
+      body.innerHTML = `<iframe class="viewer-frame" src="${officeEmbedUrl}"></iframe>`;
+    } else {
+      body.innerHTML = `<div class="viewer-fallback"><div>Office preview needs HTTPS deployment.</div><div>Use <b>Open Raw</b> for this local environment.</div></div>`;
+    }
+  } else {
+    body.innerHTML = `<div class="viewer-fallback"><div>This file type cannot be previewed in-app.</div><div>Use <b>Open Raw</b> to open or download it.</div></div>`;
+  }
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function renderReferenceFiles() {
+  const list = document.getElementById('referenceFilesList');
+  const results = document.getElementById('referenceFilterResults');
+  if (!list) return;
+
+  const normalizedSearch = String(referenceFileFilter.search || '').trim().toLowerCase();
+  const filtered = referenceFiles.filter(file => {
+    const category = String(file.category || 'General');
+    if (referenceFileFilter.category !== 'all' && category !== referenceFileFilter.category) return false;
+    if (!normalizedSearch) return true;
+    const haystack = [
+      file.originalName || '',
+      file.subheading || '',
+      file.notes || '',
+      category
+    ].join(' ').toLowerCase();
+    return haystack.includes(normalizedSearch);
+  });
+
+  if (results) {
+    if (!referenceFiles.length) {
+      results.textContent = 'No files uploaded yet.';
+    } else if (!filtered.length) {
+      results.textContent = 'No files match this filter.';
+    } else if (filtered.length === referenceFiles.length) {
+      results.textContent = `Showing all ${filtered.length} file${filtered.length === 1 ? '' : 's'}`;
+    } else {
+      results.textContent = `Showing ${filtered.length} of ${referenceFiles.length} files`;
+    }
+  }
+
+  if (!referenceFiles.length) {
+    list.innerHTML = '<div class="file-empty">No reference files uploaded yet.</div>';
+    return;
+  }
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="file-empty">No files match this filter. Adjust category or search terms.</div>';
+    return;
+  }
+
+  const isAdmin = window._isAdminCached === true;
+  list.innerHTML = filtered.map(file => {
+    const safeName = escapeHtml(file.originalName || 'File');
+    const category = escapeHtml(file.category || 'General');
+    const subheading = String(file.subheading || '').trim();
+    const notes = String(file.notes || '').trim();
+
+    return `<div class="file-item">
+      <div class="file-item-info">
+        <div class="file-item-name"><i class="${getFileIcon(file.mimeType)}"></i>${safeName}</div>
+        <div class="file-item-heading"><span class="file-badge">${category}</span>${subheading ? escapeHtml(subheading) : '<span style="color:var(--muted)">No subheading</span>'}</div>
+        <div class="file-item-meta">${formatFileSize(file.size)} • Uploaded ${formatDateShort(file.uploadedAt)}</div>
+        ${notes ? `<div class="file-item-meta">${escapeHtml(notes)}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn" onclick="openReferenceViewer('${file.id}')"><i class="fa-solid fa-up-right-from-square"></i>Open</button>
+        ${isAdmin ? `<button class="btn" onclick="openReferenceMetaModal('${file.id}')"><i class="fa-solid fa-pen"></i>Edit Details</button>` : ''}
+        ${isAdmin ? `<button class="btn btn-danger" onclick="deleteReferenceFile('${file.id}')"><i class="fa-solid fa-trash"></i>Delete</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function inferCategoryAndSubheading(fileName) {
+  const lower = String(fileName || '').toLowerCase();
+  if (lower.includes('insurance')) return { category: 'Insurance', subheading: 'Insurance payment document' };
+  if (lower.includes('cheque') || lower.includes('check')) return { category: 'Cheque', subheading: 'Cheque receipt payment' };
+  if (lower.includes('cash')) return { category: 'Cash Receipt', subheading: 'Cash payment receipt' };
+  if (lower.includes('truck') || lower.includes('payment')) return { category: 'Truck Payment', subheading: 'Truck payment document' };
+  return { category: 'General', subheading: '' };
+}
+
+function renderPendingReferenceUploads() {
+  const box = document.getElementById('pendingReferenceUploads');
+  if (!box) return;
+
+  if (!pendingReferenceUploads.length) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+
+  box.style.display = 'grid';
+  box.innerHTML = pendingReferenceUploads.map((item, idx) => `
+    <div class="pending-upload-item">
+      <div class="pending-upload-name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</div>
+      <select class="form-input" onchange="setPendingReferenceCategory(${idx}, this.value)">
+        <option value="General" ${item.category === 'General' ? 'selected' : ''}>General</option>
+        <option value="Insurance" ${item.category === 'Insurance' ? 'selected' : ''}>Insurance</option>
+        <option value="Cheque" ${item.category === 'Cheque' ? 'selected' : ''}>Cheque</option>
+        <option value="Cash Receipt" ${item.category === 'Cash Receipt' ? 'selected' : ''}>Cash Receipt</option>
+        <option value="Truck Payment" ${item.category === 'Truck Payment' ? 'selected' : ''}>Truck Payment</option>
+      </select>
+      <input type="text" class="form-input" value="${escapeHtml(item.subheading || '')}" placeholder="Subheading" oninput="setPendingReferenceSubheading(${idx}, this.value)">
+    </div>
+  `).join('');
+}
+
+function setPendingReferenceCategory(index, value) {
+  if (!pendingReferenceUploads[index]) return;
+  pendingReferenceUploads[index].category = String(value || 'General');
+}
+
+function setPendingReferenceSubheading(index, value) {
+  if (!pendingReferenceUploads[index]) return;
+  pendingReferenceUploads[index].subheading = String(value || '').trim();
+}
+
+function openReferenceMetaModal(fileId) {
+  const file = referenceFiles.find(f => String(f.id) === String(fileId));
+  if (!file) {
+    showToast('File not found', 'error');
+    return;
+  }
+
+  editingReferenceId = String(file.id);
+  const modal = document.getElementById('referenceMetaModal');
+  const cat = document.getElementById('metaCategoryInput');
+  const sub = document.getElementById('metaSubheadingInput');
+  const notes = document.getElementById('metaNotesInput');
+  if (!modal || !cat || !sub || !notes) return;
+
+  cat.value = file.category || 'General';
+  sub.value = file.subheading || '';
+  notes.value = file.notes || '';
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeReferenceMetaModal() {
+  const modal = document.getElementById('referenceMetaModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  editingReferenceId = null;
+}
+
+async function saveReferenceMeta() {
+  if (!editingReferenceId) return;
+
+  const category = document.getElementById('metaCategoryInput')?.value || 'General';
+  const subheading = document.getElementById('metaSubheadingInput')?.value?.trim() || '';
+  const notes = document.getElementById('metaNotesInput')?.value?.trim() || '';
+
+  try {
+    await API.put(`/api/settings/files/${encodeURIComponent(editingReferenceId)}/meta`, {
+      category,
+      subheading,
+      notes
+    });
+    showToast('Reference details updated', 'success');
+    closeReferenceMetaModal();
+    await loadSettings();
+  } catch (err) {
+    showToast('Could not save details: ' + err.message, 'error');
+  }
+}
+
+async function uploadReferenceFiles() {
+  const input = document.getElementById('referenceFileInput');
+  if (!input || !input.files || !input.files.length) {
+    showToast('Select at least one file', 'error');
+    return;
+  }
+
+  const uploadBtn = document.getElementById('uploadReferenceBtn');
+  if (uploadBtn) {
+    uploadBtn.disabled = true;
+    uploadBtn.style.opacity = '0.7';
+  }
+
+  try {
+    const items = pendingReferenceUploads.length
+      ? pendingReferenceUploads
+      : Array.from(input.files).map(file => ({ file, category: 'General', subheading: '' }));
+
+    for (const item of items) {
+      const formData = new FormData();
+      formData.append('file', item.file);
+      formData.append('category', item.category || 'General');
+      formData.append('subheading', item.subheading || '');
+      await API.postForm('/api/settings/files', formData);
+    }
+    input.value = '';
+    pendingReferenceUploads = [];
+    renderPendingReferenceUploads();
+    const subheadingInput = document.getElementById('referenceSubheadingInput');
+    if (subheadingInput) subheadingInput.value = '';
+    showToast('Reference files uploaded', 'success');
+    await loadSettings();
+  } catch (err) {
+    showToast('Upload failed: ' + err.message, 'error');
+  } finally {
+    if (uploadBtn) {
+      uploadBtn.disabled = false;
+      uploadBtn.style.opacity = '';
+    }
+  }
+}
+
+async function deleteReferenceFile(fileId) {
+  if (!fileId) return;
+  if (!window.confirm('Delete this reference file?')) return;
+
+  try {
+    await API.del(`/api/settings/files/${encodeURIComponent(fileId)}`);
+    showToast('File deleted', 'success');
+    await loadSettings();
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
   }
 }
 
@@ -354,6 +685,70 @@ async function resetPin() {
 }
 
 document.addEventListener('DOMContentLoaded', loadSettings);
+
+document.addEventListener('DOMContentLoaded', () => {
+  const uploadBtn = document.getElementById('uploadReferenceBtn');
+  if (uploadBtn) uploadBtn.addEventListener('click', uploadReferenceFiles);
+
+  const fileInput = document.getElementById('referenceFileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', () => {
+      const files = Array.from(fileInput.files || []);
+      const defaultCategory = document.getElementById('referenceCategoryInput')?.value || 'General';
+      const defaultSubheading = document.getElementById('referenceSubheadingInput')?.value?.trim() || '';
+      pendingReferenceUploads = files.map(file => {
+        const inferred = inferCategoryAndSubheading(file.name);
+        return {
+          file,
+          category: defaultCategory !== 'General' ? defaultCategory : inferred.category,
+          subheading: defaultSubheading || inferred.subheading
+        };
+      });
+      renderPendingReferenceUploads();
+    });
+  }
+
+  const filterCategory = document.getElementById('referenceFilterCategory');
+  const filterSearch = document.getElementById('referenceFilterSearch');
+  const filterClear = document.getElementById('referenceFilterClearBtn');
+
+  if (filterCategory) {
+    filterCategory.addEventListener('change', () => {
+      referenceFileFilter.category = filterCategory.value || 'all';
+      renderReferenceFiles();
+    });
+  }
+
+  if (filterSearch) {
+    filterSearch.addEventListener('input', () => {
+      referenceFileFilter.search = filterSearch.value || '';
+      renderReferenceFiles();
+    });
+  }
+
+  if (filterClear) {
+    filterClear.addEventListener('click', () => {
+      referenceFileFilter = { category: 'all', search: '' };
+      if (filterCategory) filterCategory.value = 'all';
+      if (filterSearch) filterSearch.value = '';
+      renderReferenceFiles();
+    });
+  }
+
+  const modal = document.getElementById('referenceViewerModal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeReferenceViewer();
+    });
+  }
+
+  const metaModal = document.getElementById('referenceMetaModal');
+  if (metaModal) {
+    metaModal.addEventListener('click', (e) => {
+      if (e.target === metaModal) closeReferenceMetaModal();
+    });
+  }
+});
 
 // Auto-refresh when tab gains focus
 document.addEventListener('visibilitychange', () => {

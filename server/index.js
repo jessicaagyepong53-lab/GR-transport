@@ -29,6 +29,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
       imgSrc: ["'self'", "data:"],
       connectSrc: ["'self'"],
+      frameSrc: ["'self'", "https://view.officeapps.live.com"],
     }
   }
 }));

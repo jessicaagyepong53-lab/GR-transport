@@ -27,6 +27,19 @@ const API = {
     return res.json();
   },
 
+  async postForm(path, formData) {
+    const res = await fetch(this.base + path, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || res.statusText);
+    }
+    return res.json();
+  },
+
   async put(path, body) {
     const res = await fetch(this.base + path, {
       method: 'PUT',

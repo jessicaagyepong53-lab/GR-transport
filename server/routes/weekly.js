@@ -59,6 +59,23 @@ function buildWeekComparisonMap(weekGrossMap) {
   return out;
 }
 
+function buildSimpleRange(values) {
+  const nums = (values || []).map(v => Number(v || 0));
+  if (!nums.length) {
+    return { min: 0, max: 0, avg: 0, range: 0, samples: 0 };
+  }
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const avg = nums.reduce((sum, n) => sum + n, 0) / nums.length;
+  return {
+    min,
+    max,
+    avg,
+    range: max - min,
+    samples: nums.length
+  };
+}
+
 // Recompute YearEntry, ExpenseBreakdown, and MonthlyEntry for a truck+year from weekly data
 async function recomputeYearFromWeekly(truckId, year) {
   const entries = await WeeklyEntry.find({ truckId, year });
@@ -224,6 +241,87 @@ router.get('/ranges', async (req, res) => {
       year,
       weeks: buildRangeMap(baselineRows),
       currentYearWeeks
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/weekly/current-vs-range?scope=truck|fleet&truckId=...&year=YYYY&week=WW
+router.get('/current-vs-range', async (req, res) => {
+  try {
+    const scope = (req.query.scope || 'truck').toLowerCase();
+    const year = req.query.year ? parseInt(req.query.year) : null;
+    const week = req.query.week ? parseInt(req.query.week) : null;
+    if (!year || isNaN(year)) return res.status(400).json({ error: 'year is required' });
+    if (!week || isNaN(week)) return res.status(400).json({ error: 'week is required' });
+
+    if (scope === 'fleet') {
+      const grouped = await WeeklyEntry.aggregate([
+        { $match: { year } },
+        { $group: { _id: '$week', gross: { $sum: '$gross' } } },
+        { $sort: { _id: 1 } }
+      ]);
+
+      const weekRows = grouped.map(r => ({ week: Number(r._id), gross: Number(r.gross || 0) }));
+      const weekMap = weekRows.reduce((acc, row) => {
+        acc[row.week] = row.gross;
+        return acc;
+      }, {});
+      const stats = buildSimpleRange(weekRows.map(r => r.gross));
+      const currentGross = Number(weekMap[week] || 0);
+      const status = stats.samples === 0
+        ? 'na'
+        : currentGross < stats.min
+          ? 'low'
+          : currentGross > stats.max
+            ? 'high'
+            : 'in';
+
+      return res.json({
+        scope: 'fleet',
+        year,
+        week,
+        currentGross,
+        min: stats.min,
+        max: stats.max,
+        avg: stats.avg,
+        range: stats.range,
+        samples: stats.samples,
+        status
+      });
+    }
+
+    const truckId = req.query.truckId;
+    if (!truckId) return res.status(400).json({ error: 'truckId is required for truck scope' });
+
+    const entries = await WeeklyEntry.find({ truckId, year }).select('week gross').lean();
+    const weekMap = entries.reduce((acc, e) => {
+      acc[e.week] = Number(e.gross || 0);
+      return acc;
+    }, {});
+    const stats = buildSimpleRange(entries.map(e => Number(e.gross || 0)));
+    const currentGross = Number(weekMap[week] || 0);
+    const status = stats.samples === 0
+      ? 'na'
+      : currentGross < stats.min
+        ? 'low'
+        : currentGross > stats.max
+          ? 'high'
+          : 'in';
+
+    return res.json({
+      scope: 'truck',
+      truckId,
+      year,
+      week,
+      currentGross,
+      min: stats.min,
+      max: stats.max,
+      avg: stats.avg,
+      range: stats.range,
+      samples: stats.samples,
+      status
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

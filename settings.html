@@ -67,6 +67,41 @@
   .driver-card-dates .date-chip input:focus{border-color:var(--accent);outline:none;}
   .driver-card-dates .date-chip input:disabled{opacity:0.3;}
 
+  .upload-grid{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;}
+  .upload-help{font-size:0.76rem;color:var(--muted);margin-top:8px;}
+  .file-list{display:grid;gap:10px;}
+  .file-toolbar{display:grid;grid-template-columns:0.9fr 1.4fr auto;gap:8px;margin-top:10px;align-items:end;}
+  .file-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap;}
+  .file-item-info{min-width:220px;flex:1;}
+  .file-item-name{display:flex;align-items:center;gap:8px;font-weight:600;font-size:0.86rem;color:var(--text);}
+  .file-item-heading{margin-top:5px;font-size:0.8rem;color:var(--label);}
+  .file-item-meta{margin-top:4px;font-size:0.74rem;color:var(--muted);}
+  .file-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;border:1px solid var(--border);background:rgba(74,158,255,0.08);color:var(--blue);margin-right:8px;}
+  .file-empty{padding:12px 14px;background:var(--bg3);border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:0.82rem;}
+  .results-note{margin-top:8px;font-size:0.73rem;color:var(--muted);}
+
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+  .pending-upload-list{margin-top:10px;display:grid;gap:8px;}
+  .pending-upload-item{display:grid;grid-template-columns:1.2fr 0.8fr 1.2fr;gap:8px;align-items:center;padding:9px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;}
+  .pending-upload-name{font-size:0.78rem;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .meta-modal{position:fixed;inset:0;background:rgba(10,12,16,0.86);display:none;z-index:2600;padding:26px;}
+  .meta-modal.open{display:flex;align-items:center;justify-content:center;}
+  .meta-panel{width:min(560px,100%);background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .meta-title{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:1.2rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .meta-title i{color:var(--accent);}
+  .meta-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+
+  .viewer-modal{position:fixed;inset:0;background:rgba(10,12,16,0.86);display:none;z-index:2500;padding:26px;}
+  .viewer-modal.open{display:flex;align-items:center;justify-content:center;}
+  .viewer-panel{width:min(1100px,100%);height:min(82vh,860px);background:var(--card);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;}
+  .viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3);}
+  .viewer-title{font-size:0.84rem;color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .viewer-body{flex:1;min-height:0;background:#0f131a;position:relative;}
+  .viewer-frame,.viewer-image{width:100%;height:100%;border:0;display:block;}
+  .viewer-image{object-fit:contain;background:#0f131a;}
+  .viewer-text{width:100%;height:100%;overflow:auto;padding:16px;color:var(--text);font-size:0.85rem;font-family:'JetBrains Mono',monospace;white-space:pre-wrap;line-height:1.45;}
+  .viewer-fallback{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);padding:16px;text-align:center;}
+
   .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
   .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
   .toast.success{border-color:rgba(45,224,138,0.4);color:var(--green);}
@@ -191,6 +226,100 @@
       <div style="display:flex;align-items:center;gap:16px;margin-top:4px;flex-wrap:wrap;">
         <div style="font-size:0.82rem;color:var(--muted);">Total: <span id="newTruckTotal" style="color:var(--blue);font-weight:700;font-family:'JetBrains Mono',monospace;">GHS 0</span></div>
         <button class="btn btn-primary" onclick="addNewTruck()"><i class="fa-solid fa-plus"></i>Add Truck</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><i class="fa-solid fa-folder-open"></i>Reference Files</div>
+    <div class="card">
+      <div class="upload-grid" data-admin-only>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Upload Images or Documents</label>
+          <input type="file" class="form-input" id="referenceFileInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+        </div>
+        <button class="btn btn-primary" id="uploadReferenceBtn"><i class="fa-solid fa-upload"></i>Upload</button>
+      </div>
+      <div class="meta-grid" data-admin-only>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Category</label>
+          <select class="form-input" id="referenceCategoryInput">
+            <option value="General">General</option>
+            <option value="Insurance">Insurance</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Cash Receipt">Cash Receipt</option>
+            <option value="Truck Payment">Truck Payment</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Subheading</label>
+          <input type="text" class="form-input" id="referenceSubheadingInput" placeholder="e.g. Insurance payment document">
+        </div>
+      </div>
+      <div id="pendingReferenceUploads" class="pending-upload-list" data-admin-only style="display:none;"></div>
+      <div class="upload-help">Upload files you want to keep for quick reference. They are stored and can be opened anytime from this list.</div>
+      <div class="file-toolbar">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Filter Category</label>
+          <select id="referenceFilterCategory" class="form-input">
+            <option value="all">All Categories</option>
+            <option value="General">General</option>
+            <option value="Insurance">Insurance</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Cash Receipt">Cash Receipt</option>
+            <option value="Truck Payment">Truck Payment</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Search</label>
+          <input type="text" id="referenceFilterSearch" class="form-input" placeholder="Search subheading, notes, or file name">
+        </div>
+        <button class="btn" id="referenceFilterClearBtn"><i class="fa-solid fa-filter-circle-xmark"></i>Clear</button>
+      </div>
+      <div class="results-note" id="referenceFilterResults">Showing all files</div>
+      <div id="referenceFilesList" class="file-list" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <div id="referenceViewerModal" class="viewer-modal" aria-hidden="true">
+    <div class="viewer-panel">
+      <div class="viewer-head">
+        <div class="viewer-title" id="viewerTitle">Reference File</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <a id="viewerDownloadBtn" class="btn" target="_blank" rel="noopener"><i class="fa-solid fa-download"></i>Open Raw</a>
+          <button class="btn" onclick="closeReferenceViewer()"><i class="fa-solid fa-xmark"></i>Close</button>
+        </div>
+      </div>
+      <div class="viewer-body" id="viewerBody"></div>
+    </div>
+  </div>
+
+  <div id="referenceMetaModal" class="meta-modal" aria-hidden="true">
+    <div class="meta-panel">
+      <div class="meta-title"><i class="fa-solid fa-pen-to-square"></i>Edit Reference Details</div>
+      <div class="meta-grid" style="margin-top:2px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Category</label>
+          <select class="form-input" id="metaCategoryInput">
+            <option value="General">General</option>
+            <option value="Insurance">Insurance</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Cash Receipt">Cash Receipt</option>
+            <option value="Truck Payment">Truck Payment</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Subheading</label>
+          <input type="text" class="form-input" id="metaSubheadingInput" placeholder="Describe this file">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px;margin-bottom:0;">
+        <label class="form-label">Notes (Optional)</label>
+        <textarea class="form-input" id="metaNotesInput" rows="3" placeholder="Extra context for this payment document"></textarea>
+      </div>
+      <div class="meta-actions">
+        <button class="btn" onclick="closeReferenceMetaModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveReferenceMeta()"><i class="fa-solid fa-floppy-disk"></i>Save Details</button>
       </div>
     </div>
   </div>

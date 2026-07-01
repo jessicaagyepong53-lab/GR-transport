@@ -7,7 +7,7 @@ let yearlyTotals = { gross: 0, maint: 0, other: 0 };
 let currentWeekOriginal = { gross: 0, maint: 0, other: 0 };
 let totalsMode = 'year'; // 'year' or 'week'
 let weeklyCache = { truckId: null, year: null, data: [] };
-let weeklyRanges = {};
+let yearRangeInsight = null;
 
 // ─── DRAFT PERSISTENCE ───────────────────────────────────────────────────────
 const WEEKLY_STATE_KEY = 'weekly_last_state';
@@ -232,7 +232,7 @@ function getRangeStatus(gross, range) {
 }
 
 function updateRangeInsight() {
-  const { week } = getSelected();
+  const { year, week } = getSelected();
   const weekLabel = document.getElementById('rangeWeekLabel');
   const minEl = document.getElementById('rangeMinVal');
   const maxEl = document.getElementById('rangeMaxVal');
@@ -247,9 +247,11 @@ function updateRangeInsight() {
   const scaleMaxEl = document.getElementById('rangeScaleMax');
   if (!weekLabel || !minEl || !maxEl || !avgEl || !spreadEl || !statusEl || !bandEl || !midEl || !markerEl || !scaleMinEl || !scaleActualEl || !scaleMaxEl) return;
 
-  const rg = weeklyRanges[String(week)] || weeklyRanges[week];
-  const gross = parseFloat(document.getElementById('weekGross').value) || 0;
-  weekLabel.textContent = `Week ${week} Baseline Range`;
+  const rg = yearRangeInsight && yearRangeInsight.samples > 0
+    ? { min: Number(yearRangeInsight.min || 0), max: Number(yearRangeInsight.max || 0), avg: Number(yearRangeInsight.avg || 0), range: Number(yearRangeInsight.range || 0) }
+    : null;
+  const gross = parseFloat(document.getElementById('weekGross').value) || Number(yearRangeInsight?.currentGross || 0);
+  weekLabel.textContent = `Week ${week} vs ${year} Gross Range`;
 
   if (!rg) {
     minEl.textContent = 'GHS 0';
@@ -271,7 +273,7 @@ function updateRangeInsight() {
 
   const min = Number(rg.min || 0);
   const max = Number(rg.max || 0);
-  const avg = Math.round((min + max) / 2);
+  const avg = Math.round(rg.avg != null ? rg.avg : (min + max) / 2);
   const domainMax = Math.max(max, gross, 1);
   const minPct = (min / domainMax) * 100;
   const maxPct = (max / domainMax) * 100;
@@ -280,7 +282,7 @@ function updateRangeInsight() {
   minEl.textContent = `GHS ${min.toLocaleString()}`;
   maxEl.textContent = `GHS ${max.toLocaleString()}`;
   avgEl.textContent = `GHS ${avg.toLocaleString()}`;
-  spreadEl.textContent = `GHS ${(max - min).toLocaleString()}`;
+  spreadEl.textContent = `GHS ${(rg.range != null ? rg.range : (max - min)).toLocaleString()}`;
   scaleMinEl.textContent = `Min: GHS ${min.toLocaleString()}`;
   scaleActualEl.textContent = `Current: GHS ${gross.toLocaleString()}`;
   scaleMaxEl.textContent = `Max: GHS ${max.toLocaleString()}`;
@@ -355,10 +357,9 @@ async function refreshData() {
   }
 
   try {
-    const rangeData = await API.get(`/api/weekly/ranges?scope=truck&truckId=${encodeURIComponent(truckId)}&year=${year}`);
-    weeklyRanges = rangeData?.weeks || {};
+    yearRangeInsight = await API.get(`/api/weekly/current-vs-range?scope=truck&truckId=${encodeURIComponent(truckId)}&year=${year}&week=${week}`);
   } catch {
-    weeklyRanges = {};
+    yearRangeInsight = null;
   }
 
   fillWeekFromCache();
@@ -626,7 +627,9 @@ function renderHistory() {
       const range = `${fmtDateRange(mon)} - ${fmtDateRange(sat)}`;
       const dw = e.daysWorked != null ? e.daysWorked : 'N/A';
       const isActive = e.week === currentWeek;
-      const rg = weeklyRanges[String(e.week)] || weeklyRanges[e.week];
+      const rg = yearRangeInsight && yearRangeInsight.samples > 0
+        ? { min: Number(yearRangeInsight.min || 0), max: Number(yearRangeInsight.max || 0) }
+        : null;
       const st = getRangeStatus(g, rg);
       const rgText = rg ? `${fmtGHS(rg.min)}-${fmtGHS(rg.max)}` : 'No baseline';
 
