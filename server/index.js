@@ -51,6 +51,7 @@ app.use('/api/trucks', require('./routes/trucks'));
 app.use('/api/monthly', require('./routes/monthly'));
 app.use('/api/weekly', require('./routes/weekly'));
 app.use('/api/quarterly-tax', require('./routes/quarterly-tax'));
+app.use('/api/salary-payments', require('./routes/salary-payments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/recovery', require('./routes/recovery'));

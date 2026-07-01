@@ -127,6 +127,39 @@
   .pbal-pct{font-size:0.72rem;color:var(--muted);text-align:right;margin-top:5px;}
   @media(max-width:700px){.pbal-grid{grid-template-columns:1fr;}}
 
+  /* Supervisor Salary Payments */
+  .salary-section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
+  .salary-list{display:flex;flex-direction:column;gap:10px;}
+  .salary-row{display:grid;grid-template-columns:1.1fr 0.7fr 0.55fr auto auto;gap:10px;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg3);}
+  .salary-row.salary-new{grid-template-columns:1.1fr 0.7fr auto;border-style:dashed;background:rgba(245,166,35,0.05);margin-bottom:12px;}
+  .salary-row input{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.84rem;}
+  .salary-row input:focus{outline:none;border-color:var(--accent);}
+  .salary-save,.salary-del{padding:8px 12px;border-radius:8px;border:1px solid var(--accent);background:rgba(245,166,35,0.1);color:var(--accent);font-size:0.74rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all 0.2s;}
+  .salary-save:hover{background:var(--accent);color:#0a0c10;}
+  .salary-del{border-color:rgba(224,68,58,0.35);background:rgba(224,68,58,0.08);color:var(--red);}
+  .salary-del:hover{background:rgba(224,68,58,0.2);}
+  @media(max-width:900px){.salary-row{grid-template-columns:1fr;}.salary-row button{width:100%;}}
+
+  /* Quarterly Tax Board */
+  .qtax-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .qtax-year-card{border:1px solid var(--border);border-radius:12px;background:var(--bg3);padding:18px;display:flex;flex-direction:column;gap:14px;}
+  .qtax-year-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px solid rgba(37,45,61,0.65);}
+  .qtax-year-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--accent);line-height:1;}
+  .qtax-year-sub{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);margin-top:3px;}
+  .qtax-year-total{font-family:'JetBrains Mono',monospace;font-size:0.92rem;font-weight:700;color:var(--text);white-space:nowrap;}
+  .qtax-quarter-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .qtax-quarter-card{border:1px solid var(--border);border-radius:10px;background:var(--bg);padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;}
+  .qtax-quarter-label{font-size:0.64rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);}
+  .qtax-input{width:100%;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 8px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;}
+  .qtax-input:focus{outline:none;border-color:var(--accent);}
+  .qtax-save{width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--accent);background:rgba(245,166,35,0.1);color:var(--accent);font-size:0.72rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .qtax-save:hover{background:var(--accent);color:#0a0c10;}
+  .qtax-value{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:2px;color:var(--accent);line-height:1;}
+  .qtax-unit{font-size:0.7rem;color:var(--muted);margin-top:-2px;}
+  .qtax-grand-total{display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--border);margin-top:16px;font-size:0.72rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);gap:12px;}
+  .qtax-grand-total strong{font-family:'JetBrains Mono',monospace;font-size:1rem;color:var(--accent);text-transform:none;letter-spacing:0;}
+  @media(max-width:1100px){.qtax-board{grid-template-columns:1fr;}}
+
   .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
   .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
   .toast.success{border-color:rgba(45,224,138,0.4);color:var(--green);}
@@ -208,9 +241,18 @@
   <div class="chart-card" id="quarterlyTaxSection">
     <div class="card-header">
       <span class="card-title"><i class="fa-solid fa-receipt"></i>Quarterly Income Tax</span>
-      <span id="qTaxYearLabel" style="color:var(--muted);font-size:0.82rem;font-family:'JetBrains Mono',monospace;"></span>
+      <span id="qTaxYearLabel" style="color:var(--muted);font-size:0.82rem;font-family:'JetBrains Mono',monospace;">2024 · 2025 · 2026</span>
     </div>
     <div id="quarterlyTaxBody"></div>
+  </div>
+
+  <!-- Supervisor Salary Payments -->
+  <div class="salary-section" id="salarySection">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-user-tie"></i>Supervisor Salary Payments</span>
+      <span id="salaryYearLabel" style="color:var(--muted);font-size:0.82rem;font-family:'JetBrains Mono',monospace;"></span>
+    </div>
+    <div id="salaryPaymentsBody"></div>
   </div>
 
   <!-- Data Management — only visible when a specific year is selected -->

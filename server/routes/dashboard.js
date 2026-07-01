@@ -4,6 +4,7 @@ const MonthlyEntry = require('../models/MonthlyEntry');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const Truck = require('../models/Truck');
 const WeeklyEntry = require('../models/WeeklyEntry');
+const SalaryPayment = require('../models/SalaryPayment');
 const { getLastSaved } = require('../middleware/auth');
 
 
@@ -76,11 +77,12 @@ router.get('/heatmap', async (req, res) => {
 // GET /api/dashboard/full — full dashboard data in one call
 router.get('/full', async (req, res) => {
   try {
-    const [trucks, yearEntries, monthlyEntries, expenses, weeklyDaysAgg, lastSaved] = await Promise.all([
+    const [trucks, yearEntries, monthlyEntries, expenses, salaryPayments, weeklyDaysAgg, lastSaved] = await Promise.all([
       Truck.find().sort('truckId'),
       YearEntry.find(),
       MonthlyEntry.find().sort('year month'),
       ExpenseBreakdown.find().sort('year'),
+      SalaryPayment.find().sort('year datePaid'),
       WeeklyEntry.aggregate([
         { $group: { _id: { truckId: '$truckId', year: '$year' }, weeksWorked: { $sum: 1 } } }
       ]),
@@ -145,15 +147,30 @@ router.get('/full', async (req, res) => {
       yearlyTotals[ye.year].exp += ye.exp;
       yearlyTotals[ye.year].net += ye.net;
     });
+
+    const salaryTotals = {};
+    expenses.forEach(e => {
+      const payments = salaryPayments.filter(p => p.year === e.year);
+      salaryTotals[e.year] = payments.length
+        ? payments.reduce((sum, p) => sum + (p.amount || 0), 0)
+        : (e.supervisorSalary || 0);
+    });
+    salaryTotals.all = Object.values(salaryTotals).reduce((sum, value) => sum + (value || 0), 0);
+
     // Build expense breakdown
     const expBreakdown = {};
-    let allMaint = 0, allOther = 0;
+    let allMaint = 0, allOther = 0, allSupervisorSalary = 0;
     expenses.forEach(e => {
-      expBreakdown[e.year] = { maint: e.maint, other: e.other };
+      expBreakdown[e.year] = {
+        maint: e.maint,
+        other: e.other,
+        supervisorSalary: salaryTotals[e.year] || 0
+      };
       allMaint += e.maint;
       allOther += e.other;
+      allSupervisorSalary += salaryTotals[e.year] || 0;
     });
-    expBreakdown.all = { maint: allMaint, other: allOther };
+    expBreakdown.all = { maint: allMaint, other: allOther, supervisorSalary: allSupervisorSalary };
 
     // Build combined monthly for 'all'
     const allLabels = [], allGross = [], allExp = [];
@@ -177,6 +194,7 @@ router.get('/full', async (req, res) => {
       weeksWorked: weeksWorkedMap,
       monthly,
       yearlyTotals,
+      salaryTotals,
       expBreakdown,
       lastSaved
     });

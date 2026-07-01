@@ -3,32 +3,40 @@ const YearEntry = require('../models/YearEntry');
 const MonthlyEntry = require('../models/MonthlyEntry');
 const Truck = require('../models/Truck');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
+const SalaryPayment = require('../models/SalaryPayment');
 // GET /api/reports/export?format=csv|json&year=
 router.get('/export', async (req, res) => {
   try {
     const format = req.query.format || 'json';
     const yearFilter = req.query.year && req.query.year !== 'all' ? parseInt(req.query.year) : null;
 
-    const [trucks, yearEntries, monthlyEntries, expenses] = await Promise.all([
+    const [trucks, yearEntries, monthlyEntries, expenses, salaryPayments] = await Promise.all([
       Truck.find().sort('truckId').lean(),
       yearFilter ? YearEntry.find({ year: yearFilter }).lean() : YearEntry.find().lean(),
       yearFilter ? MonthlyEntry.find({ year: yearFilter }).lean() : MonthlyEntry.find().lean(),
-      yearFilter ? ExpenseBreakdown.find({ year: yearFilter }).lean() : ExpenseBreakdown.find().lean()
+      yearFilter ? ExpenseBreakdown.find({ year: yearFilter }).lean() : ExpenseBreakdown.find().lean(),
+      yearFilter ? SalaryPayment.find({ year: yearFilter }).sort('datePaid').lean() : SalaryPayment.find().sort('year datePaid').lean()
     ]);
 
     if (format === 'csv') {
-      let csv = 'Section,TruckID,Year,Month,Gross,Expenditure,Net,Weeks\n';
+      let csv = 'Section,TruckID,Year,Month,Week,Date,Gross,Expenditure,Net,Weeks,Amount\n';
 
       yearEntries.forEach(e => {
-        csv += `YearEntry,${e.truckId},${e.year},,${e.gross},${e.exp},${e.net},${e.weeks}\n`;
+        csv += `YearEntry,${e.truckId},${e.year},,,,${e.gross},${e.exp},${e.net},${e.weeks},\n`;
       });
 
       monthlyEntries.forEach(e => {
-        csv += `Monthly,${e.truckId || '_fleet'},${e.year},${e.month},${e.gross},${e.exp},,\n`;
+        csv += `Monthly,${e.truckId || '_fleet'},${e.year},${e.month},,,${e.gross},${e.exp},,,\n`;
       });
 
       expenses.forEach(e => {
-        csv += `Expense,,${e.year},,${e.maint},${e.other},,\n`;
+        csv += `Expense,,${e.year},,,,${e.maint},${e.other},,,\n`;
+      });
+
+      salaryPayments.forEach(e => {
+        const datePaid = e.datePaid || '';
+        const week = e.week || '';
+        csv += `SalaryPayment,_fleet,${e.year || ''},,${week},${datePaid},,,,,${e.amount || 0}\n`;
       });
 
       res.setHeader('Content-Type', 'text/csv');
@@ -37,7 +45,7 @@ router.get('/export', async (req, res) => {
     }
 
     // JSON export
-    res.json({ trucks, yearEntries, monthlyEntries, expenses });
+    res.json({ trucks, yearEntries, monthlyEntries, expenses, salaryPayments });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -49,10 +57,11 @@ router.get('/summary', async (req, res) => {
     const yearFilter = req.query.year && req.query.year !== 'all' ? parseInt(req.query.year) : null;
     const filter = yearFilter ? { year: yearFilter } : {};
 
-    const [entries, trucks, expBreakdowns] = await Promise.all([
+    const [entries, trucks, expBreakdowns, salaryPayments] = await Promise.all([
       YearEntry.find(filter),
       Truck.find().lean(),
-      ExpenseBreakdown.find(filter)
+      ExpenseBreakdown.find(filter),
+      SalaryPayment.find(yearFilter ? { year: yearFilter } : {}).lean()
     ]);
 
     let totalGross = 0, totalExp = 0, totalNet = 0;
@@ -111,11 +120,24 @@ router.get('/summary', async (req, res) => {
     const activeCount = ranked.length - eotCount;
 
     // Expense breakdown (fleet-wide)
-    let totalMaint = 0, totalOther = 0;
+    let totalMaint = 0, totalOther = 0, totalSupervisorSalary = 0;
+    const salaryPaymentsByYear = {};
+    salaryPayments.forEach(p => {
+      if (!salaryPaymentsByYear[p.year]) salaryPaymentsByYear[p.year] = [];
+      salaryPaymentsByYear[p.year].push(p);
+    });
     expBreakdowns.forEach(e => {
+      const payments = salaryPaymentsByYear[e.year] || [];
+      const yearSalaryTotal = payments.length
+        ? payments.reduce((sum, p) => sum + (p.amount || 0), 0)
+        : (e.supervisorSalary || 0);
       totalMaint += (e.maint || 0);
       totalOther += (e.other || 0);
+      totalSupervisorSalary += yearSalaryTotal;
     });
+
+    totalExp += totalSupervisorSalary;
+    totalNet = totalGross - totalExp;
 
     // Allocate minor/major per truck proportionally
     ranked.forEach(t => {
@@ -139,7 +161,7 @@ router.get('/summary', async (req, res) => {
       topPerformer: ranked[0] || null,
       bottomPerformer: ranked[ranked.length - 1] || null,
       truckRanking: ranked,
-      expBreakdown: { maint: totalMaint, other: totalOther }
+      expBreakdown: { maint: totalMaint, other: totalOther, supervisorSalary: totalSupervisorSalary }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

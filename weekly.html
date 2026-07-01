@@ -50,6 +50,25 @@
   .total-value.exp{color:var(--red);}
   .total-value.net{color:var(--green);}
 
+  .range-card{margin-top:14px;padding:14px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .range-meta{display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+  .range-chip{font-size:0.7rem;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);}
+  .range-chip strong{display:block;color:var(--text);font-size:0.88rem;letter-spacing:0;font-family:'JetBrains Mono',monospace;margin-top:3px;}
+  .range-status{padding:5px 11px;border-radius:999px;font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border);}
+  .range-status.in{color:var(--green);background:rgba(45,224,138,0.12);border-color:rgba(45,224,138,0.35);}
+  .range-status.low{color:var(--red);background:rgba(224,68,58,0.12);border-color:rgba(224,68,58,0.35);}
+  .range-status.high{color:var(--blue);background:rgba(74,158,255,0.12);border-color:rgba(74,158,255,0.35);}
+  .range-status.na{color:var(--muted);background:rgba(107,122,150,0.12);border-color:rgba(107,122,150,0.3);}
+  .range-viz{width:100%;margin-top:6px;display:flex;flex-direction:column;gap:5px;}
+  .range-track{position:relative;height:10px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:999px;overflow:visible;}
+  .range-band{position:absolute;top:1px;bottom:1px;border-radius:999px;background:linear-gradient(90deg,rgba(245,166,35,0.35),rgba(74,158,255,0.35));transition:left 0.55s ease,width 0.55s ease;}
+  .range-mid{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--accent);opacity:0.9;transition:left 0.55s ease;}
+  .range-marker{position:absolute;top:-4px;bottom:-4px;width:0;display:flex;justify-content:center;transition:left 0.55s ease;}
+  .range-marker::before{content:'';width:9px;height:9px;border-radius:50%;background:var(--green);border:2px solid #0a0c10;box-shadow:0 0 0 2px rgba(45,224,138,0.18);}
+  .range-marker.low::before{background:var(--red);box-shadow:0 0 0 2px rgba(224,68,58,0.16);}
+  .range-marker.high::before{background:var(--blue);box-shadow:0 0 0 2px rgba(74,158,255,0.16);}
+  .range-scale{display:flex;justify-content:space-between;font-size:0.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+
   .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--label);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
   .btn:hover{border-color:var(--accent);color:var(--accent);}
   .btn-primary{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
@@ -87,6 +106,11 @@
   .history-table .col-exp{color:var(--red);}
   .history-table .col-net{font-weight:700;}
   .history-table .col-be{font-weight:700;}
+  .history-table .range-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.9px;font-family:'DM Sans',sans-serif;font-weight:700;border:1px solid var(--border);}
+  .history-table .range-badge.in{color:var(--green);background:rgba(45,224,138,0.12);border-color:rgba(45,224,138,0.35);}
+  .history-table .range-badge.low{color:var(--red);background:rgba(224,68,58,0.12);border-color:rgba(224,68,58,0.35);}
+  .history-table .range-badge.high{color:var(--blue);background:rgba(74,158,255,0.12);border-color:rgba(74,158,255,0.35);}
+  .history-table .range-badge.na{color:var(--muted);background:rgba(107,122,150,0.12);border-color:rgba(107,122,150,0.3);}
   .history-table tfoot td{
     background:var(--bg3);font-weight:700;border-top:2px solid var(--accent);
     padding:10px 8px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;
@@ -212,6 +236,29 @@
     </div>
   </div>
 
+  <div class="range-card">
+    <div class="range-meta">
+      <span class="range-chip" id="rangeWeekLabel">Weekly Baseline Range</span>
+      <span class="range-chip">Minimum Expected Gross<strong id="rangeMinVal">GHS 0</strong></span>
+      <span class="range-chip">Maximum Expected Gross<strong id="rangeMaxVal">GHS 0</strong></span>
+      <span class="range-chip">Midpoint Average<strong id="rangeAvgVal">GHS 0</strong></span>
+      <span class="range-chip">Range Width<strong id="rangeSpreadVal">GHS 0</strong></span>
+    </div>
+    <div class="range-viz" aria-label="Weekly range visual">
+      <div class="range-track">
+        <div class="range-band" id="rangeBand"></div>
+        <div class="range-mid" id="rangeMid"></div>
+        <div class="range-marker na" id="rangeMarker"></div>
+      </div>
+      <div class="range-scale">
+        <span id="rangeScaleMin">Min: GHS 0</span>
+        <span id="rangeScaleActual">Current: GHS 0</span>
+        <span id="rangeScaleMax">Max: GHS 0</span>
+      </div>
+    </div>
+    <span class="range-status na" id="rangeStatus">No baseline yet</span>
+  </div>
+
   <!-- Totals -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
     <span id="totalsLabel" style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:1.5px;color:var(--accent);display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-chart-pie"></i>Year Total</span>
@@ -285,7 +332,7 @@
           <tr>
             <th>Month</th><th>Week</th><th>Date Range</th><th>No. of Days Worked</th>
             <th>Gross Income</th><th>Maint. Cost</th><th>Other Exp.</th>
-            <th>Total Exp.</th><th>Net Income</th><th>Break-Even</th>
+            <th>Total Exp.</th><th>Net Income</th><th>Break-Even</th><th>WoW</th>
             <th>Notes</th><th>Remarks</th><th></th>
           </tr>
         </thead>

@@ -33,7 +33,7 @@
   .year-tab[data-year="all"].active{background:var(--purple);border-color:var(--purple);}
 
   /* ── KPI STRIP ── */
-  .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px;}
   .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;position:relative;overflow:hidden;transition:transform 0.2s,border-color 0.2s;}
   .kpi:hover{transform:translateY(-2px);border-color:var(--accent);}
   .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
@@ -41,16 +41,27 @@
   .kpi:nth-child(2)::after{background:linear-gradient(90deg,var(--green),#1ab870);}
   .kpi:nth-child(3)::after{background:linear-gradient(90deg,var(--red),#c03030);}
   .kpi:nth-child(4)::after{background:linear-gradient(90deg,var(--blue),var(--purple));}
+  .kpi:nth-child(5)::after{background:linear-gradient(90deg,var(--purple),#b18cff);}
   .kpi-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
   .kpi-value{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:2px;line-height:1;}
   .kpi:nth-child(1) .kpi-value{color:var(--accent);}
   .kpi:nth-child(2) .kpi-value{color:var(--green);}
   .kpi:nth-child(3) .kpi-value{color:var(--red);}
   .kpi:nth-child(4) .kpi-value{color:var(--blue);}
+  .kpi:nth-child(5) .kpi-value{color:var(--purple);}
   .kpi-sub{font-size:0.8rem;color:var(--muted);margin-top:6px;}
   .kpi-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:600;margin-top:6px;}
   .badge-up{background:rgba(45,224,138,0.15);color:var(--green);}
   .badge-down{background:rgba(224,68,58,0.15);color:var(--red);}
+  .kpi-range-viz{margin-top:8px;display:flex;flex-direction:column;gap:4px;}
+  .kpi-range-track{position:relative;height:8px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:999px;overflow:visible;}
+  .kpi-range-band{position:absolute;top:1px;bottom:1px;border-radius:999px;background:linear-gradient(90deg,rgba(245,166,35,0.35),rgba(74,158,255,0.35));transition:left 0.55s ease,width 0.55s ease;}
+  .kpi-range-mid{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--accent);opacity:0.9;transition:left 0.55s ease;}
+  .kpi-range-marker{position:absolute;top:-4px;bottom:-4px;width:0;display:flex;justify-content:center;transition:left 0.55s ease;}
+  .kpi-range-marker::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green);border:2px solid #0a0c10;box-shadow:0 0 0 2px rgba(45,224,138,0.16);}
+  .kpi-range-marker.low::before{background:var(--red);box-shadow:0 0 0 2px rgba(224,68,58,0.16);}
+  .kpi-range-marker.high::before{background:var(--blue);box-shadow:0 0 0 2px rgba(74,158,255,0.16);}
+  .kpi-range-scale{display:flex;justify-content:space-between;font-size:0.6rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
 
   /* ── CHART CARDS ── */
   .main-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
@@ -784,6 +795,111 @@ function getYearlyKPIs(year) {
   return {gross:y.gross,exp:y.exp,net:y.gross-y.exp,weeks};
 }
 
+function getISOWeekNumber(dt) {
+  const d = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+async function updateWeeklyRangeKPI(year) {
+  const valueEl = document.getElementById('weeklyRangeValue');
+  const badgeEl = document.getElementById('weeklyRangeBadge');
+  const subEl = document.getElementById('weeklyRangeSub');
+  const bandEl = document.getElementById('weeklyRangeBand');
+  const midEl = document.getElementById('weeklyRangeMid');
+  const markerEl = document.getElementById('weeklyRangeMarker');
+  const scaleMinEl = document.getElementById('weeklyRangeScaleMin');
+  const scaleActualEl = document.getElementById('weeklyRangeScaleActual');
+  const scaleMaxEl = document.getElementById('weeklyRangeScaleMax');
+  if (!valueEl || !badgeEl || !subEl || !bandEl || !midEl || !markerEl || !scaleMinEl || !scaleActualEl || !scaleMaxEl) return;
+
+  const resetViz = (actual) => {
+    bandEl.style.left = '0%';
+    bandEl.style.width = '0%';
+    midEl.style.left = '0%';
+    markerEl.style.left = '0%';
+    markerEl.className = 'kpi-range-marker';
+    scaleMinEl.textContent = 'Min: GHS 0';
+    scaleActualEl.textContent = `Current: ${fmt(actual || 0)}`;
+    scaleMaxEl.textContent = 'Max: GHS 0';
+  };
+
+  const targetYear = year === 'all' ? new Date().getFullYear() : parseInt(year);
+  if (!targetYear || isNaN(targetYear)) {
+    valueEl.textContent = 'N/A';
+    badgeEl.className = 'kpi-badge';
+    badgeEl.textContent = 'No year selected';
+    subEl.textContent = 'Weekly range unavailable';
+    resetViz(0);
+    return;
+  }
+
+  try {
+    const data = await API.get(`/api/weekly/ranges?scope=fleet&year=${targetYear}`);
+    const week = getISOWeekNumber(new Date());
+    const range = data?.weeks?.[String(week)] || data?.weeks?.[week];
+    const actual = Number(data?.currentYearWeeks?.[String(week)] ?? data?.currentYearWeeks?.[week] ?? 0);
+
+    if (!range) {
+      valueEl.textContent = 'N/A';
+      badgeEl.className = 'kpi-badge';
+      badgeEl.style.background = 'rgba(107,122,150,0.16)';
+      badgeEl.style.color = 'var(--muted)';
+      badgeEl.textContent = 'No baseline';
+      subEl.textContent = `Week ${week} has no historical range yet`;
+      resetViz(actual);
+      return;
+    }
+
+    valueEl.textContent = fmt(actual);
+    const min = Number(range.min || 0);
+    const max = Number(range.max || 0);
+    const midpoint = Math.round((min + max) / 2);
+    const domainMax = Math.max(max, actual, 1);
+    const minPct = (min / domainMax) * 100;
+    const maxPct = (max / domainMax) * 100;
+    const midPct = (midpoint / domainMax) * 100;
+    const markerPct = (actual / domainMax) * 100;
+    subEl.textContent = `Week ${week} expected: ${fmt(min)} - ${fmt(max)} (avg ${fmt(midpoint)})`;
+    scaleMinEl.textContent = `Min: ${fmt(min)}`;
+    scaleActualEl.textContent = `Current: ${fmt(actual)}`;
+    scaleMaxEl.textContent = `Max: ${fmt(max)}`;
+    bandEl.style.left = `${Math.max(0, Math.min(minPct, 100))}%`;
+    bandEl.style.width = `${Math.max(0, Math.min(maxPct - minPct, 100))}%`;
+    midEl.style.left = `${Math.max(0, Math.min(midPct, 100))}%`;
+    markerEl.style.left = `${Math.max(0, Math.min(markerPct, 100))}%`;
+
+    if (actual < min) {
+      badgeEl.className = 'kpi-badge badge-down';
+      badgeEl.style.background = '';
+      badgeEl.style.color = '';
+      badgeEl.textContent = 'Below expected range';
+      markerEl.className = 'kpi-range-marker low';
+    } else if (actual > max) {
+      badgeEl.className = 'kpi-badge';
+      badgeEl.style.background = 'rgba(74,158,255,0.16)';
+      badgeEl.style.color = 'var(--blue)';
+      badgeEl.textContent = 'Above expected range';
+      markerEl.className = 'kpi-range-marker high';
+    } else {
+      badgeEl.className = 'kpi-badge badge-up';
+      badgeEl.style.background = '';
+      badgeEl.style.color = '';
+      badgeEl.textContent = 'Within expected range';
+      markerEl.className = 'kpi-range-marker';
+    }
+  } catch (err) {
+    valueEl.textContent = 'N/A';
+    badgeEl.className = 'kpi-badge';
+    badgeEl.style.background = 'rgba(107,122,150,0.16)';
+    badgeEl.style.color = 'var(--muted)';
+    badgeEl.textContent = 'Unavailable';
+    subEl.textContent = 'Could not load weekly range data';
+    resetViz(0);
+  }
+}
+
 function getMarketGrowthRate(year) {
   const years = getSortedYears();
   const targetYear = year === 'all' ? years[years.length - 1] : Number(year);
@@ -865,7 +981,9 @@ function renderKPIs(year) {
     <div class="kpi"><div class="kpi-label">Total Net Income</div><div class="kpi-value">${fmt(net)}</div><span class="kpi-badge badge-up">▲ ${eff}% efficiency</span></div>
     <div class="kpi"><div class="kpi-label">Total Expenditure</div><div class="kpi-value">${fmt(exp)}</div><div class="kpi-sub">${expShare}% of gross income</div></div>
     <div class="kpi"><div class="kpi-label">Market Growth Rate</div><div class="kpi-value">${growthValue}</div>${growthBadge}<div class="kpi-sub">${growth.subtitle}</div></div>
+    <div class="kpi"><div class="kpi-label">Current Week vs Range</div><div class="kpi-value" id="weeklyRangeValue">Loading...</div><span class="kpi-badge" id="weeklyRangeBadge" style="background:rgba(107,122,150,0.16);color:var(--muted)">Checking range...</span><div class="kpi-sub" id="weeklyRangeSub">Using historical weekly fleet sales</div><div class="kpi-range-viz" aria-label="Fleet weekly range visual"><div class="kpi-range-track"><div class="kpi-range-band" id="weeklyRangeBand"></div><div class="kpi-range-mid" id="weeklyRangeMid"></div><div class="kpi-range-marker" id="weeklyRangeMarker"></div></div><div class="kpi-range-scale"><span id="weeklyRangeScaleMin">Min: GHS 0</span><span id="weeklyRangeScaleActual">Current: GHS 0</span><span id="weeklyRangeScaleMax">Max: GHS 0</span></div></div></div>
   `;
+  updateWeeklyRangeKPI(year);
 }
 
 // ─── MONTHLY CHART ────────────────────────────────────────────────────────────

@@ -165,8 +165,9 @@ function renderMonthlyTable() {
 // ─── RENDER EXPENSE TABLE ────────────────────────────────────────────────────
 function renderExpTable() {
   const table = document.getElementById('expTable');
-  const e = yearData.expBreakdown?.[currentYear] || { maint: 0, other: 0 };
-  const total = (e.maint || 0) + (e.other || 0);
+  const e = yearData.expBreakdown?.[currentYear] || { maint: 0, other: 0, supervisorSalary: 0 };
+  const salaryTotal = yearData.salaryTotals?.[currentYear] ?? e.supervisorSalary ?? 0;
+  const total = (e.maint || 0) + (e.other || 0) + salaryTotal;
   const pct = (n) => total ? Math.round(n / total * 100) : 0;
 
   table.innerHTML = `<thead><tr>
@@ -181,6 +182,11 @@ function renderExpTable() {
       <td class="label-cell"><i class="fa-solid fa-gear" style="color:var(--red);margin-right:6px"></i>Other Expenses (Parts)</td>
       <td><input id="expOther" type="number" value="${e.other || 0}" onchange="markDirty()"${!isAdmin() ? ' disabled' : ''}></td>
       <td class="computed neutral">${pct(e.other || 0)}%</td>
+    </tr>
+    <tr>
+      <td class="label-cell"><i class="fa-solid fa-user-tie" style="color:var(--blue);margin-right:6px"></i>Supervisor Salary Paid</td>
+      <td class="computed neutral" style="color:var(--blue);font-weight:700;">GHS ${salaryTotal.toLocaleString()}</td>
+      <td class="computed neutral">${pct(salaryTotal)}%</td>
     </tr>
     <tr class="total-row">
       <td class="label-cell">TOTAL</td>

@@ -7,6 +7,7 @@ let yearlyTotals = { gross: 0, maint: 0, other: 0 };
 let currentWeekOriginal = { gross: 0, maint: 0, other: 0 };
 let totalsMode = 'year'; // 'year' or 'week'
 let weeklyCache = { truckId: null, year: null, data: [] };
+let weeklyRanges = {};
 
 // ─── DRAFT PERSISTENCE ───────────────────────────────────────────────────────
 const WEEKLY_STATE_KEY = 'weekly_last_state';
@@ -220,6 +221,77 @@ function updateTotals() {
     document.getElementById('totalNet').textContent = `GHS ${net.toLocaleString()}`;
     document.getElementById('totalNet').style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
   }
+  updateRangeInsight();
+}
+
+function getRangeStatus(gross, range) {
+  if (!range) return { key: 'na', label: 'No baseline' };
+  if (gross < range.min) return { key: 'low', label: 'Below range' };
+  if (gross > range.max) return { key: 'high', label: 'Above range' };
+  return { key: 'in', label: 'In range' };
+}
+
+function updateRangeInsight() {
+  const { week } = getSelected();
+  const weekLabel = document.getElementById('rangeWeekLabel');
+  const minEl = document.getElementById('rangeMinVal');
+  const maxEl = document.getElementById('rangeMaxVal');
+  const avgEl = document.getElementById('rangeAvgVal');
+  const spreadEl = document.getElementById('rangeSpreadVal');
+  const statusEl = document.getElementById('rangeStatus');
+  const bandEl = document.getElementById('rangeBand');
+  const midEl = document.getElementById('rangeMid');
+  const markerEl = document.getElementById('rangeMarker');
+  const scaleMinEl = document.getElementById('rangeScaleMin');
+  const scaleActualEl = document.getElementById('rangeScaleActual');
+  const scaleMaxEl = document.getElementById('rangeScaleMax');
+  if (!weekLabel || !minEl || !maxEl || !avgEl || !spreadEl || !statusEl || !bandEl || !midEl || !markerEl || !scaleMinEl || !scaleActualEl || !scaleMaxEl) return;
+
+  const rg = weeklyRanges[String(week)] || weeklyRanges[week];
+  const gross = parseFloat(document.getElementById('weekGross').value) || 0;
+  weekLabel.textContent = `Week ${week} Baseline Range`;
+
+  if (!rg) {
+    minEl.textContent = 'GHS 0';
+    maxEl.textContent = 'GHS 0';
+    avgEl.textContent = 'GHS 0';
+    spreadEl.textContent = 'GHS 0';
+    scaleMinEl.textContent = 'Min: GHS 0';
+    scaleActualEl.textContent = `Current: GHS ${gross.toLocaleString()}`;
+    scaleMaxEl.textContent = 'Max: GHS 0';
+    bandEl.style.left = '0%';
+    bandEl.style.width = '0%';
+    midEl.style.left = '0%';
+    markerEl.style.left = '0%';
+    markerEl.className = 'range-marker na';
+    statusEl.className = 'range-status na';
+    statusEl.textContent = 'No baseline yet';
+    return;
+  }
+
+  const min = Number(rg.min || 0);
+  const max = Number(rg.max || 0);
+  const avg = Math.round((min + max) / 2);
+  const domainMax = Math.max(max, gross, 1);
+  const minPct = (min / domainMax) * 100;
+  const maxPct = (max / domainMax) * 100;
+  const avgPct = (avg / domainMax) * 100;
+  const markerPct = (gross / domainMax) * 100;
+  minEl.textContent = `GHS ${min.toLocaleString()}`;
+  maxEl.textContent = `GHS ${max.toLocaleString()}`;
+  avgEl.textContent = `GHS ${avg.toLocaleString()}`;
+  spreadEl.textContent = `GHS ${(max - min).toLocaleString()}`;
+  scaleMinEl.textContent = `Min: GHS ${min.toLocaleString()}`;
+  scaleActualEl.textContent = `Current: GHS ${gross.toLocaleString()}`;
+  scaleMaxEl.textContent = `Max: GHS ${max.toLocaleString()}`;
+  bandEl.style.left = `${Math.max(0, Math.min(minPct, 100))}%`;
+  bandEl.style.width = `${Math.max(0, Math.min(maxPct - minPct, 100))}%`;
+  midEl.style.left = `${Math.max(0, Math.min(avgPct, 100))}%`;
+  markerEl.style.left = `${Math.max(0, Math.min(markerPct, 100))}%`;
+  const st = getRangeStatus(gross, rg);
+  markerEl.className = `range-marker ${st.key}`;
+  statusEl.className = `range-status ${st.key}`;
+  statusEl.textContent = st.label;
 }
 
 function setTotalsMode(mode, weekNum) {
@@ -281,6 +353,14 @@ async function refreshData() {
   } catch {
     weeklyCache = { truckId, year, data: [] };
   }
+
+  try {
+    const rangeData = await API.get(`/api/weekly/ranges?scope=truck&truckId=${encodeURIComponent(truckId)}&year=${year}`);
+    weeklyRanges = rangeData?.weeks || {};
+  } catch {
+    weeklyRanges = {};
+  }
+
   fillWeekFromCache();
   renderHistory();
   renderTruckBalance();
@@ -489,7 +569,7 @@ function renderHistory() {
     const truckCost = truck && truck.cost ? (truck.cost.pricePaid || 0) + (truck.cost.insurance || 0) + (truck.cost.maintenanceCost || 0) : 0;
 
     if (!data || !data.length) {
-      tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px;">No entries yet for this truck & year.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:24px;">No entries yet for this truck & year.</td></tr>';
       tfoot.innerHTML = '';
       yearlyTotals = { gross: 0, maint: 0, other: 0 };
       updateTotals();
@@ -546,6 +626,9 @@ function renderHistory() {
       const range = `${fmtDateRange(mon)} - ${fmtDateRange(sat)}`;
       const dw = e.daysWorked != null ? e.daysWorked : 'N/A';
       const isActive = e.week === currentWeek;
+      const rg = weeklyRanges[String(e.week)] || weeklyRanges[e.week];
+      const st = getRangeStatus(g, rg);
+      const rgText = rg ? `${fmtGHS(rg.min)}-${fmtGHS(rg.max)}` : 'No baseline';
 
       html += `<tr class="${isActive ? 'active-row' : ''}">
         <td class="month-cell">${showMonth ? monthName : ''}</td>
@@ -558,6 +641,7 @@ function renderHistory() {
         <td class="col-exp">${fmtGHS(exp)}</td>
         <td class="col-net" style="color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(net)}</td>
         <td class="col-be" style="color:${breakEven >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(breakEven)}</td>
+        <td><span class="range-badge ${st.key}" title="${rgText}">${st.label}</span></td>
         <td class="notes-cell">${e.notes || '\u2014'}</td>
         <td class="notes-cell">${e.remarks || '\u2014'}</td>
         <td><button class="edit-btn" data-admin-only onclick="editWeekEntry(${e.week})"><i class="fa-solid fa-pen-to-square"></i></button><button class="delete-btn" data-admin-only onclick="deleteWeekEntry(${e.week})"><i class="fa-solid fa-trash"></i></button></td>
@@ -574,10 +658,11 @@ function renderHistory() {
       <td class="col-exp">${fmtGHS(totExp)}</td>
       <td class="col-net" style="color:${totNet >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(totNet)}</td>
       <td class="col-be" style="color:${breakEven >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtGHS(breakEven)}</td>
+      <td></td>
       <td colspan="3"></td>
     </tr>`;
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px;">Could not load history</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:24px;">Could not load history</td></tr>';
     tfoot.innerHTML = '';
   }
 }

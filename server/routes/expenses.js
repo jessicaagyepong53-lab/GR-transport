@@ -7,7 +7,7 @@ router.get('/:year', async (req, res) => {
   try {
     const year = parseInt(req.params.year);
     const entry = await ExpenseBreakdown.findOne({ year });
-    res.json(entry || { year, maint: 0, other: 0 });
+    res.json(entry || { year, maint: 0, other: 0, supervisorSalary: 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -35,10 +35,14 @@ router.get('/', async (req, res) => {
 router.put('/:year', requireAdmin, async (req, res) => {
   try {
     const year = parseInt(req.params.year);
-    const { maint, other } = req.body;
+    const { maint, other, supervisorSalary } = req.body;
     const entry = await ExpenseBreakdown.findOneAndUpdate(
       { year },
-      { maint: maint || 0, other: other || 0 },
+      {
+        maint: maint || 0,
+        other: other || 0,
+        supervisorSalary: supervisorSalary || 0
+      },
       { upsert: true, new: true }
     );
     await touchLastSaved();

@@ -31,7 +31,7 @@ const DEFAULT_DATA = {
   expBreakdown: {
     2024: { maint: 12000, other: 105830 },
     2025: { maint: 46200, other: 318040 },
-    2026: { maint: 28050, other: 85650 },
+    2026: { maint: 28050, other: 85650, supervisorSalary: 2000 },
   },
 };
 
@@ -354,11 +354,18 @@ async function seed() {
         $setOnInsert: {
           year: parseInt(year),
           maint: data.maint,
-          other: data.other
+          other: data.other,
+          supervisorSalary: data.supervisorSalary || 0
         }
       },
       { upsert: true }
     );
+    if (data.supervisorSalary != null) {
+      await ExpenseBreakdown.updateOne(
+        { year: parseInt(year), $or: [{ supervisorSalary: { $exists: false } }, { supervisorSalary: 0 }] },
+        { $set: { supervisorSalary: data.supervisorSalary } }
+      );
+    }
     console.log(`  Expense breakdown ${year} seeded`);
   }
 

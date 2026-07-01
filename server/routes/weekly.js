@@ -17,9 +17,53 @@ function getWeekMonth(year, week) {
   return MONTH_NAMES[monday.getMonth()];
 }
 
+function buildRangeMap(rows) {
+  const grouped = {};
+  rows.forEach(r => {
+    const wk = parseInt(r.week);
+    if (!grouped[wk]) grouped[wk] = [];
+    grouped[wk].push(Number(r.gross || 0));
+  });
+
+  const out = {};
+  Object.keys(grouped).forEach(wk => {
+    const vals = grouped[wk].sort((a, b) => a - b);
+    if (!vals.length) return;
+    const sum = vals.reduce((s, n) => s + n, 0);
+    out[wk] = {
+      min: vals[0],
+      max: vals[vals.length - 1],
+      avg: sum / vals.length,
+      samples: vals.length
+    };
+  });
+  return out;
+}
+
+function buildWeekComparisonMap(weekGrossMap) {
+  const out = {};
+  for (let wk = 1; wk <= 53; wk++) {
+    if (weekGrossMap[wk] == null) continue;
+    const gross = Number(weekGrossMap[wk] || 0);
+    const prevGross = weekGrossMap[wk - 1] != null ? Number(weekGrossMap[wk - 1] || 0) : null;
+    const delta = prevGross == null ? null : gross - prevGross;
+    const pct = (prevGross == null || prevGross === 0) ? null : (delta / prevGross) * 100;
+    out[wk] = {
+      gross,
+      prevGross,
+      delta,
+      pct,
+      status: prevGross == null ? 'na' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'
+    };
+  }
+  return out;
+}
+
 // Recompute YearEntry, ExpenseBreakdown, and MonthlyEntry for a truck+year from weekly data
 async function recomputeYearFromWeekly(truckId, year) {
   const entries = await WeeklyEntry.find({ truckId, year });
+  const existingExpense = await ExpenseBreakdown.findOne({ year });
+  const supervisorSalary = existingExpense?.supervisorSalary || 0;
 
   // If no entries left, clean up YearEntry for this truck+year
   if (entries.length === 0) {
@@ -50,11 +94,19 @@ async function recomputeYearFromWeekly(truckId, year) {
   if (allWeekly.length) {
     await ExpenseBreakdown.findOneAndUpdate(
       { year },
-      { maint: allWeekly[0].maint, other: allWeekly[0].other },
+      { maint: allWeekly[0].maint, other: allWeekly[0].other, supervisorSalary },
       { upsert: true }
     );
   } else {
-    await ExpenseBreakdown.deleteOne({ year });
+    if (supervisorSalary > 0) {
+      await ExpenseBreakdown.findOneAndUpdate(
+        { year },
+        { maint: 0, other: 0, supervisorSalary },
+        { upsert: true }
+      );
+    } else {
+      await ExpenseBreakdown.deleteOne({ year });
+    }
   }
 
   // Recompute fleet-wide monthly entries for this year using upserts (race-safe)
@@ -83,6 +135,101 @@ async function recomputeYearFromWeekly(truckId, year) {
 
 // GET /api/weekly/year/:year — all weekly entries for ALL trucks in a year (for data management)
 // NOTE: Must be before /:truckId/:year so 'year' isn't matched as truckId
+// GET /api/weekly/compare?scope=truck|fleet&truckId=...&year=YYYY
+router.get('/compare', async (req, res) => {
+  try {
+    const scope = (req.query.scope || 'truck').toLowerCase();
+    const year = req.query.year ? parseInt(req.query.year) : null;
+    if (!year || isNaN(year)) return res.status(400).json({ error: 'year is required' });
+
+    if (scope === 'fleet') {
+      const grouped = await WeeklyEntry.aggregate([
+        { $match: { year } },
+        { $group: { _id: '$week', gross: { $sum: '$gross' } } },
+        { $sort: { _id: 1 } }
+      ]);
+      const weekGrossMap = {};
+      grouped.forEach(r => { weekGrossMap[r._id] = Number(r.gross || 0); });
+      return res.json({ scope: 'fleet', year, weeks: buildWeekComparisonMap(weekGrossMap) });
+    }
+
+    const truckId = req.query.truckId;
+    if (!truckId) return res.status(400).json({ error: 'truckId is required for truck scope' });
+
+    const entries = await WeeklyEntry.find({ truckId, year }).select('week gross').sort('week').lean();
+    const weekGrossMap = {};
+    entries.forEach(e => { weekGrossMap[e.week] = Number(e.gross || 0); });
+
+    return res.json({
+      scope: 'truck',
+      truckId,
+      year,
+      weeks: buildWeekComparisonMap(weekGrossMap)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/weekly/ranges?scope=truck|fleet&truckId=...&year=YYYY
+router.get('/ranges', async (req, res) => {
+  try {
+    const scope = (req.query.scope || 'truck').toLowerCase();
+    const year = req.query.year ? parseInt(req.query.year) : null;
+
+    if (scope === 'fleet') {
+      const grouped = await WeeklyEntry.aggregate([
+        {
+          $group: {
+            _id: { year: '$year', week: '$week' },
+            gross: { $sum: '$gross' }
+          }
+        }
+      ]);
+
+      const allRows = grouped.map(r => ({ year: r._id.year, week: r._id.week, gross: r.gross || 0 }));
+      let baselineRows = year ? allRows.filter(r => r.year !== year) : allRows;
+      if (!baselineRows.length) baselineRows = allRows;
+      const currentYearWeeks = year
+        ? allRows.filter(r => r.year === year).reduce((acc, r) => {
+            acc[r.week] = Number(r.gross || 0);
+            return acc;
+          }, {})
+        : {};
+
+      return res.json({
+        scope: 'fleet',
+        year,
+        weeks: buildRangeMap(baselineRows),
+        currentYearWeeks
+      });
+    }
+
+    const truckId = req.query.truckId;
+    if (!truckId) return res.status(400).json({ error: 'truckId is required for truck scope' });
+
+    const entries = await WeeklyEntry.find({ truckId }).select('year week gross').lean();
+    let baselineRows = year ? entries.filter(e => e.year !== year) : entries;
+    if (!baselineRows.length) baselineRows = entries;
+    const currentYearWeeks = year
+      ? entries.filter(e => e.year === year).reduce((acc, e) => {
+          acc[e.week] = Number(e.gross || 0);
+          return acc;
+        }, {})
+      : {};
+
+    return res.json({
+      scope: 'truck',
+      truckId,
+      year,
+      weeks: buildRangeMap(baselineRows),
+      currentYearWeeks
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/year/:year', async (req, res) => {
   try {
     const year = parseInt(req.params.year);
