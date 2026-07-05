@@ -4,18 +4,22 @@ const MonthlyEntry = require('../models/MonthlyEntry');
 const Truck = require('../models/Truck');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const SalaryPayment = require('../models/SalaryPayment');
+const QuarterlyTax = require('../models/QuarterlyTax');
 // GET /api/reports/export?format=csv|json&year=
 router.get('/export', async (req, res) => {
   try {
     const format = req.query.format || 'json';
     const yearFilter = req.query.year && req.query.year !== 'all' ? parseInt(req.query.year) : null;
 
-    const [trucks, yearEntries, monthlyEntries, expenses, salaryPayments] = await Promise.all([
+    const [trucks, yearEntries, monthlyEntries, expenses, salaryPayments, quarterlyTaxes] = await Promise.all([
       Truck.find().sort('truckId').lean(),
       yearFilter ? YearEntry.find({ year: yearFilter }).lean() : YearEntry.find().lean(),
       yearFilter ? MonthlyEntry.find({ year: yearFilter }).lean() : MonthlyEntry.find().lean(),
       yearFilter ? ExpenseBreakdown.find({ year: yearFilter }).lean() : ExpenseBreakdown.find().lean(),
-      yearFilter ? SalaryPayment.find({ year: yearFilter }).sort('datePaid').lean() : SalaryPayment.find().sort('year datePaid').lean()
+      yearFilter ? SalaryPayment.find({ year: yearFilter }).sort('datePaid').lean() : SalaryPayment.find().sort('year datePaid').lean(),
+      yearFilter
+        ? QuarterlyTax.find({ truckId: '_fleet', year: yearFilter }).sort('quarter').lean()
+        : QuarterlyTax.find({ truckId: '_fleet' }).sort('year quarter').lean()
     ]);
 
     if (format === 'csv') {
@@ -39,13 +43,17 @@ router.get('/export', async (req, res) => {
         csv += `SalaryPayment,_fleet,${e.year || ''},,${week},${datePaid},,,,,${e.amount || 0}\n`;
       });
 
+      quarterlyTaxes.forEach(e => {
+        csv += `IncomeTax,_fleet,${e.year || ''},,Q${e.quarter || ''},,,,,,${e.amount || 0}\n`;
+      });
+
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename=gr-transport-report${yearFilter ? '-' + yearFilter : ''}.csv`);
       return res.send(csv);
     }
 
     // JSON export
-    res.json({ trucks, yearEntries, monthlyEntries, expenses, salaryPayments });
+    res.json({ trucks, yearEntries, monthlyEntries, expenses, salaryPayments, quarterlyTaxes });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -57,11 +65,12 @@ router.get('/summary', async (req, res) => {
     const yearFilter = req.query.year && req.query.year !== 'all' ? parseInt(req.query.year) : null;
     const filter = yearFilter ? { year: yearFilter } : {};
 
-    const [entries, trucks, expBreakdowns, salaryPayments] = await Promise.all([
+    const [entries, trucks, expBreakdowns, salaryPayments, quarterlyTaxes] = await Promise.all([
       YearEntry.find(filter),
       Truck.find().lean(),
       ExpenseBreakdown.find(filter),
-      SalaryPayment.find(yearFilter ? { year: yearFilter } : {}).lean()
+      SalaryPayment.find(yearFilter ? { year: yearFilter } : {}).lean(),
+      QuarterlyTax.find(yearFilter ? { truckId: '_fleet', year: yearFilter } : { truckId: '_fleet' }).lean()
     ]);
 
     let totalGross = 0, totalExp = 0, totalNet = 0;
@@ -120,7 +129,7 @@ router.get('/summary', async (req, res) => {
     const activeCount = ranked.length - eotCount;
 
     // Expense breakdown (fleet-wide)
-    let totalMaint = 0, totalOther = 0, totalSupervisorSalary = 0;
+    let totalMaint = 0, totalOther = 0, totalSupervisorSalary = 0, totalIncomeTax = 0;
     const salaryPaymentsByYear = {};
     salaryPayments.forEach(p => {
       if (!salaryPaymentsByYear[p.year]) salaryPaymentsByYear[p.year] = [];
@@ -136,7 +145,11 @@ router.get('/summary', async (req, res) => {
       totalSupervisorSalary += yearSalaryTotal;
     });
 
-    totalExp += totalSupervisorSalary;
+    quarterlyTaxes.forEach(t => {
+      totalIncomeTax += (t.amount || 0);
+    });
+
+    totalExp += totalSupervisorSalary + totalIncomeTax;
     totalNet = totalGross - totalExp;
 
     // Allocate minor/major per truck proportionally
@@ -161,7 +174,12 @@ router.get('/summary', async (req, res) => {
       topPerformer: ranked[0] || null,
       bottomPerformer: ranked[ranked.length - 1] || null,
       truckRanking: ranked,
-      expBreakdown: { maint: totalMaint, other: totalOther, supervisorSalary: totalSupervisorSalary }
+      expBreakdown: {
+        maint: totalMaint,
+        other: totalOther,
+        supervisorSalary: totalSupervisorSalary,
+        incomeTax: totalIncomeTax
+      }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

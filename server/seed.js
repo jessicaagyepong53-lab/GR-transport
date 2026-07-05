@@ -11,6 +11,7 @@ const MonthlyEntry = require('./models/MonthlyEntry');
 const ExpenseBreakdown = require('./models/ExpenseBreakdown');
 const WeeklyEntry = require('./models/WeeklyEntry');
 const QuarterlyTax = require('./models/QuarterlyTax');
+const SalaryPayment = require('./models/SalaryPayment');
 
 const DEFAULT_DATA = {
   trucks: {
@@ -272,6 +273,129 @@ function seedQuarterlyTaxFromXlsx() {
   return results;
 }
 
+/* ── Salary payments parser ───────────────────────────────────── */
+// Reads sheets with "salary" in the name.
+// Expected columns (flexible headers):
+//   Year | Truck ID | Driver | Date Paid | Amount | Note
+function seedSalaryPaymentsFromXlsx() {
+  let XLSX;
+  try { XLSX = require('xlsx'); } catch { return []; }
+  const fs = require('fs');
+  if (!fs.existsSync(XLSX_PATH)) return [];
+
+  function toDateISO(cell, fallbackYear) {
+    if (cell === null || cell === undefined || cell === '') return '';
+
+    if (typeof cell === 'number') {
+      const d = XLSX.SSF.parse_date_code(cell);
+      if (!d || !d.y || !d.m || !d.d) return '';
+      const y = String(d.y).padStart(4, '0');
+      const m = String(d.m).padStart(2, '0');
+      const day = String(d.d).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    const raw = String(cell).trim();
+    if (!raw) return '';
+
+    const yyyyMmDd = raw.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+    if (yyyyMmDd) {
+      const y = yyyyMmDd[1];
+      const m = String(parseInt(yyyyMmDd[2])).padStart(2, '0');
+      const d = String(parseInt(yyyyMmDd[3])).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    const ddMmYyyy = raw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+    if (ddMmYyyy) {
+      const d = String(parseInt(ddMmYyyy[1])).padStart(2, '0');
+      const m = String(parseInt(ddMmYyyy[2])).padStart(2, '0');
+      const y = ddMmYyyy[3];
+      return `${y}-${m}-${d}`;
+    }
+
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, '0');
+      const d = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    if (fallbackYear) return `${fallbackYear}-01-01`;
+    return '';
+  }
+
+  const wb = XLSX.readFile(XLSX_PATH);
+  const results = [];
+
+  for (const sheetName of wb.SheetNames) {
+    if (!/salary/i.test(sheetName)) continue;
+
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!rows.length) continue;
+
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+      const cells = (rows[i] || []).map(c => String(c).toUpperCase().trim());
+      const hasAmount = cells.some(c => c.includes('AMOUNT'));
+      const hasDate = cells.some(c => c.includes('DATE'));
+      if (hasAmount && hasDate) { headerIdx = i; break; }
+    }
+    if (headerIdx === -1) continue;
+
+    const header = rows[headerIdx].map(c => String(c).toUpperCase().trim());
+    const ci = {
+      year: header.findIndex(h => h === 'YEAR' || h.includes('YEAR')),
+      truckId: header.findIndex(h => h.includes('TRUCK')),
+      driver: header.findIndex(h => h.includes('DRIVER')),
+      datePaid: header.findIndex(h => h.includes('DATE')),
+      amount: header.findIndex(h => h.includes('AMOUNT') || h.includes('SALARY')),
+      note: header.findIndex(h => h.includes('NOTE') || h.includes('REMARK'))
+    };
+    if (ci.amount === -1 || ci.datePaid === -1) continue;
+
+    for (let r = headerIdx + 1; r < rows.length; r++) {
+      const row = rows[r] || [];
+      const hasData = row.some(c => c !== '' && c !== null && c !== undefined);
+      if (!hasData) continue;
+
+      const firstCell = String(row[0] || '').trim().toUpperCase();
+      if (firstCell.startsWith('TOTAL')) break;
+
+      const amount = parseFloat(row[ci.amount]) || 0;
+      if (amount <= 0) continue;
+
+      const parsedYear = ci.year >= 0 ? parseInt(row[ci.year]) : NaN;
+      const year = Number.isFinite(parsedYear) ? parsedYear : null;
+      const datePaid = toDateISO(row[ci.datePaid], year || undefined);
+      if (!datePaid) continue;
+
+      const yearFromDate = parseInt(datePaid.slice(0, 4));
+      const finalYear = year || yearFromDate;
+      if (!Number.isFinite(finalYear)) continue;
+
+      const truckIdRaw = ci.truckId >= 0 ? String(row[ci.truckId] || '').trim() : '';
+      const truckId = truckIdRaw || '_fleet';
+
+      const driver = ci.driver >= 0 ? String(row[ci.driver] || '').trim() : '';
+      const note = ci.note >= 0 ? String(row[ci.note] || '').trim() : '';
+      const mergedNote = [driver && `Driver: ${driver}`, note].filter(Boolean).join(' | ');
+
+      results.push({
+        truckId,
+        year: finalYear,
+        datePaid,
+        amount,
+        note: mergedNote
+      });
+    }
+  }
+
+  return results;
+}
+
 async function seed() {
   await connectDB();
   console.log('Seeding database (non-destructive upsert mode)...');
@@ -439,6 +563,29 @@ async function seed() {
     console.log(`  Quarterly tax seeded from xlsx (${summary})`);
   } else {
     console.log('  No quarterly tax rows found in Summary sheets — skipping');
+  }
+
+  // Seed salary payments from Excel salary sheet(s)
+  const salaryFromXlsx = seedSalaryPaymentsFromXlsx();
+  if (salaryFromXlsx.length > 0) {
+    let insertedCount = 0;
+    for (const e of salaryFromXlsx) {
+      const result = await SalaryPayment.findOneAndUpdate(
+        {
+          truckId: e.truckId,
+          year: e.year,
+          datePaid: e.datePaid,
+          amount: e.amount,
+          note: e.note || ''
+        },
+        { $setOnInsert: e },
+        { upsert: true, new: false }
+      );
+      if (!result) insertedCount++;
+    }
+    console.log(`  Salary payments from xlsx: ${insertedCount} new inserted, ${salaryFromXlsx.length - insertedCount} already existed (preserved)`);
+  } else {
+    console.log('  No salary sheet rows found in xlsx — skipping salary import');
   }
 
   console.log('Seed complete!');

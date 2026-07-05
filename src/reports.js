@@ -143,6 +143,7 @@ function renderAnnualSummary() {
   const trucks = reportData.truckRanking;
   const table = document.getElementById('annualSummaryTable');
   const totalSupervisorSalary = reportData.expBreakdown?.supervisorSalary || 0;
+  const totalIncomeTax = reportData.expBreakdown?.incomeTax || 0;
   const totalTruckExp = trucks.reduce((sum, t) => sum + (t.exp || 0), 0);
 
   let html = `<thead><tr>
@@ -154,19 +155,21 @@ function renderAnnualSummary() {
     <th>Minor Expenditure (GHS)</th>
     <th>Major Expenditure (GHS)</th>
     <th>Supervisor Salary (GHS)</th>
+    <th>Income Tax (GHS)</th>
     <th>% Expenditure</th>
     <th>% Income</th>
     <th>Ratio</th>
     <th>Ranks</th>
   </tr></thead><tbody>`;
 
-  let totExp = 0, totIncome = 0, totAmount = 0, totMinor = 0, totMajor = 0, totSalary = 0, totWeeks = 0;
+  let totExp = 0, totIncome = 0, totAmount = 0, totMinor = 0, totMajor = 0, totSalary = 0, totTax = 0, totWeeks = 0;
 
   trucks.forEach(t => {
     const rankClass = t.rank === 1 ? 'rank-1' : t.rank === 2 ? 'rank-2' : t.rank === 3 ? 'rank-3' : 'rank-other';
     const eotStyle = t.eot ? 'opacity:0.5;' : '';
     const eotLabel = t.eot ? ' <span style="color:var(--red);font-size:0.65rem;font-family:DM Sans,sans-serif;font-weight:400;">EOT</span>' : '';
     const salaryShare = totalTruckExp ? Math.round((totalSupervisorSalary * (t.exp || 0)) / totalTruckExp) : 0;
+    const taxShare = totalTruckExp ? Math.round((totalIncomeTax * (t.exp || 0)) / totalTruckExp) : 0;
 
     // Include ALL trucks in totals (EOT trucks still have real data for their years)
     totExp += t.exp;
@@ -175,6 +178,7 @@ function renderAnnualSummary() {
     totMinor += t.minorExp;
     totMajor += t.majorExp;
     totSalary += salaryShare;
+    totTax += taxShare;
     totWeeks += (t.weeks || 0);
 
     html += `<tr style="${eotStyle}">
@@ -186,6 +190,7 @@ function renderAnnualSummary() {
       <td>${t.minorExp.toLocaleString()}</td>
       <td>${t.majorExp.toLocaleString()}</td>
       <td style="color:var(--accent)">${salaryShare.toLocaleString()}</td>
+      <td style="color:var(--red)">${taxShare.toLocaleString()}</td>
       <td style="color:var(--red)">${t.pctExp}%</td>
       <td style="color:var(--green)">${t.pctIncome}%</td>
       <td>${t.ratio.toFixed(2)}:1</td>
@@ -195,7 +200,9 @@ function renderAnnualSummary() {
 
   // Force totals to match the exact fleet salary total (rounding-safe).
   totSalary = totalSupervisorSalary;
-  totExp += totSalary;
+  totTax = totalIncomeTax;
+  totExp += (totSalary + totTax);
+  totIncome = reportData.totalNet || 0;
 
   // Totals row
   const totPctExp = totAmount ? Math.round(totExp / totAmount * 100) : 0;
@@ -212,6 +219,7 @@ function renderAnnualSummary() {
     <td>${totMinor.toLocaleString()}</td>
     <td>${totMajor.toLocaleString()}</td>
     <td>${totSalary.toLocaleString()}</td>
+    <td>${totTax.toLocaleString()}</td>
     <td>${totPctExp}%</td>
     <td>${totPctIncome}%</td>
     <td>${totRatio}:1</td>
