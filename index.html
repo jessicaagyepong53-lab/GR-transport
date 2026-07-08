@@ -786,13 +786,16 @@ function getTruckData(year) {
 function getYearlyKPIs(year) {
   if(year==='all'){
     const gross=Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.gross,0);
-    const exp=Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.exp,0);
+    const truckExp=Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.exp,0);
+    const exp=truckExp+(DATA.salaryTotals?.all||0);
+    const net=Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.net,0);
     const weeks=Object.values(DATA.trucks).reduce((s,t)=>s+Object.values(t).filter(v=>typeof v==='object'&&v.weeks).reduce((ss,y)=>ss+(y.weeks||0),0),0);
-    return {gross,exp,net:gross-exp,weeks};
+    return {gross,exp,net,weeks};
   }
   const y=DATA.yearlyTotals[year];
   const weeks=Object.values(DATA.trucks).reduce((s,t)=>s+(t[year]?.weeks||0),0);
-  return {gross:y.gross,exp:y.exp,net:y.gross-y.exp,weeks};
+  const exp=y.exp+(DATA.salaryTotals?.[year]||0);
+  return {gross:y.gross,exp,net:y.net,weeks};
 }
 
 function getISOWeekNumber(dt) {
@@ -2182,6 +2185,8 @@ async function syncFromAPI() {
     if (fresh.monthly) DATA.monthly = fresh.monthly;
     if (fresh.expBreakdown) DATA.expBreakdown = fresh.expBreakdown;
     if (fresh.yearlyTotals) DATA.yearlyTotals = fresh.yearlyTotals;
+    if (fresh.salaryTotals) DATA.salaryTotals = fresh.salaryTotals;
+    if (fresh.incomeTaxTotals) DATA.incomeTaxTotals = fresh.incomeTaxTotals;
     if (fresh.lastSaved) updateDashTimestamp(new Date(fresh.lastSaved));
     localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
     rebuildAllMonthlyData();

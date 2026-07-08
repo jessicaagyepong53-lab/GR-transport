@@ -1,4 +1,5 @@
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
+// Cache bust v2 - fixes for salary totals in KPI calculations
 const STORAGE_KEY = 'transport_dashboard_data';
 
 const DEFAULT_DATA = {
@@ -68,6 +69,18 @@ const DEFAULT_DATA = {
     2025: { maint:46200,  other:318040 },
     2026: { maint:28050,  other:85650  },
   },
+  salaryTotals: {
+    2024: 0,
+    2025: 0,
+    2026: 2000,
+    all: 2000
+  },
+  incomeTaxTotals: {
+    2024: 0,
+    2025: 0,
+    2026: 0,
+    all: 0
+  },
 };
 
 function loadData() {
@@ -125,6 +138,8 @@ if (migrateLegacyPurchasePrice(DATA)) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
 }
 if (!DATA.entryMeta) DATA.entryMeta = {};
+if (!DATA.salaryTotals) DATA.salaryTotals = {};
+if (!DATA.incomeTaxTotals) DATA.incomeTaxTotals = {};
 
 function ensureYearData(year) {
   if (!DATA.monthly[year]) DATA.monthly[year] = { labels: [], gross: [], exp: [] };
@@ -380,16 +395,19 @@ function getTruckData(year) {
 function getYearlyKPIs(year) {
   recalcYearlyTotals();
   if(year === 'all') {
-    const gross = Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.gross,0);
-    const exp   = Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.exp,0);
-    const net   = gross - exp;
-    const weeks = getTotalWeeks('all');
+    const gross    = Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.gross,0);
+    const net      = Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.net,0);  // sum stored nets
+    const truckExp = Object.values(DATA.yearlyTotals).reduce((s,y)=>s+y.exp,0);
+    const exp      = truckExp + (DATA.salaryTotals?.all || 0);
+    const weeks    = getTotalWeeks('all');
     return { gross, exp, net, weeks };
   }
   const y = DATA.yearlyTotals[year];
   if (!y) return { gross:0, exp:0, net:0, weeks:0 };
   const weeks = getTotalWeeks(year);
-  return { gross:y.gross, exp:y.exp, net:y.gross-y.exp, weeks };
+  const net   = y.net;  // use stored net directly
+  const exp   = y.exp + (DATA.salaryTotals?.[year] || 0);
+  return { gross:y.gross, exp, net, weeks };
 }
 
 // ─── KPIs ────────────────────────────────────────────────────────────────────
@@ -397,7 +415,7 @@ function renderKPIs(year) {
   const {gross,exp,net,weeks} = getYearlyKPIs(year);
 
   const totalGross = gross;
-  const totalNet = totalGross - exp;
+  const totalNet = net;  // net is truck-level only (gross - truck costs); exp may include fleet overhead
   const eff = totalGross ? Math.round(totalNet/totalGross*100) : 0;
   const avgWeek = weeks ? Math.round(totalGross/weeks) : 0;
 

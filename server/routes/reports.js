@@ -149,8 +149,9 @@ router.get('/summary', async (req, res) => {
       totalIncomeTax += (t.amount || 0);
     });
 
-    totalExp += totalSupervisorSalary + totalIncomeTax;
-    totalNet = totalGross - totalExp;
+    // Add supervisor salary to expenditure (separate fleet cost not in YearEntry data)
+    // Income tax is already included in YearEntry exp from Excel — do NOT add again
+    totalExp += totalSupervisorSalary;
 
     // Allocate minor/major per truck proportionally
     ranked.forEach(t => {

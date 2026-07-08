@@ -74,7 +74,7 @@ function renderSummary() {
   if (!reportData) return;
   const d = reportData;
   const adjGross = d.totalGross;
-  const adjNet = adjGross - d.totalExp;
+  const adjNet = d.totalNet;
   const eff = adjGross ? Math.round(adjNet / adjGross * 100) : 0;
   const exactGross = adjGross.toLocaleString();
   const exactNet = adjNet.toLocaleString();
