@@ -298,6 +298,10 @@
         <select id="dmWeekSel"></select>
       </div>
       <div class="dm-field">
+        <label>Year</label>
+        <select id="dmYearSel"></select>
+      </div>
+      <div class="dm-field">
         <label>Gross Income (GHS)</label>
         <input type="number" id="dmGrossIn" placeholder="0">
       </div>
@@ -337,12 +341,8 @@
 
   function toggleDM(){
     const val = yearSel ? yearSel.value : 'all';
-    if(val && val !== 'all'){
-      dmSection.style.display = '';
-      dmLoadYear(val);
-    } else {
-      dmSection.style.display = 'none';
-    }
+    dmSection.style.display = '';
+    dmLoadYear(val || 'all');
   }
 
   // Hook into the existing onchange (reports.js calls loadReport())
@@ -364,10 +364,38 @@
 
   window.dmLoadYear = async function(year){
     dmCurrentYear = year;
-    try {
-      const data = await API.get(`/api/weekly/year/${year}`);
-      dmAll = Array.isArray(data) ? data : [];
-    } catch(e){ dmAll = []; }
+    if (year === 'all') {
+      const years = Array.from(yearSel?.options || [])
+        .map(o => o.value)
+        .filter(v => v !== 'all')
+        .map(v => parseInt(v))
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+
+      if (!years.length) {
+        dmAll = [];
+      } else {
+        const results = await Promise.all(years.map(async y => {
+          try {
+            const rows = await API.get(`/api/weekly/year/${y}`);
+            return Array.isArray(rows) ? rows : [];
+          } catch (e) {
+            return [];
+          }
+        }));
+
+        dmAll = results.flat().sort((a, b) => {
+          if ((a.year || 0) !== (b.year || 0)) return (b.year || 0) - (a.year || 0);
+          if ((a.week || 0) !== (b.week || 0)) return (b.week || 0) - (a.week || 0);
+          return String(a.truck || '').localeCompare(String(b.truck || ''));
+        });
+      }
+    } else {
+      try {
+        const data = await API.get(`/api/weekly/year/${year}`);
+        dmAll = Array.isArray(data) ? data : [];
+      } catch(e){ dmAll = []; }
+    }
     dmFilter();
   };
 
@@ -409,7 +437,7 @@
       const netCls = net >= 0 ? 'pos' : 'neg';
       return `<tr>
         <td><span class="dm-truck-badge">${r.truck||'—'}</span></td>
-        <td><span class="dm-week-badge">Wk ${r.week||'?'}</span></td>
+        <td><span class="dm-week-badge">${dmCurrentYear === 'all' ? `${r.year || '—'} · ` : ''}Wk ${r.week||'?'}</span></td>
         <td style="color:var(--label)">${r.driver||'—'}</td>
         <td class="dm-gross">${fmt(r.gross)}</td>
         <td style="color:var(--red)">${fmt(r.expenses)}</td>
@@ -435,6 +463,13 @@
     dmEditId = null;
     document.getElementById('dmModalTitle').textContent = 'Add Entry';
     await dmPopulateSelects();
+    const ySel = document.getElementById('dmYearSel');
+    if (ySel) {
+      ySel.disabled = dmCurrentYear !== 'all';
+      ySel.value = dmCurrentYear === 'all'
+        ? (ySel.options[0]?.value || '')
+        : String(dmCurrentYear);
+    }
     document.getElementById('dmGrossIn').value = '';
     document.getElementById('dmExpIn').value = '';
     document.getElementById('dmNotesIn').value = '';
@@ -450,6 +485,11 @@
     await dmPopulateSelects();
     document.getElementById('dmTruckSel').value = entry.truck || '';
     document.getElementById('dmWeekSel').value = entry.week || '';
+    const ySel = document.getElementById('dmYearSel');
+    if (ySel) {
+      ySel.disabled = dmCurrentYear !== 'all';
+      ySel.value = String(entry.year || dmCurrentYear || '');
+    }
     document.getElementById('dmGrossIn').value = entry.gross || '';
     document.getElementById('dmExpIn').value = entry.expenses || '';
     document.getElementById('dmNotesIn').value = entry.notes || '';
@@ -467,6 +507,16 @@
     // Weeks 1-52
     const wSel = document.getElementById('dmWeekSel');
     wSel.innerHTML = Array.from({length:52},(_,i)=>`<option value="${i+1}">Week ${i+1}</option>`).join('');
+
+    // Years from filter dropdown
+    const ySel = document.getElementById('dmYearSel');
+    const years = Array.from(yearSel?.options || [])
+      .map(o => o.value)
+      .filter(v => v !== 'all')
+      .map(v => parseInt(v))
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b);
+    ySel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
   }
 
   window.dmCloseModal = function(){
@@ -482,7 +532,7 @@
   window.dmSaveEntry = async function(){
     const truckId = document.getElementById('dmTruckSel').value;
     const week = parseInt(document.getElementById('dmWeekSel').value);
-    const year = parseInt(dmCurrentYear);
+    const selectedYear = parseInt(document.getElementById('dmYearSel').value);
     const gross = parseFloat(document.getElementById('dmGrossIn').value) || 0;
     const expenses = parseFloat(document.getElementById('dmExpIn').value) || 0;
     const notes = document.getElementById('dmNotesIn').value;
@@ -492,19 +542,20 @@
         // Find the original entry to get its truckId+week for the URL
         const orig = dmAll.find(r => (r._id||r.id) === dmEditId);
         const origTruck = orig ? orig.truck : truckId;
+        const origYear = orig ? parseInt(orig.year) : selectedYear;
         const origWeek = orig ? orig.week : week;
-        await API.put(`/api/weekly/${encodeURIComponent(origTruck)}/${year}/${origWeek}`, {
+        await API.put(`/api/weekly/${encodeURIComponent(origTruck)}/${origYear}/${origWeek}`, {
           gross, maint: expenses, other: 0, notes, remarks
         });
         showToast('Entry updated', 'success');
       } else {
-        await API.put(`/api/weekly/${encodeURIComponent(truckId)}/${year}/${week}`, {
+        await API.put(`/api/weekly/${encodeURIComponent(truckId)}/${selectedYear}/${week}`, {
           gross, maint: expenses, other: 0, notes, remarks
         });
         showToast('Entry added', 'success');
       }
       dmCloseModal();
-      dmLoadYear(dmCurrentYear);
+      dmLoadYear(dmCurrentYear || 'all');
     } catch(e){ showToast('Error saving entry', 'error'); }
   };
 
@@ -515,7 +566,7 @@
       if(!entry) return showToast('Entry not found', 'error');
       await API.del(`/api/weekly/${encodeURIComponent(entry.truck)}/${entry.year}/${entry.week}`);
       showToast('Entry deleted', 'success');
-      dmLoadYear(dmCurrentYear);
+      dmLoadYear(dmCurrentYear || 'all');
     } catch(e){ showToast('Error deleting entry', 'error'); }
   };
 
