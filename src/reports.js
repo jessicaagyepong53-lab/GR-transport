@@ -1,6 +1,7 @@
 // ─── REPORTS PAGE ────────────────────────────────────────────────────────────
 
 let reportData = null;
+let latestReportRequestId = 0;
 
 const TRUCK_COLOR_MAP = {
   'GT 6350-19':  '#f5a623',
@@ -49,6 +50,7 @@ async function init() {
 }
 
 async function loadReport() {
+  const requestId = ++latestReportRequestId;
   const year = document.getElementById('yearSelect').value;
   document.getElementById('reportSubtitle').textContent =
     year === 'all' ? 'Truck Performance Reports · All Years' : `Truck Performance Reports · ${year}`;
@@ -59,14 +61,19 @@ async function loadReport() {
 
   try {
     reportData = await API.get(`/api/reports/summary?year=${year}`);
+    if (requestId !== latestReportRequestId) return;
     renderSummary();
     renderRanking();
     renderAnnualSummary();
   } catch (err) {
+    if (requestId !== latestReportRequestId) return;
     document.getElementById('summaryGrid').innerHTML = '<div class="summary-card"><div class="summary-label">Error</div><div class="summary-sub">' + err.message + '</div></div>';
   }
-  loadQuarterlyTaxBoard();
-  loadSalaryPayments(year);
+  await Promise.all([
+    loadQuarterlyTaxBoard(year),
+    loadSalaryPayments(year)
+  ]);
+  if (requestId !== latestReportRequestId) return;
   await renderPurchaseBalance();
 }
 
@@ -285,15 +292,48 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ─── QUARTERLY INCOME TAX ────────────────────────────────────────────────────
-const qTaxYears = [2024, 2025, 2026];
-let qTaxByYear = {
-  2024: { 1: 0, 2: 0, 3: 0, 4: 0 },
-  2025: { 1: 0, 2: 0, 3: 0, 4: 0 },
-  2026: { 1: 0, 2: 0, 3: 0, 4: 0 }
-};
+let qTaxByYear = {};
+let qTaxVisibleYears = [];
+let qTaxRequestId = 0;
 
-async function loadQuarterlyTaxBoard() {
-  const tasks = qTaxYears.map(async (year) => {
+function getYearOptionsFromSelect() {
+  const yearSelect = document.getElementById('yearSelect');
+  return Array.from(yearSelect?.options || [])
+    .map(opt => opt.value)
+    .filter(v => v !== 'all')
+    .map(v => parseInt(v))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+}
+
+async function getQuarterlyTaxYears() {
+  try {
+    const years = await API.get('/api/quarterly-tax/years/_fleet');
+    if (Array.isArray(years) && years.length) {
+      return years
+        .map(y => parseInt(y))
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+    }
+  } catch (e) {
+    // fall through to dropdown-derived years
+  }
+  return getYearOptionsFromSelect();
+}
+
+async function loadQuarterlyTaxBoard(selectedYear) {
+  const requestId = ++qTaxRequestId;
+  const parsedYear = selectedYear && selectedYear !== 'all' ? parseInt(selectedYear) : null;
+  const availableYears = await getQuarterlyTaxYears();
+  qTaxVisibleYears = parsedYear
+    ? [parsedYear]
+    : availableYears;
+
+  if (!qTaxVisibleYears.length && Number.isFinite(parsedYear)) {
+    qTaxVisibleYears = [parsedYear];
+  }
+
+  const tasks = qTaxVisibleYears.map(async (year) => {
     try {
       qTaxByYear[year] = await API.get(`/api/quarterly-tax/_fleet/${year}`);
     } catch (e) {
@@ -301,6 +341,7 @@ async function loadQuarterlyTaxBoard() {
     }
   });
   await Promise.all(tasks);
+  if (requestId !== qTaxRequestId) return;
   renderQuarterlyTaxBoard();
 }
 
@@ -308,12 +349,12 @@ function renderQuarterlyTaxBoard() {
   const el = document.getElementById('quarterlyTaxBody');
   if (!el) return;
   const label = document.getElementById('qTaxYearLabel');
-  if (label) label.textContent = '2024 · 2025 · 2026';
+  if (label) label.textContent = qTaxVisibleYears.join(' · ');
 
   const qNames = ['Q1 · Jan–Mar', 'Q2 · Apr–Jun', 'Q3 · Jul–Sep', 'Q4 · Oct–Dec'];
   const admin = typeof isAdmin === 'function' ? isAdmin() : false;
 
-  const cards = qTaxYears.map(year => {
+  const cards = qTaxVisibleYears.map(year => {
     const data = qTaxByYear[year] || { 1: 0, 2: 0, 3: 0, 4: 0 };
     const total = [1, 2, 3, 4].reduce((sum, q) => sum + (data[q] || 0), 0);
     return `
@@ -346,15 +387,19 @@ function renderQuarterlyTaxBoard() {
     `;
   }).join('');
 
-  const grandTotal = qTaxYears.reduce((sum, year) => {
+  const grandTotal = qTaxVisibleYears.reduce((sum, year) => {
     const data = qTaxByYear[year] || { 1: 0, 2: 0, 3: 0, 4: 0 };
     return sum + [1, 2, 3, 4].reduce((yearSum, q) => yearSum + (data[q] || 0), 0);
   }, 0);
 
+  const rangeLabel = qTaxVisibleYears.length === 1
+    ? String(qTaxVisibleYears[0])
+    : `${Math.min(...qTaxVisibleYears)}-${Math.max(...qTaxVisibleYears)}`;
+
   el.innerHTML = `
     <div class="qtax-board">${cards}</div>
     <div class="qtax-grand-total">
-      <span>Total Tax Paid · 2024-2026</span>
+      <span>Total Tax Paid · ${rangeLabel}</span>
       <strong>GHS ${grandTotal.toLocaleString()}</strong>
     </div>
   `;
@@ -369,6 +414,7 @@ async function saveQuarterTax(year, quarter) {
     await API.put(`/api/quarterly-tax/_fleet/${year}/${quarter}`, { amount });
     qTaxByYear[year] = qTaxByYear[year] || { 1: 0, 2: 0, 3: 0, 4: 0 };
     qTaxByYear[year][quarter] = amount;
+    if (!qTaxVisibleYears.includes(year)) qTaxVisibleYears = [year];
     renderQuarterlyTaxBoard();
   } catch (e) {
     console.error('Failed to save quarterly tax', e);
@@ -378,14 +424,51 @@ async function saveQuarterTax(year, quarter) {
 // ─── SUPERVISOR SALARY PAYMENTS ─────────────────────────────────────────────
 let salaryPayments = [];
 let salaryYear = null;
+let salaryModeAllYears = false;
+let salaryRequestId = 0;
 
 async function loadSalaryPayments(year) {
-  salaryYear = (year && year !== 'all') ? parseInt(year) : new Date().getFullYear();
-  try {
-    salaryPayments = await API.get(`/api/salary-payments/_fleet/${salaryYear}`);
-  } catch (e) {
-    salaryPayments = [];
+  const requestId = ++salaryRequestId;
+  salaryModeAllYears = (year === 'all');
+
+  if (salaryModeAllYears) {
+    const yearSelect = document.getElementById('yearSelect');
+    const years = Array.from(yearSelect?.options || [])
+      .map(opt => opt.value)
+      .filter(v => v !== 'all')
+      .map(v => parseInt(v))
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b);
+
+    salaryYear = null;
+    if (!years.length) {
+      salaryPayments = [];
+    } else {
+      const yearResults = await Promise.all(years.map(async y => {
+        try {
+          return await API.get(`/api/salary-payments/_fleet/${y}`);
+        } catch (e) {
+          return [];
+        }
+      }));
+
+      salaryPayments = yearResults
+        .flat()
+        .sort((a, b) => {
+          if ((a.year || 0) !== (b.year || 0)) return (a.year || 0) - (b.year || 0);
+          return (a.datePaid || '').localeCompare(b.datePaid || '');
+        });
+    }
+  } else {
+    salaryYear = (year && year !== 'all') ? parseInt(year) : new Date().getFullYear();
+    try {
+      salaryPayments = await API.get(`/api/salary-payments/_fleet/${salaryYear}`);
+    } catch (e) {
+      salaryPayments = [];
+    }
   }
+
+  if (requestId !== salaryRequestId) return;
   renderSalaryPayments();
 }
 
@@ -407,16 +490,16 @@ function renderSalaryPayments() {
   const el = document.getElementById('salaryPaymentsBody');
   if (!el) return;
   const label = document.getElementById('salaryYearLabel');
-  if (label) label.textContent = salaryYear;
+  if (label) label.textContent = salaryModeAllYears ? 'All Years' : salaryYear;
   const admin = typeof isAdmin === 'function' ? isAdmin() : false;
 
   const rows = salaryPayments.map(entry => {
     const week = entry.week || getISOWeekFromDateStr(entry.datePaid);
     return `
-    <div class="salary-row" data-id="${entry._id}">
+    <div class="salary-row" data-id="${entry._id}" data-year="${entry.year || ''}">
       <input type="date" value="${entry.datePaid || ''}" class="salary-date" ${admin ? '' : 'disabled'}>
       <input type="number" value="${entry.amount || ''}" class="salary-amount" min="0" placeholder="0" ${admin ? '' : 'disabled'}>
-      <div style="font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;">${week ? `Week ${week}` : 'No week'}</div>
+      <div style="font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;">${salaryModeAllYears ? `${entry.year || '-'} · ` : ''}${week ? `Week ${week}` : 'No week'}</div>
       ${admin ? `
         <button class="salary-save" onclick="saveSalaryPayment(this)"><i class="fa-solid fa-floppy-disk"></i>Save</button>
         <button class="salary-del" onclick="deleteSalaryPayment(this)"><i class="fa-solid fa-trash"></i></button>
@@ -435,7 +518,7 @@ function renderSalaryPayments() {
     ` : ''}
     <div class="salary-list">${rows || '<div style="color:var(--muted);font-size:0.8rem;padding:10px 0;">No salary payments entered yet.</div>'}</div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--border);margin-top:14px;">
-      <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);">Total Supervisor Salary Paid · ${salaryYear}</span>
+      <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);">Total Supervisor Salary Paid · ${salaryModeAllYears ? 'All Years' : salaryYear}</span>
       <span style="font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;color:var(--accent);">GHS ${salaryTotal().toLocaleString()}</span>
     </div>
   `;
@@ -445,9 +528,12 @@ async function addSalaryPayment() {
   if (typeof isAdmin === 'function' && !isAdmin()) return;
   const datePaid = document.getElementById('salaryNewDate')?.value;
   const amount = parseFloat(document.getElementById('salaryNewAmount')?.value) || 0;
+  const entryYear = salaryModeAllYears
+    ? (datePaid ? parseInt(datePaid.slice(0, 4)) : new Date().getFullYear())
+    : salaryYear;
   try {
-    await API.post('/api/salary-payments/_fleet/' + salaryYear, { datePaid, amount });
-    await loadSalaryPayments(salaryYear);
+    await API.post('/api/salary-payments/_fleet/' + entryYear, { datePaid, amount });
+    await loadSalaryPayments(salaryModeAllYears ? 'all' : salaryYear);
   } catch (e) {
     console.error('Failed to add salary payment', e);
   }
@@ -457,12 +543,13 @@ async function saveSalaryPayment(button) {
   if (typeof isAdmin === 'function' && !isAdmin()) return;
   const row = button.closest('.salary-row');
   const id = row?.dataset.id;
+  const rowYear = parseInt(row?.dataset.year || salaryYear);
   if (!id) return;
   const datePaid = row.querySelector('.salary-date')?.value;
   const amount = parseFloat(row.querySelector('.salary-amount')?.value) || 0;
   try {
-    await API.put(`/api/salary-payments/_fleet/${salaryYear}/${id}`, { datePaid, amount });
-    await loadSalaryPayments(salaryYear);
+    await API.put(`/api/salary-payments/_fleet/${rowYear}/${id}`, { datePaid, amount });
+    await loadSalaryPayments(salaryModeAllYears ? 'all' : salaryYear);
   } catch (e) {
     console.error('Failed to save salary payment', e);
   }
@@ -472,10 +559,11 @@ async function deleteSalaryPayment(button) {
   if (typeof isAdmin === 'function' && !isAdmin()) return;
   const row = button.closest('.salary-row');
   const id = row?.dataset.id;
+  const rowYear = parseInt(row?.dataset.year || salaryYear);
   if (!id) return;
   try {
-    await API.del(`/api/salary-payments/_fleet/${salaryYear}/${id}`);
-    await loadSalaryPayments(salaryYear);
+    await API.del(`/api/salary-payments/_fleet/${rowYear}/${id}`);
+    await loadSalaryPayments(salaryModeAllYears ? 'all' : salaryYear);
   } catch (e) {
     console.error('Failed to delete salary payment', e);
   }

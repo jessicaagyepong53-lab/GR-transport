@@ -2,6 +2,17 @@ const router = require('express').Router();
 const QuarterlyTax = require('../models/QuarterlyTax');
 const { requireAdmin, touchLastSaved } = require('../middleware/auth');
 
+// GET /api/quarterly-tax/years/:truckId — list available years for quarterly tax entries
+router.get('/years/:truckId', async (req, res) => {
+  try {
+    const years = await QuarterlyTax.distinct('year', { truckId: req.params.truckId });
+    years.sort((a, b) => a - b);
+    res.json(years);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/quarterly-tax/:truckId/:year — returns { 1: n, 2: n, 3: n, 4: n }
 router.get('/:truckId/:year', async (req, res) => {
   try {
