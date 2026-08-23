@@ -505,14 +505,16 @@ function renderSheetNotes() {
 
 function noteRowHtml(i, text) {
   const escaped = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const admin = isAdmin();
   return `<div class="sheet-note-row">
     <span class="sheet-note-num">${i + 1}.</span>
-    <textarea class="sheet-note-textarea" rows="2">${escaped}</textarea>
-    <button class="sheet-note-del" onclick="removeSheetNote(this)" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+    <textarea class="sheet-note-textarea" rows="2"${admin ? '' : ' disabled'}>${escaped}</textarea>
+    ${admin ? `<button class="sheet-note-del" onclick="removeSheetNote(this)" title="Remove"><i class="fa-solid fa-xmark"></i></button>` : ''}
   </div>`;
 }
 
 function addSheetNote() {
+  if (!isAdmin()) return showToast('View only — contact admin', 'error');
   const list = document.getElementById('sheetNotesList');
   if (!list) return;
   // Clear the empty message if present
@@ -525,6 +527,7 @@ function addSheetNote() {
 }
 
 function removeSheetNote(btn) {
+  if (!isAdmin()) return showToast('View only — contact admin', 'error');
   btn.closest('.sheet-note-row')?.remove();
   // Re-number
   document.querySelectorAll('#sheetNotesList .sheet-note-row').forEach((row, i) => {
@@ -533,6 +536,7 @@ function removeSheetNote(btn) {
 }
 
 async function saveSheetNotes() {
+  if (!isAdmin()) return showToast('View only — contact admin', 'error');
   const { truckId } = getSelected();
   if (!truckId) return;
   const rows = document.querySelectorAll('#sheetNotesList .sheet-note-row');
@@ -647,7 +651,7 @@ function renderHistory() {
         <td><span class="range-badge ${st.key}" title="${rgText}">${st.label}</span></td>
         <td class="notes-cell">${e.notes || '\u2014'}</td>
         <td class="notes-cell">${e.remarks || '\u2014'}</td>
-        <td><button class="edit-btn" data-admin-only onclick="editWeekEntry(${e.week})"><i class="fa-solid fa-pen-to-square"></i></button><button class="delete-btn" data-admin-only onclick="deleteWeekEntry(${e.week})"><i class="fa-solid fa-trash"></i></button></td>
+        <td>${isAdmin() ? `<button class="edit-btn" onclick="editWeekEntry(${e.week})"><i class="fa-solid fa-pen-to-square"></i></button><button class="delete-btn" onclick="deleteWeekEntry(${e.week})"><i class="fa-solid fa-trash"></i></button>` : ''}</td>
       </tr>`;
     });
     tbody.innerHTML = html;
@@ -678,6 +682,7 @@ function jumpToWeek(w) {
 }
 
 function editWeekEntry(w) {
+  if (!isAdmin()) return showToast('View only — contact admin', 'error');
   document.getElementById('weekSelect').value = w;
   setTotalsMode('week', w);
   fillWeekFromCache();
@@ -686,6 +691,7 @@ function editWeekEntry(w) {
 }
 
 async function deleteWeekEntry(w) {
+  if (!isAdmin()) return showToast('View only — contact admin', 'error');
   const { truckId, year } = getSelected();
   if (!truckId) return;
   const mon = getWeekMonday(year, w);
@@ -709,6 +715,7 @@ async function deleteWeekEntry(w) {
 }
 
 async function addNewEntry() {
+  if (!isAdmin()) return showToast('View only — contact admin', 'error');
   const { truckId, year } = getSelected();
   if (!truckId) return showToast('Select a truck first', 'error');
   const usedWeeks = new Set(weeklyCache.data.map(e => e.week));

@@ -666,25 +666,78 @@ async function addNewTruck() {
 }
 
 // ─── PIN RESET ───────────────────────────────────────────────────────────────
+function onResetMethodChange() {
+  const method = document.getElementById('resetMethod').value;
+  document.getElementById('resetMethod_recoveryKey').style.display = method === 'recoveryKey' ? '' : 'none';
+  document.getElementById('resetMethod_secretQuestion').style.display = method === 'secretQuestion' ? '' : 'none';
+  document.getElementById('resetMethod_partialPin').style.display = method === 'partialPin' ? '' : 'none';
+}
+
+async function loadSecurityQuestion() {
+  const el = document.getElementById('secretQuestionText');
+  if (!el) return;
+  try {
+    const data = await API.get('/api/settings/security-question');
+    el.textContent = data.question || 'No recovery question has been set up yet — use another method.';
+  } catch {
+    el.textContent = 'Could not load the recovery question — use another method.';
+  }
+}
+
 async function resetPin() {
-  const recoveryKey = document.getElementById('recoveryKey').value.trim();
+  const method = document.getElementById('resetMethod').value;
   const newPin = document.getElementById('resetNewPin').value.trim();
-  if (!recoveryKey || !newPin) return showToast('Fill recovery key and new PIN', 'error');
+  if (!newPin) return showToast('Enter a new PIN', 'error');
   if (newPin.length < 4) return showToast('PIN must be at least 4 characters', 'error');
 
+  const body = { method, newPin };
+
+  if (method === 'recoveryKey') {
+    const recoveryKey = document.getElementById('recoveryKey').value.trim();
+    if (!recoveryKey) return showToast('Enter the recovery key', 'error');
+    body.recoveryKey = recoveryKey;
+  } else if (method === 'secretQuestion') {
+    const secretAnswer = document.getElementById('secretAnswer').value.trim();
+    if (!secretAnswer) return showToast('Enter your answer', 'error');
+    body.secretAnswer = secretAnswer;
+  } else if (method === 'partialPin') {
+    const partialPin = document.getElementById('partialPin').value.trim();
+    if (!partialPin) return showToast('Enter the digits you remember', 'error');
+    body.partialPin = partialPin;
+  }
+
   try {
-    await API.post('/api/settings/pin/reset', { recoveryKey, newPin });
+    await API.post('/api/settings/pin/reset', body);
     showToast('PIN has been reset — you are now logged in', 'success');
     document.getElementById('recoveryKey').value = '';
+    document.getElementById('secretAnswer').value = '';
+    document.getElementById('partialPin').value = '';
     document.getElementById('resetNewPin').value = '';
     window._isAdminCached = true;
     updateAdminUI();
   } catch (err) {
-    showToast('Error: ' + err.message, 'error');
+    showToast(err.message || 'Failed to reset PIN', 'error');
+  }
+}
+
+async function saveSecurityQuestion() {
+  const question = document.getElementById('newSecurityQuestion').value.trim();
+  const answer = document.getElementById('newSecurityAnswer').value.trim();
+  if (!question || !answer) return showToast('Enter both a question and an answer', 'error');
+
+  try {
+    await API.put('/api/settings/security-question', { question, answer });
+    showToast('Recovery question saved', 'success');
+    document.getElementById('newSecurityQuestion').value = '';
+    document.getElementById('newSecurityAnswer').value = '';
+    loadSecurityQuestion();
+  } catch (err) {
+    showToast(err.message || 'Failed to save recovery question', 'error');
   }
 }
 
 document.addEventListener('DOMContentLoaded', loadSettings);
+document.addEventListener('DOMContentLoaded', loadSecurityQuestion);
 
 document.addEventListener('DOMContentLoaded', () => {
   const uploadBtn = document.getElementById('uploadReferenceBtn');

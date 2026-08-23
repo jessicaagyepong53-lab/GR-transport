@@ -71,7 +71,8 @@ async function loadReport() {
   }
   await Promise.all([
     loadQuarterlyTaxBoard(year),
-    loadSalaryPayments(year)
+    loadSalaryPayments(year),
+    renderYearlySummary()
   ]);
   if (requestId !== latestReportRequestId) return;
   await renderPurchaseBalance();
@@ -205,10 +206,13 @@ function renderAnnualSummary() {
     </tr>`;
   });
 
-  // Force totals to match the exact fleet salary total (rounding-safe).
+  // Supervisor Salary and Income Tax get their own dedicated columns/totals —
+  // force them to match the exact fleet totals (rounding-safe).
   totSalary = totalSupervisorSalary;
   totTax = totalIncomeTax;
-  totExp += (totSalary + totTax);
+  // Total Expenditure intentionally stays as the sum of the truck rows above
+  // it (truck-only operating cost) — it is NOT combined with salary/tax here,
+  // so this column's TOTAL always equals what you get adding up the rows.
   totIncome = reportData.totalNet || 0;
 
   // Totals row
@@ -231,6 +235,121 @@ function renderAnnualSummary() {
     <td>${totPctIncome}%</td>
     <td>${totRatio}:1</td>
     <td></td>
+  </tr>`;
+
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ─── YEARLY SUMMARY (shown only when "All Years" is selected) ───────────────
+// Built live from every year currently in the year dropdown (which itself is
+// populated from the database), so a newly-added year appears here on its
+// own the next time it has data — nothing here is hardcoded to 2024-2026.
+let yearlySummaryRequestId = 0;
+
+function getAllYearOptions() {
+  const sel = document.getElementById('yearSelect');
+  return Array.from(sel?.options || [])
+    .map(opt => opt.value)
+    .filter(v => v !== 'all')
+    .map(v => parseInt(v))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+}
+
+async function renderYearlySummary() {
+  const section = document.getElementById('yearlySummarySection');
+  const table = document.getElementById('yearlySummaryTable');
+  if (!section || !table) return;
+
+  const currentYear = document.getElementById('yearSelect').value;
+  if (currentYear !== 'all') {
+    section.style.display = 'none';
+    return;
+  }
+
+  const requestId = ++yearlySummaryRequestId;
+  section.style.display = '';
+  table.innerHTML = `<tbody><tr><td style="padding:20px;color:var(--muted);text-align:center;">Loading yearly breakdown…</td></tr></tbody>`;
+
+  const years = getAllYearOptions();
+  if (!years.length) {
+    table.innerHTML = `<tbody><tr><td style="padding:20px;color:var(--muted);text-align:center;">No yearly data yet.</td></tr></tbody>`;
+    return;
+  }
+
+  let results;
+  try {
+    // Reuses the same /api/reports/summary endpoint the single-year view
+    // already uses — one call per year, no new backend route needed.
+    results = await Promise.all(years.map(y => API.get(`/api/reports/summary?year=${y}`)));
+  } catch (err) {
+    if (requestId !== yearlySummaryRequestId) return;
+    table.innerHTML = `<tbody><tr><td style="padding:20px;color:var(--red);text-align:center;">Could not load yearly breakdown: ${err.message}</td></tr></tbody>`;
+    return;
+  }
+  if (requestId !== yearlySummaryRequestId) return;
+
+  const rows = years.map((year, i) => {
+    const d = results[i] || {};
+    const gross = d.totalGross || 0;
+    const exp = d.totalExp || 0;
+    const net = d.totalNet || 0;
+    const weeks = (d.truckRanking || []).reduce((s, t) => s + (t.weeks || 0), 0);
+    const avgExp = weeks ? exp / weeks : 0;
+    const avgIncome = weeks ? net / weeks : 0;
+    const pctExp = gross ? Math.round(exp / gross * 100) : 0;
+    const pctIncome = gross ? Math.round(net / gross * 100) : 0;
+    const ratio = net ? (exp / net).toFixed(2) : '0.00';
+    return { year, gross, exp, net, weeks, avgExp, avgIncome, pctExp, pctIncome, ratio };
+  });
+
+  let totGross = 0, totExp = 0, totNet = 0, totWeeks = 0;
+  rows.forEach(r => { totGross += r.gross; totExp += r.exp; totNet += r.net; totWeeks += r.weeks; });
+  const totAvgExp = totWeeks ? totExp / totWeeks : 0;
+  const totAvgIncome = totWeeks ? totNet / totWeeks : 0;
+  const totPctExp = totGross ? Math.round(totExp / totGross * 100) : 0;
+  const totPctIncome = totGross ? Math.round(totNet / totGross * 100) : 0;
+  const totRatio = totNet ? (totExp / totNet).toFixed(2) : '0.00';
+
+  const money = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  let html = `<thead><tr>
+    <th style="text-align:left">Year</th>
+    <th>Total Expenditure (GHS)</th>
+    <th>Total Income (GHS)</th>
+    <th>Total Amount (GHS)</th>
+    <th>Avg Weekly Expenditure (GHS)</th>
+    <th>Avg Weekly Income (GHS)</th>
+    <th>% Expenditure</th>
+    <th>% Income</th>
+    <th>Ratio</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach(r => {
+    html += `<tr>
+      <td style="text-align:left;color:var(--accent);font-weight:600">${r.year}</td>
+      <td style="color:var(--red)">${money(r.exp)}</td>
+      <td style="color:var(--green)">${money(r.net)}</td>
+      <td style="color:var(--blue)">${money(r.gross)}</td>
+      <td>${money(r.avgExp)}</td>
+      <td>${money(r.avgIncome)}</td>
+      <td style="color:var(--red)">${r.pctExp}%</td>
+      <td style="color:var(--green)">${r.pctIncome}%</td>
+      <td>${r.ratio}:1</td>
+    </tr>`;
+  });
+
+  html += `<tr class="totals-row">
+    <td style="text-align:left">TOTAL</td>
+    <td>${money(totExp)}</td>
+    <td>${money(totNet)}</td>
+    <td>${money(totGross)}</td>
+    <td>${money(totAvgExp)}</td>
+    <td>${money(totAvgIncome)}</td>
+    <td>${totPctExp}%</td>
+    <td>${totPctIncome}%</td>
+    <td>${totRatio}:1</td>
   </tr>`;
 
   html += '</tbody>';
@@ -261,15 +380,40 @@ async function renderPurchaseBalance() {
   grid.innerHTML = trucks26.map(t => {
     const totalCost = t.cost?.pricePaid || 0;
     const initialPmt = t.cost?.initialPayment || 0;
-    const entriesTotal = (t.paymentEntries || []).reduce((s, e) => s + (e.amount || 0), 0);
-    const totalPaid = initialPmt + entriesTotal;
+    const paymentEntries = t.paymentEntries || [];
+
+    // Walk entries in the order they were added. Keep summing into the
+    // running total ONLY until it reaches the truck's total cost — once
+    // the truck is paid off, everything added after that point is shown
+    // for the record but no longer counts toward Total Paid / Remaining
+    // Balance / the progress bar. A divider marks where that happens.
+    let running = initialPmt;
+    let dividerShown = totalCost <= 0; // no cost set = never show a divider
+    const entryRowsArr = [];
+
+    paymentEntries.forEach((e, i) => {
+      const amt = e.amount || 0;
+      const alreadyPaidOff = totalCost > 0 && running >= totalCost;
+
+      if (alreadyPaidOff && !dividerShown) {
+        entryRowsArr.push(`<div class="pbal-divider" style="margin:10px 0;padding-top:8px;border-top:2px dashed rgba(245,166,35,0.35);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.6px;color:var(--accent);text-align:center;">Truck paid off — entries below are extra, not counted toward balance</div>`);
+        dividerShown = true;
+      }
+      if (!alreadyPaidOff) running += amt;
+
+      const label = e.label || `Payment ${i + 1}`;
+      const extra = alreadyPaidOff;
+      const tag = extra
+        ? ` <span style="display:inline-block;font-size:0.58rem;padding:1px 7px;border-radius:10px;background:rgba(155,114,255,0.14);color:var(--purple);border:1px solid rgba(155,114,255,0.32);text-transform:uppercase;letter-spacing:0.4px;vertical-align:middle;margin-left:4px;">Reference</span>`
+        : '';
+      entryRowsArr.push(`<div class="pbal-row"><span class="pbal-row-lbl"${extra ? ' style="color:var(--label)"' : ''}>${label}${tag}</span><span class="pbal-row-val" style="color:${extra ? 'var(--purple)' : 'var(--green)'}">GHS ${amt.toLocaleString()}</span></div>`);
+    });
+
+    const totalPaid = running;
     const remaining = totalCost - totalPaid;
     const pct = totalCost ? Math.min(100, Math.round(totalPaid / totalCost * 100)) : 0;
     const remColor = remaining <= 0 ? 'var(--green)' : 'var(--accent)';
-
-    const entryRows = (t.paymentEntries || []).map((e, i) =>
-      `<div class="pbal-row"><span class="pbal-row-lbl">${e.label || `Payment ${i + 1}`}</span><span class="pbal-row-val" style="color:var(--green)">GHS ${(e.amount||0).toLocaleString()}</span></div>`
-    ).join('');
+    const entryRows = entryRowsArr.join('');
 
     return `<div class="pbal-truck">
       <div class="pbal-truck-id">${t.truckId}${t.driver ? ' — ' + t.driver : ''}</div>

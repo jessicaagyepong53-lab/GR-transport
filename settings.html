@@ -149,22 +149,74 @@
   <!-- PIN Management -->
   <div class="section">
     <div class="section-title"><i class="fa-solid fa-lock"></i>Admin PIN</div>
+
     <div class="card" id="resetCard">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
         <i class="fa-solid fa-triangle-exclamation" style="color:var(--accent);"></i>
-        <span style="font-size:0.85rem;font-weight:600;">Reset PIN</span>
-        <span style="font-size:0.78rem;color:var(--muted);">Use your recovery key to set a new PIN</span>
+        <span style="font-size:0.85rem;font-weight:600;">Forgot PIN? Reset it</span>
+        <span style="font-size:0.78rem;color:var(--muted);">Choose whichever verification method you have</span>
       </div>
+
       <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Verification Method</label>
+          <select class="form-input" id="resetMethod" onchange="onResetMethodChange()">
+            <option value="recoveryKey">Recovery Key</option>
+            <option value="secretQuestion">Answer Recovery Question</option>
+            <option value="partialPin">Remember Part of My PIN</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row" id="resetMethod_recoveryKey">
         <div class="form-group">
           <label class="form-label">Recovery Key</label>
           <input type="password" class="form-input" id="recoveryKey" autocomplete="off" placeholder="Enter recovery key">
         </div>
+      </div>
+
+      <div class="form-row" id="resetMethod_secretQuestion" style="display:none;">
+        <div class="form-group" style="flex:1 1 100%;">
+          <label class="form-label">Recovery Question</label>
+          <p id="secretQuestionText" style="font-size:0.85rem;color:var(--label);margin-bottom:10px;">Loading…</p>
+          <label class="form-label">Your Answer</label>
+          <input type="text" class="form-input" id="secretAnswer" autocomplete="off" placeholder="Enter your answer">
+        </div>
+      </div>
+
+      <div class="form-row" id="resetMethod_partialPin" style="display:none;">
+        <div class="form-group" style="flex:1 1 100%;">
+          <label class="form-label">Digits You Remember</label>
+          <p style="font-size:0.78rem;color:var(--muted);margin-bottom:8px;">Type the digits you remember in their correct position, and use <code>_</code> for the ones you don't. You need at least 2 correct digits in the right place. Example: if the PIN was <code>4728</code>, entering <code>4_2_</code> works.</p>
+          <input type="text" class="form-input" id="partialPin" autocomplete="off" placeholder="e.g. 4_2_" style="font-family:'JetBrains Mono',monospace;letter-spacing:2px;">
+        </div>
+      </div>
+
+      <div class="form-row">
         <div class="form-group">
           <label class="form-label">New PIN</label>
           <input type="password" class="form-input" id="resetNewPin" autocomplete="off" placeholder="Min 4 characters">
         </div>
         <button class="btn btn-primary" onclick="resetPin()"><i class="fa-solid fa-rotate-right"></i>Reset PIN</button>
+      </div>
+    </div>
+
+    <div class="card" data-admin-only>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <i class="fa-solid fa-shield-halved" style="color:var(--accent);"></i>
+        <span style="font-size:0.85rem;font-weight:600;">Recovery Question Setup</span>
+        <span style="font-size:0.78rem;color:var(--muted);">Set this up now so you (or whoever else logs in) can recover the PIN later without needing server access</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Question</label>
+          <input type="text" class="form-input" id="newSecurityQuestion" placeholder="e.g. What was the name of our first truck?">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Answer</label>
+          <input type="text" class="form-input" id="newSecurityAnswer" autocomplete="off" placeholder="Enter the answer">
+        </div>
+        <button class="btn btn-primary" onclick="saveSecurityQuestion()"><i class="fa-solid fa-floppy-disk"></i>Save Question</button>
       </div>
     </div>
   </div>

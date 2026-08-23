@@ -3,7 +3,9 @@ const WeeklyEntry = require('../models/WeeklyEntry');
 const YearEntry = require('../models/YearEntry');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const MonthlyEntry = require('../models/MonthlyEntry');
+const Trash = require('../models/Trash');
 const { requireAdmin, touchLastSaved } = require('../middleware/auth');
+const { asyncHandler, AppError, toYear, toWeek, toNumber } = require('../utils/errors');
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -67,13 +69,7 @@ function buildSimpleRange(values) {
   const min = Math.min(...nums);
   const max = Math.max(...nums);
   const avg = nums.reduce((sum, n) => sum + n, 0) / nums.length;
-  return {
-    min,
-    max,
-    avg,
-    range: max - min,
-    samples: nums.length
-  };
+  return { min, max, avg, range: max - min, samples: nums.length };
 }
 
 // Recompute YearEntry, ExpenseBreakdown, and MonthlyEntry for a truck+year from weekly data
@@ -82,7 +78,6 @@ async function recomputeYearFromWeekly(truckId, year) {
   const existingExpense = await ExpenseBreakdown.findOne({ year });
   const supervisorSalary = existingExpense?.supervisorSalary || 0;
 
-  // If no entries left, clean up YearEntry for this truck+year
   if (entries.length === 0) {
     await YearEntry.deleteOne({ truckId, year });
   } else {
@@ -103,7 +98,6 @@ async function recomputeYearFromWeekly(truckId, year) {
     );
   }
 
-  // Recompute fleet-wide expense breakdown for this year
   const allWeekly = await WeeklyEntry.aggregate([
     { $match: { year } },
     { $group: { _id: null, maint: { $sum: '$maint' }, other: { $sum: '$other' } } }
@@ -126,7 +120,6 @@ async function recomputeYearFromWeekly(truckId, year) {
     }
   }
 
-  // Recompute fleet-wide monthly entries for this year using upserts (race-safe)
   const allEntries = await WeeklyEntry.find({ year });
   const monthMap = {};
   allEntries.forEach(e => {
@@ -146,299 +139,195 @@ async function recomputeYearFromWeekly(truckId, year) {
     }));
     await MonthlyEntry.bulkWrite(ops);
   }
-  // Remove months that no longer have data
   await MonthlyEntry.deleteMany({ year, truckId: '_fleet', month: { $nin: activeMonths } });
 }
 
-// GET /api/weekly/year/:year — all weekly entries for ALL trucks in a year (for data management)
-// NOTE: Must be before /:truckId/:year so 'year' isn't matched as truckId
 // GET /api/weekly/compare?scope=truck|fleet&truckId=...&year=YYYY
-router.get('/compare', async (req, res) => {
-  try {
-    const scope = (req.query.scope || 'truck').toLowerCase();
-    const year = req.query.year ? parseInt(req.query.year) : null;
-    if (!year || isNaN(year)) return res.status(400).json({ error: 'year is required' });
+router.get('/compare', asyncHandler(async (req, res) => {
+  const scope = (req.query.scope || 'truck').toLowerCase();
+  if (!req.query.year) throw new AppError('year is required', 400);
+  const year = toYear(req.query.year);
 
-    if (scope === 'fleet') {
-      const grouped = await WeeklyEntry.aggregate([
-        { $match: { year } },
-        { $group: { _id: '$week', gross: { $sum: '$gross' } } },
-        { $sort: { _id: 1 } }
-      ]);
-      const weekGrossMap = {};
-      grouped.forEach(r => { weekGrossMap[r._id] = Number(r.gross || 0); });
-      return res.json({ scope: 'fleet', year, weeks: buildWeekComparisonMap(weekGrossMap) });
-    }
-
-    const truckId = req.query.truckId;
-    if (!truckId) return res.status(400).json({ error: 'truckId is required for truck scope' });
-
-    const entries = await WeeklyEntry.find({ truckId, year }).select('week gross').sort('week').lean();
+  if (scope === 'fleet') {
+    const grouped = await WeeklyEntry.aggregate([
+      { $match: { year } },
+      { $group: { _id: '$week', gross: { $sum: '$gross' } } },
+      { $sort: { _id: 1 } }
+    ]);
     const weekGrossMap = {};
-    entries.forEach(e => { weekGrossMap[e.week] = Number(e.gross || 0); });
-
-    return res.json({
-      scope: 'truck',
-      truckId,
-      year,
-      weeks: buildWeekComparisonMap(weekGrossMap)
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    grouped.forEach(r => { weekGrossMap[r._id] = Number(r.gross || 0); });
+    return res.json({ scope: 'fleet', year, weeks: buildWeekComparisonMap(weekGrossMap) });
   }
-});
+
+  if (!req.query.truckId) throw new AppError('truckId is required for truck scope', 400);
+  const truckId = req.query.truckId;
+
+  const entries = await WeeklyEntry.find({ truckId, year }).select('week gross').sort('week').lean();
+  const weekGrossMap = {};
+  entries.forEach(e => { weekGrossMap[e.week] = Number(e.gross || 0); });
+
+  res.json({ scope: 'truck', truckId, year, weeks: buildWeekComparisonMap(weekGrossMap) });
+}));
 
 // GET /api/weekly/ranges?scope=truck|fleet&truckId=...&year=YYYY
-router.get('/ranges', async (req, res) => {
-  try {
-    const scope = (req.query.scope || 'truck').toLowerCase();
-    const year = req.query.year ? parseInt(req.query.year) : null;
+router.get('/ranges', asyncHandler(async (req, res) => {
+  const scope = (req.query.scope || 'truck').toLowerCase();
+  const year = req.query.year ? toYear(req.query.year) : null;
 
-    if (scope === 'fleet') {
-      const grouped = await WeeklyEntry.aggregate([
-        {
-          $group: {
-            _id: { year: '$year', week: '$week' },
-            gross: { $sum: '$gross' }
-          }
-        }
-      ]);
+  if (scope === 'fleet') {
+    const grouped = await WeeklyEntry.aggregate([
+      { $group: { _id: { year: '$year', week: '$week' }, gross: { $sum: '$gross' } } }
+    ]);
 
-      const allRows = grouped.map(r => ({ year: r._id.year, week: r._id.week, gross: r.gross || 0 }));
-      let baselineRows = year ? allRows.filter(r => r.year !== year) : allRows;
-      if (!baselineRows.length) baselineRows = allRows;
-      const currentYearWeeks = year
-        ? allRows.filter(r => r.year === year).reduce((acc, r) => {
-            acc[r.week] = Number(r.gross || 0);
-            return acc;
-          }, {})
-        : {};
-
-      return res.json({
-        scope: 'fleet',
-        year,
-        weeks: buildRangeMap(baselineRows),
-        currentYearWeeks
-      });
-    }
-
-    const truckId = req.query.truckId;
-    if (!truckId) return res.status(400).json({ error: 'truckId is required for truck scope' });
-
-    const entries = await WeeklyEntry.find({ truckId }).select('year week gross').lean();
-    let baselineRows = year ? entries.filter(e => e.year !== year) : entries;
-    if (!baselineRows.length) baselineRows = entries;
+    const allRows = grouped.map(r => ({ year: r._id.year, week: r._id.week, gross: r.gross || 0 }));
+    let baselineRows = year ? allRows.filter(r => r.year !== year) : allRows;
+    if (!baselineRows.length) baselineRows = allRows;
     const currentYearWeeks = year
-      ? entries.filter(e => e.year === year).reduce((acc, e) => {
-          acc[e.week] = Number(e.gross || 0);
-          return acc;
-        }, {})
+      ? allRows.filter(r => r.year === year).reduce((acc, r) => { acc[r.week] = Number(r.gross || 0); return acc; }, {})
       : {};
 
-    return res.json({
-      scope: 'truck',
-      truckId,
-      year,
-      weeks: buildRangeMap(baselineRows),
-      currentYearWeeks
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.json({ scope: 'fleet', year, weeks: buildRangeMap(baselineRows), currentYearWeeks });
   }
-});
+
+  if (!req.query.truckId) throw new AppError('truckId is required for truck scope', 400);
+  const truckId = req.query.truckId;
+
+  const entries = await WeeklyEntry.find({ truckId }).select('year week gross').lean();
+  let baselineRows = year ? entries.filter(e => e.year !== year) : entries;
+  if (!baselineRows.length) baselineRows = entries;
+  const currentYearWeeks = year
+    ? entries.filter(e => e.year === year).reduce((acc, e) => { acc[e.week] = Number(e.gross || 0); return acc; }, {})
+    : {};
+
+  res.json({ scope: 'truck', truckId, year, weeks: buildRangeMap(baselineRows), currentYearWeeks });
+}));
 
 // GET /api/weekly/current-vs-range?scope=truck|fleet&truckId=...&year=YYYY&week=WW
-router.get('/current-vs-range', async (req, res) => {
-  try {
-    const scope = (req.query.scope || 'truck').toLowerCase();
-    const year = req.query.year ? parseInt(req.query.year) : null;
-    const week = req.query.week ? parseInt(req.query.week) : null;
-    if (!year || isNaN(year)) return res.status(400).json({ error: 'year is required' });
-    if (!week || isNaN(week)) return res.status(400).json({ error: 'week is required' });
+router.get('/current-vs-range', asyncHandler(async (req, res) => {
+  const scope = (req.query.scope || 'truck').toLowerCase();
+  if (!req.query.year) throw new AppError('year is required', 400);
+  if (!req.query.week) throw new AppError('week is required', 400);
+  const year = toYear(req.query.year);
+  const week = toWeek(req.query.week);
 
-    if (scope === 'fleet') {
-      const grouped = await WeeklyEntry.aggregate([
-        { $match: { year } },
-        { $group: { _id: '$week', gross: { $sum: '$gross' } } },
-        { $sort: { _id: 1 } }
-      ]);
-
-      const weekRows = grouped.map(r => ({ week: Number(r._id), gross: Number(r.gross || 0) }));
-      const weekMap = weekRows.reduce((acc, row) => {
-        acc[row.week] = row.gross;
-        return acc;
-      }, {});
-      const stats = buildSimpleRange(weekRows.map(r => r.gross));
-      const currentGross = Number(weekMap[week] || 0);
-      const status = stats.samples === 0
-        ? 'na'
-        : currentGross < stats.min
-          ? 'low'
-          : currentGross > stats.max
-            ? 'high'
-            : 'in';
-
-      return res.json({
-        scope: 'fleet',
-        year,
-        week,
-        currentGross,
-        min: stats.min,
-        max: stats.max,
-        avg: stats.avg,
-        range: stats.range,
-        samples: stats.samples,
-        status
-      });
-    }
-
-    const truckId = req.query.truckId;
-    if (!truckId) return res.status(400).json({ error: 'truckId is required for truck scope' });
-
-    const entries = await WeeklyEntry.find({ truckId, year }).select('week gross').lean();
-    const weekMap = entries.reduce((acc, e) => {
-      acc[e.week] = Number(e.gross || 0);
-      return acc;
-    }, {});
-    const stats = buildSimpleRange(entries.map(e => Number(e.gross || 0)));
-    const currentGross = Number(weekMap[week] || 0);
-    const status = stats.samples === 0
-      ? 'na'
-      : currentGross < stats.min
-        ? 'low'
-        : currentGross > stats.max
-          ? 'high'
-          : 'in';
-
-    return res.json({
-      scope: 'truck',
-      truckId,
-      year,
-      week,
-      currentGross,
-      min: stats.min,
-      max: stats.max,
-      avg: stats.avg,
-      range: stats.range,
-      samples: stats.samples,
-      status
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get('/year/:year', async (req, res) => {
-  try {
-    const year = parseInt(req.params.year);
-    const Truck = require('../models/Truck');
-    const [entries, trucks] = await Promise.all([
-      WeeklyEntry.find({ year }).sort('truckId week'),
-      Truck.find().select('truckId driver')
+  if (scope === 'fleet') {
+    const grouped = await WeeklyEntry.aggregate([
+      { $match: { year } },
+      { $group: { _id: '$week', gross: { $sum: '$gross' } } },
+      { $sort: { _id: 1 } }
     ]);
-    const driverMap = {};
-    trucks.forEach(t => { driverMap[t.truckId] = t.driver || ''; });
-    const result = entries.map(e => ({
-      _id: e._id,
-      truck: e.truckId,
-      week: e.week,
-      year: e.year,
-      daysWorked: e.daysWorked,
-      gross: e.gross,
-      expenses: (e.maint || 0) + (e.other || 0),
-      maint: e.maint || 0,
-      other: e.other || 0,
-      driver: driverMap[e.truckId] || '',
-      notes: e.notes || '',
-      remarks: e.remarks || ''
-    }));
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    const weekRows = grouped.map(r => ({ week: Number(r._id), gross: Number(r.gross || 0) }));
+    const weekMap = weekRows.reduce((acc, row) => { acc[row.week] = row.gross; return acc; }, {});
+    const stats = buildSimpleRange(weekRows.map(r => r.gross));
+    const currentGross = Number(weekMap[week] || 0);
+    const status = stats.samples === 0 ? 'na' : currentGross < stats.min ? 'low' : currentGross > stats.max ? 'high' : 'in';
+
+    return res.json({ scope: 'fleet', year, week, currentGross, min: stats.min, max: stats.max, avg: stats.avg, range: stats.range, samples: stats.samples, status });
   }
-});
+
+  if (!req.query.truckId) throw new AppError('truckId is required for truck scope', 400);
+  const truckId = req.query.truckId;
+
+  const entries = await WeeklyEntry.find({ truckId, year }).select('week gross').lean();
+  const weekMap = entries.reduce((acc, e) => { acc[e.week] = Number(e.gross || 0); return acc; }, {});
+  const stats = buildSimpleRange(entries.map(e => Number(e.gross || 0)));
+  const currentGross = Number(weekMap[week] || 0);
+  const status = stats.samples === 0 ? 'na' : currentGross < stats.min ? 'low' : currentGross > stats.max ? 'high' : 'in';
+
+  res.json({ scope: 'truck', truckId, year, week, currentGross, min: stats.min, max: stats.max, avg: stats.avg, range: stats.range, samples: stats.samples, status });
+}));
+
+// GET /api/weekly/year/:year — all weekly entries for ALL trucks in a year (for data management)
+// NOTE: Must be before /:truckId/:year so 'year' isn't matched as truckId
+router.get('/year/:year', asyncHandler(async (req, res) => {
+  const year = toYear(req.params.year);
+  const Truck = require('../models/Truck');
+  const [entries, trucks] = await Promise.all([
+    WeeklyEntry.find({ year }).sort('truckId week'),
+    Truck.find().select('truckId driver')
+  ]);
+  const driverMap = {};
+  trucks.forEach(t => { driverMap[t.truckId] = t.driver || ''; });
+  const result = entries.map(e => ({
+    _id: e._id,
+    truck: e.truckId,
+    week: e.week,
+    year: e.year,
+    daysWorked: e.daysWorked,
+    gross: e.gross,
+    expenses: (e.maint || 0) + (e.other || 0),
+    maint: e.maint || 0,
+    other: e.other || 0,
+    driver: driverMap[e.truckId] || '',
+    notes: e.notes || '',
+    remarks: e.remarks || ''
+  }));
+  res.json(result);
+}));
 
 // GET /api/weekly/:truckId/:year — get all weekly entries for truck+year
-router.get('/:truckId/:year', async (req, res) => {
-  try {
-    const entries = await WeeklyEntry.find({
-      truckId: req.params.truckId,
-      year: parseInt(req.params.year)
-    }).sort('week');
-    res.json(entries);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+router.get('/:truckId/:year', asyncHandler(async (req, res) => {
+  const year = toYear(req.params.year);
+  const entries = await WeeklyEntry.find({ truckId: req.params.truckId, year }).sort('week');
+  res.json(entries);
+}));
 
 // GET /api/weekly/:truckId — all weekly entries for a truck
-router.get('/:truckId', async (req, res) => {
-  try {
-    const entries = await WeeklyEntry.find({ truckId: req.params.truckId }).sort('year week');
-    res.json(entries);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+router.get('/:truckId', asyncHandler(async (req, res) => {
+  const entries = await WeeklyEntry.find({ truckId: req.params.truckId }).sort('year week');
+  res.json(entries);
+}));
 
 // PUT /api/weekly/:truckId/:year/:week — upsert weekly entry
-router.put('/:truckId/:year/:week', requireAdmin, async (req, res) => {
-  try {
-    const { daysWorked, gross, maint, other, notes, remarks } = req.body;
-    const entry = await WeeklyEntry.findOneAndUpdate(
-      {
-        truckId: req.params.truckId,
-        year: parseInt(req.params.year),
-        week: parseInt(req.params.week)
-      },
-      {
-        daysWorked: daysWorked != null ? daysWorked : null,
-        gross: gross || 0,
-        maint: maint || 0,
-        other: other || 0,
-        notes: notes || '',
-        remarks: remarks || ''
-      },
-      { upsert: true, new: true }
-    );
+router.put('/:truckId/:year/:week', requireAdmin, asyncHandler(async (req, res) => {
+  const year = toYear(req.params.year);
+  const week = toWeek(req.params.week);
 
-    // Auto-rollup: recompute YearEntry + ExpenseBreakdown
-    await recomputeYearFromWeekly(req.params.truckId, parseInt(req.params.year));
-
-    await touchLastSaved();
-    res.json(entry);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  let daysWorked = null;
+  if (req.body.daysWorked !== undefined && req.body.daysWorked !== null && req.body.daysWorked !== '') {
+    daysWorked = toNumber(req.body.daysWorked, 'daysWorked', { allowNegative: false, min: 0, max: 7 });
   }
-});
+  const gross = toNumber(req.body.gross, 'gross', { allowNegative: false });
+  const maint = toNumber(req.body.maint, 'maint', { allowNegative: false });
+  const other = toNumber(req.body.other, 'other', { allowNegative: false });
+  const notes = req.body.notes ? String(req.body.notes) : '';
+  const remarks = req.body.remarks ? String(req.body.remarks) : '';
+
+  const entry = await WeeklyEntry.findOneAndUpdate(
+    { truckId: req.params.truckId, year, week },
+    { daysWorked, gross, maint, other, notes, remarks },
+    { upsert: true, new: true }
+  );
+
+  // Auto-rollup: recompute YearEntry + ExpenseBreakdown
+  await recomputeYearFromWeekly(req.params.truckId, year);
+
+  await touchLastSaved();
+  res.json(entry);
+}));
 
 // DELETE /api/weekly/:truckId/:year/:week
-router.delete('/:truckId/:year/:week', requireAdmin, async (req, res) => {
-  try {
-    const entry = await WeeklyEntry.findOneAndDelete({
-      truckId: req.params.truckId,
-      year: parseInt(req.params.year),
-      week: parseInt(req.params.week)
-    });
-    if (!entry) return res.status(404).json({ error: 'Entry not found' });
+router.delete('/:truckId/:year/:week', requireAdmin, asyncHandler(async (req, res) => {
+  const year = toYear(req.params.year);
+  const week = toWeek(req.params.week);
 
-    // Save to trash for recovery
-    const Trash = require('../models/Trash');
-    await Trash.create({
-      type: 'weeklyEntry',
-      label: `${req.params.truckId} / ${req.params.year} / Week ${req.params.week}`,
-      data: entry.toObject()
-    });
+  const entry = await WeeklyEntry.findOneAndDelete({ truckId: req.params.truckId, year, week });
+  if (!entry) throw new AppError('Entry not found', 404);
 
-    // Auto-rollup: recompute YearEntry + ExpenseBreakdown
-    await recomputeYearFromWeekly(req.params.truckId, parseInt(req.params.year));
+  // Save to trash for recovery
+  await Trash.create({
+    type: 'weeklyEntry',
+    label: `${req.params.truckId} / ${year} / Week ${week}`,
+    data: entry.toObject()
+  });
 
-    await touchLastSaved();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  // Auto-rollup: recompute YearEntry + ExpenseBreakdown
+  await recomputeYearFromWeekly(req.params.truckId, year);
+
+  await touchLastSaved();
+  res.json({ success: true });
+}));
 
 module.exports = router;
 module.exports.recomputeYearFromWeekly = recomputeYearFromWeekly;

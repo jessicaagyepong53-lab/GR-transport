@@ -68,8 +68,18 @@ function renderTrash() {
   list.innerHTML = trashItems.map(item => {
     const daysLeft = item.daysLeft != null ? item.daysLeft : 30;
     const daysClass = daysLeft <= 5 ? 'days-left' : daysLeft <= 15 ? 'days-warn' : 'days-ok';
-    const typeClass = item.type === 'truck' ? 'truck' : item.type === 'yearEntry' ? 'entry' : item.type === 'weeklyEntry' ? 'entry' : 'year';
-    const typeLabel = item.type === 'truck' ? 'Truck' : item.type === 'yearEntry' ? 'Year Entry' : item.type === 'weeklyEntry' ? 'Weekly Entry' : item.type;
+    const typeClass = item.type === 'truck' ? 'truck'
+      : item.type === 'yearEntry' ? 'entry'
+      : item.type === 'weeklyEntry' ? 'entry'
+      : item.type === 'salaryPayment' ? 'entry'
+      : item.type === 'referenceFile' ? 'entry'
+      : 'year';
+    const typeLabel = item.type === 'truck' ? 'Truck'
+      : item.type === 'yearEntry' ? 'Year Entry'
+      : item.type === 'weeklyEntry' ? 'Weekly Entry'
+      : item.type === 'salaryPayment' ? 'Salary Payment'
+      : item.type === 'referenceFile' ? 'Reference File'
+      : item.type;
     const dateStr = new Date(item.deletedAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
 
     let detail = '';
@@ -81,6 +91,12 @@ function renderTrash() {
       detail = `Gross: <span>${fmt(item.data.gross || 0)}</span> · Exp: <span>${fmt(item.data.exp || 0)}</span> · Net: <span>${fmt(item.data.net || 0)}</span>`;
     } else if (item.type === 'weeklyEntry' && item.data) {
       detail = `Gross: <span>${fmt(item.data.gross || 0)}</span> · Maint: <span>${fmt(item.data.maint || 0)}</span> · Other: <span>${fmt(item.data.other || 0)}</span>`;
+    } else if (item.type === 'salaryPayment' && item.data) {
+      detail = `Date: <span>${item.data.datePaid || '—'}</span> · Amount: <span>${fmt(item.data.amount || 0)}</span>`;
+    } else if (item.type === 'referenceFile' && item.data) {
+      const parts = [item.data.mimeType || 'File', item.data.category || 'General'];
+      if (item.data.subheading) parts.push(item.data.subheading);
+      detail = parts.join(' · ') + (item.data.hasContent === false ? ' · <span style="color:var(--red)">content missing, cannot restore</span>' : '');
     } else if (item.data) {
       detail = JSON.stringify(item.data).slice(0, 120);
     }

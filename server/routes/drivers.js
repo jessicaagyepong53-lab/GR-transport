@@ -1,51 +1,42 @@
 const router = require('express').Router();
 const Truck = require('../models/Truck');
 const { requireAdmin } = require('../middleware/auth');
+const { asyncHandler, AppError } = require('../utils/errors');
 
 // GET /api/drivers — all driver assignments
-router.get('/', async (req, res) => {
-  try {
-    const trucks = await Truck.find().sort('truckId');
-    const drivers = trucks.map(t => ({
-      truckId: t.truckId,
-      driver: t.driver || '',
-      driverNotes: t.driverNotes || ''
-    }));
-    res.json(drivers);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+router.get('/', asyncHandler(async (req, res) => {
+  const trucks = await Truck.find().sort('truckId');
+  const drivers = trucks.map(t => ({
+    truckId: t.truckId,
+    driver: t.driver || '',
+    driverNotes: t.driverNotes || ''
+  }));
+  res.json(drivers);
+}));
 
 // GET /api/drivers/:truckId
-router.get('/:truckId', async (req, res) => {
-  try {
-    const truck = await Truck.findOne({ truckId: req.params.truckId });
-    if (!truck) return res.status(404).json({ error: 'Truck not found' });
-    res.json({ truckId: truck.truckId, driver: truck.driver });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+router.get('/:truckId', asyncHandler(async (req, res) => {
+  const truck = await Truck.findOne({ truckId: req.params.truckId });
+  if (!truck) throw new AppError('Truck not found', 404);
+  res.json({ truckId: truck.truckId, driver: truck.driver });
+}));
 
 // PUT /api/drivers/:truckId — update driver assignment
-router.put('/:truckId', requireAdmin, async (req, res) => {
-  try {
-    const { driver, driverNotes, startDates, endOfTerm } = req.body;
-    const update = { driver: driver || '' };
-    if (driverNotes !== undefined) update.driverNotes = driverNotes;
-    if (startDates !== undefined) update.startDates = startDates;
-    if (endOfTerm !== undefined) update.endOfTerm = endOfTerm;
-    const truck = await Truck.findOneAndUpdate(
-      { truckId: req.params.truckId },
-      update,
-      { new: true }
-    );
-    if (!truck) return res.status(404).json({ error: 'Truck not found' });
-    res.json({ truckId: truck.truckId, driver: truck.driver, driverNotes: truck.driverNotes || '' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.put('/:truckId', requireAdmin, asyncHandler(async (req, res) => {
+  const { driver, driverNotes, startDates, endOfTerm } = req.body;
+  const update = { driver: driver !== undefined ? String(driver).trim() : '' };
+  if (driverNotes !== undefined) update.driverNotes = String(driverNotes);
+  if (startDates !== undefined) {
+    if (typeof startDates !== 'object' || startDates === null || Array.isArray(startDates)) {
+      throw new AppError('startDates must be an object keyed by year', 400);
+    }
+    update.startDates = startDates;
   }
-});
+  if (endOfTerm !== undefined) update.endOfTerm = endOfTerm;
+
+  const truck = await Truck.findOneAndUpdate({ truckId: req.params.truckId }, update, { new: true });
+  if (!truck) throw new AppError('Truck not found', 404);
+  res.json({ truckId: truck.truckId, driver: truck.driver, driverNotes: truck.driverNotes || '' });
+}));
 
 module.exports = router;

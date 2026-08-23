@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
+const { globalErrorHandler } = require('./utils/errors');
 
 const app = express();
 
@@ -60,6 +61,12 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/drivers', require('./routes/drivers'));
 app.use('/api/settings', require('./routes/settings'));
 
+// Any /api/* request that didn't match a route above → consistent JSON 404
+// instead of falling through to the SPA fallback and returning index.html.
+// Must be registered AFTER the API routers and BEFORE the SPA fallback.
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
 
 // SPA fallback — local dev only
 if (!process.env.VERCEL) {
@@ -67,5 +74,10 @@ if (!process.env.VERCEL) {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
   });
 }
+
+// Global error handler — must be registered last. Catches AppErrors thrown
+// anywhere above, Mongoose validation/cast errors, malformed JSON request
+// bodies, and any unexpected error, and always responds with JSON.
+app.use(globalErrorHandler);
 
 module.exports = app;
