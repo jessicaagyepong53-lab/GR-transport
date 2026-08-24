@@ -403,10 +403,7 @@ async function renderPurchaseBalance() {
 
       const label = e.label || `Payment ${i + 1}`;
       const extra = alreadyPaidOff;
-      const tag = extra
-        ? ` <span style="display:inline-block;font-size:0.58rem;padding:1px 7px;border-radius:10px;background:rgba(155,114,255,0.14);color:var(--purple);border:1px solid rgba(155,114,255,0.32);text-transform:uppercase;letter-spacing:0.4px;vertical-align:middle;margin-left:4px;">Reference</span>`
-        : '';
-      entryRowsArr.push(`<div class="pbal-row"><span class="pbal-row-lbl"${extra ? ' style="color:var(--label)"' : ''}>${label}${tag}</span><span class="pbal-row-val" style="color:${extra ? 'var(--purple)' : 'var(--green)'}">GHS ${amt.toLocaleString()}</span></div>`);
+      entryRowsArr.push(`<div class="pbal-row"><span class="pbal-row-lbl"${extra ? ' style="color:var(--label)"' : ''}>${label}</span><span class="pbal-row-val" style="color:${extra ? 'var(--purple)' : 'var(--green)'}">GHS ${amt.toLocaleString()}</span></div>`);
     });
 
     const totalPaid = running;

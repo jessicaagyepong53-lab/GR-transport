@@ -456,10 +456,10 @@
         <td style="color:var(--red)">${fmt(r.expenses)}</td>
         <td class="dm-net ${netCls}">${net<0?'−':''}${fmt(Math.abs(net))}</td>
         <td style="color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis">${r.notes||'—'}</td>
-        <td><div class="act-cell" style="display:flex;gap:6px;"${!isAdmin()?' hidden':''}>
+        <td>${isAdmin() ? `<div class="act-cell">
           <button class="dm-act" onclick="dmOpenEdit('${r._id||r.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="dm-act del" onclick="dmDelete('${r._id||r.id}')"><i class="fa-solid fa-trash"></i></button>
-        </div></td>
+        </div>` : ''}</td>
       </tr>`;
     }).join('');
 
@@ -473,6 +473,7 @@
   window.dmGoPage = function(p){ dmPage = p; dmRender(); };
 
   window.dmOpenAdd = async function(){
+    if (!isAdmin()) return showToast('View only — contact admin', 'error');
     dmEditId = null;
     document.getElementById('dmModalTitle').textContent = 'Add Entry';
     await dmPopulateSelects();
@@ -491,6 +492,7 @@
   };
 
   window.dmOpenEdit = async function(id){
+    if (!isAdmin()) return showToast('View only — contact admin', 'error');
     dmEditId = id;
     document.getElementById('dmModalTitle').textContent = 'Edit Entry';
     const entry = dmAll.find(r => (r._id||r.id) === id);
@@ -543,6 +545,7 @@
   });
 
   window.dmSaveEntry = async function(){
+    if (!isAdmin()) return showToast('View only — contact admin', 'error');
     const truckId = document.getElementById('dmTruckSel').value;
     const week = parseInt(document.getElementById('dmWeekSel').value);
     const selectedYear = parseInt(document.getElementById('dmYearSel').value);
@@ -573,6 +576,7 @@
   };
 
   window.dmDelete = async function(id){
+    if (!isAdmin()) return showToast('View only — contact admin', 'error');
     if(!confirm('Delete this entry?')) return;
     try {
       const entry = dmAll.find(r => (r._id||r.id) === id);

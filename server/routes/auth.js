@@ -7,7 +7,7 @@ const {
   recordFailure,
   recordSuccess,
   getClientIdentifier,
-  LOCKOUT_MINUTES
+  formatDuration
 } = require('../middleware/rateLimit');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-jwt-secret';
@@ -26,7 +26,10 @@ function setAuthCookie(res, payload) {
 }
 
 // POST /api/auth/verify — verify admin PIN (rate-limited: 3 tries, then a
-// 15-minute lockout, tracked per IP so only the guesser is blocked)
+// 15-minute lockout. If locked out AGAIN after that (another 3 wrong tries),
+// the lockout escalates to 24 hours. Tracked per IP so only the guesser is
+// blocked. PIN reset (recovery question/key/partial-PIN) is NOT subject to
+// this escalation — see routes/settings.js.
 router.post('/verify', asyncHandler(async (req, res) => {
   const pin = typeof req.body?.pin === 'string' ? req.body.pin.trim() : req.body?.pin;
   if (!pin) throw new AppError('PIN is required', 400);
@@ -36,9 +39,9 @@ router.post('/verify', asyncHandler(async (req, res) => {
 
   const adminPin = await getAdminPin();
   if (String(pin) !== String(adminPin)) {
-    const remaining = await recordFailure(identifier);
+    const { remaining, lockedMs } = await recordFailure(identifier, { escalate: true });
     if (remaining <= 0) {
-      throw new AppError(`Too many failed attempts. Try again in ${LOCKOUT_MINUTES} minute(s).`, 429);
+      throw new AppError(`Too many failed attempts. Try again in ${formatDuration(lockedMs)}.`, 429);
     }
     throw new AppError(`Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before lockout.`, 401);
   }

@@ -14,7 +14,7 @@ const {
   recordFailure,
   recordSuccess,
   getClientIdentifier,
-  LOCKOUT_MINUTES
+  formatDuration
 } = require('../middleware/rateLimit');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-jwt-secret';
@@ -133,9 +133,13 @@ router.post('/pin/reset', asyncHandler(async (req, res) => {
   }
 
   if (!verified) {
-    const remaining = await recordFailure(identifier);
+    // No `escalate` flag here (defaults to false) — PIN reset intentionally
+    // never escalates past 15 minutes, no matter how many times it's
+    // triggered, so this stays a working same-day recovery path even during
+    // a 24-hour login lockout.
+    const { remaining, lockedMs } = await recordFailure(identifier);
     if (remaining <= 0) {
-      throw new AppError(`Too many failed attempts. Try again in ${LOCKOUT_MINUTES} minute(s).`, 429);
+      throw new AppError(`Too many failed attempts. Try again in ${formatDuration(lockedMs)}.`, 429);
     }
     throw new AppError(`Verification failed. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining before lockout.`, 401);
   }

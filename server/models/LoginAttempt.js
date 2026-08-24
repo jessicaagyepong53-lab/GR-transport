@@ -7,6 +7,10 @@ const loginAttemptSchema = new mongoose.Schema({
   identifier: { type: String, required: true, unique: true },
   failedAttempts: { type: Number, default: 0 },
   lockedUntil: { type: Date, default: null },
+  // How many times in a row this identifier has been locked out without a
+  // successful attempt in between. Used to escalate the lockout duration
+  // (see rateLimit.js) — resets to 0 on any successful attempt.
+  lockoutLevel: { type: Number, default: 0 },
   // Stale records (nobody's tried from this identifier in a week) are
   // auto-purged by MongoDB's TTL monitor so this collection doesn't grow
   // forever — there's no need to remember someone's failed attempts from
