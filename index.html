@@ -249,6 +249,58 @@
   .weeks-chip.total .weeks-chip-id{color:var(--accent);}
   .weeks-chip.total .weeks-chip-val{color:var(--accent);}
 
+  /* ── PERFORMANCE PULSE ── */
+  .pulse-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+  .pulse-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;position:relative;overflow:hidden;transition:border-color 0.2s,transform 0.2s;}
+  .pulse-card:hover{transform:translateY(-2px);}
+  .pulse-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--muted);}
+  .pulse-card.up::before{background:var(--green);}
+  .pulse-card.down::before{background:var(--red);}
+  .pulse-card.flat::before{background:var(--muted);}
+  .pulse-card.up{border-color:rgba(45,224,138,0.25);}
+  .pulse-card.down{border-color:rgba(224,68,58,0.25);}
+  .pulse-card.partial::before{background:var(--accent);}
+  .pulse-card.partial{border-color:rgba(245,166,35,0.3);}
+  .pulse-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+  .pulse-head i{color:var(--accent);font-size:0.92rem;}
+  .pulse-title{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1.6px;color:var(--text);}
+  .pulse-head-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .pulse-live-badge{display:inline-flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--accent);background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.3);padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .pulse-year-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:0.68rem;font-weight:700;padding:4px 9px;border-radius:14px;font-family:'JetBrains Mono',monospace;cursor:pointer;appearance:auto;}
+  .pulse-year-select:hover{border-color:var(--accent);}
+  .pulse-year-select:focus{outline:none;border-color:var(--accent);}
+  .pulse-values{display:flex;align-items:center;gap:8px;}
+  .pulse-value-block{flex:1;min-width:0;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:9px 12px;}
+  .pulse-value-block.cur{border-color:rgba(245,166,35,0.3);background:rgba(245,166,35,0.05);}
+  .pulse-value-tag{display:flex;align-items:center;gap:6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:4px;}
+  .pulse-value-block.cur .pulse-value-tag{color:var(--accent);}
+  .pulse-value-period{display:block;font-family:'Bebas Neue',sans-serif;font-size:1.08rem;letter-spacing:1px;color:var(--text);line-height:1.15;word-break:break-word;}
+  .pulse-value-block.cur .pulse-value-period{color:var(--accent);}
+  .pulse-value-sub{display:block;font-size:0.63rem;color:var(--muted);margin-top:1px;letter-spacing:0.3px;}
+  .pulse-value-arrow{color:var(--muted);font-size:0.8rem;flex-shrink:0;}
+  .pulse-live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulseLiveDot 1.4s ease-in-out infinite;}
+  @keyframes pulseLiveDot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.35;transform:scale(1.7);}}
+  .pulse-metrics{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .pulse-metric-row{border-top:1px solid var(--border);padding-top:10px;}
+  .pulse-metric-row:first-child{border-top:none;padding-top:0;}
+  .pulse-metric-row.emphasize .pulse-metric-name{color:var(--text);font-weight:700;}
+  .pulse-metric-row.emphasize .pulse-metric-delta{font-size:1.02rem;}
+  .pulse-metric-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+  .pulse-metric-name{display:flex;align-items:center;gap:6px;font-size:0.74rem;color:var(--label);font-weight:600;}
+  .pulse-metric-name i{color:var(--muted);font-size:0.72rem;width:12px;text-align:center;}
+  .pulse-metric-delta{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:700;}
+  .pulse-metric-delta.up{color:var(--green);}
+  .pulse-metric-delta.down{color:var(--red);}
+  .pulse-metric-delta.flat{color:var(--muted);}
+  .pulse-metric-delta i{font-size:0.7rem;}
+  .pulse-metric-pct{font-size:0.66rem;font-weight:700;background:rgba(255,255,255,0.06);padding:1px 7px;border-radius:12px;margin-left:2px;}
+  .pulse-metric-track{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px;}
+  .pulse-metric-track i{font-size:0.55rem;}
+  .pulse-caption{font-size:0.7rem;color:var(--muted);margin-top:13px;line-height:1.4;}
+  .pulse-card.empty{display:flex;flex-direction:column;justify-content:center;min-height:118px;}
+  .pulse-empty-msg{font-size:0.8rem;color:var(--muted);line-height:1.5;}
+  @media(max-width:900px){.pulse-strip{grid-template-columns:1fr;}}
+
   /* ── SPREADSHEET ── */
   .sheet-wrap{display:grid;grid-template-columns:1fr;gap:18px;}
   .sheet-block{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg2);}
@@ -372,6 +424,12 @@
   <div class="kpi-strip" id="kpiStrip"></div>
   <!-- WEEKS STRIP -->
   <div class="weeks-strip" id="weeksBreakdown"></div>
+
+  <!-- PERFORMANCE PULSE -->
+  <div class="section-heading" style="margin-top:4px;">
+    <h2><i class="fa-solid fa-heart-pulse" style="color:var(--accent);margin-right:8px;font-size:1rem;"></i>Performance Pulse</h2>
+  </div>
+  <div class="pulse-strip" id="pulseStrip"></div>
 
   <!-- MONTHLY CHART -->
   <div class="main-grid">
@@ -1441,6 +1499,272 @@ function renderWeeksBreakdown(year) {
   container.innerHTML = html;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//   PERFORMANCE PULSE
+// ─────────────────────────────────────────────────────────────────────────────
+// Fleet-wide "did we earn more or less than last time" check, computed for the
+// three natural business cadences. Always shows the *latest* completed period
+// vs. the one before it, independent of the year tab currently selected, so it
+// behaves like a live status monitor rather than a filtered report.
+//
+// Each period reports three independent numbers rather than one blended
+// figure: Gross Income, Expenses, and Net Income each get their own delta, so
+// "we earned more but also spent more" and "we earned less but cut costs
+// harder" are both visible at a glance instead of collapsing into one number.
+
+function computeMonthlyPulse() {
+  const all = DATA.monthly.all || { labels: [], gross: [], exp: [] };
+  const n = all.labels.length;
+  if (n < 2) return { icon: 'fa-calendar-days', title: 'Monthly Pulse', empty: true };
+  const now = new Date();
+  const curMonthLabel = `${now.toLocaleString('en-US',{month:'short'})} '${String(now.getFullYear()).slice(-2)}`;
+  const isPartial = all.labels[n-1] === curMonthLabel;
+  const prevGross = Number(all.gross[n-2]||0), curGross = Number(all.gross[n-1]||0);
+  const prevExp   = Number(all.exp[n-2]||0),   curExp   = Number(all.exp[n-1]||0);
+  return {
+    icon: 'fa-calendar-days', title: 'Monthly Pulse',
+    previousLabel: all.labels[n-2], currentLabel: all.labels[n-1],
+    metrics: {
+      gross:   { previous: prevGross, current: curGross },
+      expense: { previous: prevExp,   current: curExp },
+      net:     { previous: prevGross - prevExp, current: curGross - curExp },
+    },
+    // A month still in progress is structurally guaranteed to look worse than a
+    // completed one, so flag it rather than presenting the delta as final.
+    metricLabel: isPartial
+      ? `${now.getDate()} days into this month vs. all of last month — this will fill in as the month closes`
+      : 'Fleet-wide totals, this month vs last month',
+    partial: isPartial,
+  };
+}
+
+function computeYearlyPulse(selectedYear) {
+  const years = getSortedYears();
+  if (!years.length) return { icon: 'fa-calendar', title: 'Yearly Pulse', empty: true };
+  const nowYear = new Date().getFullYear();
+  const latestYear = years[years.length - 1];
+  const targetYear = (selectedYear && years.includes(Number(selectedYear))) ? Number(selectedYear) : latestYear;
+  const prevYear = targetYear - 1;
+  const curMonthly  = DATA.monthly[String(targetYear)];
+  const prevMonthly = DATA.monthly[String(prevYear)];
+
+  // Fair comparison while the *selected* year is still in progress — i.e. it's
+  // both the latest year we have data for AND the current calendar year: only
+  // compare the months that have actually elapsed against the same months
+  // last year, instead of a partial year against a full prior year (which
+  // would always "lose"). Any year picked from the filter that isn't the live
+  // year gets a normal full-year-vs-full-year comparison below.
+  const isLiveYear = targetYear === nowYear && targetYear === latestYear;
+  if (isLiveYear && curMonthly && prevMonthly && curMonthly.labels?.length) {
+    const months = curMonthly.labels.map(l => String(l).slice(0,3));
+    let curGross = 0, prevGross = 0, curExp = 0, prevExp = 0, matched = 0;
+    months.forEach(m => {
+      const ci = curMonthly.labels.findIndex(l => String(l).slice(0,3) === m);
+      const pi = prevMonthly.labels.findIndex(l => String(l).slice(0,3) === m);
+      if (ci >= 0) { curGross += curMonthly.gross[ci]||0; curExp += curMonthly.exp[ci]||0; }
+      if (pi >= 0) { prevGross += prevMonthly.gross[pi]||0; prevExp += prevMonthly.exp[pi]||0; matched++; }
+    });
+    if (matched > 0) {
+      const rangeLabel = `${months[0]}–${months[months.length - 1]}`;
+      return {
+        icon: 'fa-calendar', title: 'Yearly Pulse',
+        previousLabel: `${prevYear} (${rangeLabel})`, currentLabel: `${targetYear} (${rangeLabel})`,
+        metrics: {
+          gross:   { previous: prevGross, current: curGross },
+          expense: { previous: prevExp,   current: curExp },
+          net:     { previous: prevGross - prevExp, current: curGross - curExp },
+        },
+        metricLabel: `Fleet-wide totals, first ${matched} month${matched !== 1 ? 's' : ''} vs same period last year`,
+        partial: true,
+        selectedYear: targetYear,
+      };
+    }
+  }
+
+  const cur = DATA.yearlyTotals[targetYear], prev = DATA.yearlyTotals[prevYear];
+  if (!cur || !prev) {
+    return {
+      icon: 'fa-calendar', title: 'Yearly Pulse', empty: true, selectedYear: targetYear,
+      emptyMsg: !prev
+        ? `No data for ${prevYear} yet, so ${targetYear} can't be compared to a prior year.`
+        : `No data for ${targetYear} yet.`,
+    };
+  }
+  return {
+    icon: 'fa-calendar', title: 'Yearly Pulse',
+    previousLabel: String(prevYear), currentLabel: String(targetYear),
+    selectedYear: targetYear,
+    metrics: {
+      gross:   { previous: prev.gross, current: cur.gross },
+      expense: { previous: prev.exp,   current: cur.exp },
+      net:     { previous: prev.gross - prev.exp, current: cur.gross - cur.exp },
+    },
+    metricLabel: 'Fleet-wide totals, full year vs. prior year',
+  };
+}
+
+async function computeWeeklyPulse() {
+  const nowYear = new Date().getFullYear();
+  try {
+    // The fleet weekly-range endpoint only reports gross, so to get gross,
+    // expenses AND net for a specific week we sum each truck's raw weekly
+    // entries ourselves — the same data source truck.js/weekly.js use.
+    const truckIds = Object.keys(DATA.trucks || {});
+    if (!truckIds.length) return { icon: 'fa-calendar-week', title: 'Weekly Pulse', empty: true };
+    const results = await Promise.all(
+      truckIds.map(id => API.get(`/api/weekly/${encodeURIComponent(id)}/${nowYear}`).catch(() => []))
+    );
+    const byWeek = {};
+    results.forEach(list => {
+      (list || []).forEach(e => {
+        const w = parseInt(e.week);
+        if (!Number.isFinite(w)) return;
+        if (!byWeek[w]) byWeek[w] = { gross: 0, exp: 0 };
+        byWeek[w].gross += Number(e.gross || 0);
+        byWeek[w].exp   += Number(e.maint || 0) + Number(e.other || 0);
+      });
+    });
+    const weeksWithData = Object.keys(byWeek).map(Number)
+      .filter(w => (byWeek[w].gross + byWeek[w].exp) > 0)
+      .sort((a, b) => a - b);
+    if (weeksWithData.length < 2) return { icon: 'fa-calendar-week', title: 'Weekly Pulse', empty: true };
+    const curWeek = weeksWithData[weeksWithData.length - 1];
+    const prevWeek = weeksWithData[weeksWithData.length - 2];
+    const cur = byWeek[curWeek], prev = byWeek[prevWeek];
+    // A week still being entered is structurally guaranteed to look worse than
+    // a completed one, so flag it rather than presenting the delta as final.
+    const isPartial = curWeek === getISOWeekNumber(new Date());
+    return {
+      icon: 'fa-calendar-week', title: 'Weekly Pulse',
+      previousLabel: `Week ${prevWeek}`, currentLabel: `Week ${curWeek}`,
+      metrics: {
+        gross:   { previous: prev.gross, current: cur.gross },
+        expense: { previous: prev.exp,   current: cur.exp },
+        net:     { previous: prev.gross - prev.exp, current: cur.gross - cur.exp },
+      },
+      metricLabel: isPartial
+        ? 'Fleet-wide totals so far this week vs. all of last week — this will fill in as the week closes'
+        : 'Fleet-wide totals, this week vs last week',
+      partial: isPartial,
+    };
+  } catch (e) {
+    return { icon: 'fa-calendar-week', title: 'Weekly Pulse', empty: true };
+  }
+}
+
+// Full-precision GHS formatter (no K/M rounding) — used only inside the Pulse
+// cards, where the previous/current/delta figures must always add up exactly.
+// The K/M-rounded fmt() used elsewhere on the dashboard is fine for size-at-a-
+// glance KPIs, but rounding each side of a comparison independently can make
+// two numbers that are genuinely ~2K apart look like they're only 1K apart.
+function fmtExact(n) {
+  const sign = n < 0 ? '−' : '';
+  return sign + 'GHS ' + Math.round(Math.abs(n)).toLocaleString();
+}
+
+// Splits a label like "2026 (Jan–Aug)" into a prominent main part ("2026")
+// and a smaller sub part ("Jan–Aug"), so the period identity — the exact
+// thing that was getting cut off as "202…" — always has room to breathe.
+function splitPulseLabel(label) {
+  const m = String(label || '').match(/^(.*?)\s*\((.*)\)\s*$/);
+  return m ? { main: m[1], sub: m[2] } : { main: label, sub: '' };
+}
+
+function pulsePeriodBlockHtml(tag, label, isCurrent, isPartial) {
+  const { main, sub } = splitPulseLabel(label);
+  const dot = (isCurrent && isPartial) ? `<span class="pulse-live-dot" title="Still filling in"></span>` : '';
+  return `<div class="pulse-value-block${isCurrent ? ' cur' : ''}">
+    <span class="pulse-value-tag">${tag}${dot}</span>
+    <span class="pulse-value-period">${main}</span>
+    ${sub ? `<span class="pulse-value-sub">${sub}</span>` : ''}
+  </div>`;
+}
+
+// One independent metric row (Gross / Expenses / Net). `invert` flips the
+// green/red "goodness" sense — a rise in Expenses is bad, unlike Gross or Net.
+function pulseMetricRowHtml(icon, name, metric, opts = {}) {
+  const { previous, current } = metric;
+  const delta = current - previous;
+  const pct = previous !== 0 ? (delta / Math.abs(previous) * 100) : (delta > 0 ? 100 : 0);
+  const rawDir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+  const colorDir = (opts.invert && rawDir !== 'flat') ? (rawDir === 'up' ? 'down' : 'up') : rawDir;
+  const arrowIcon = rawDir === 'up' ? 'fa-arrow-trend-up' : rawDir === 'down' ? 'fa-arrow-trend-down' : 'fa-minus';
+  const sign = delta > 0 ? '+' : delta < 0 ? '−' : '';
+  return `<div class="pulse-metric-row${opts.emphasize ? ' emphasize' : ''}">
+    <div class="pulse-metric-head">
+      <span class="pulse-metric-name"><i class="fa-solid ${icon}"></i>${name}</span>
+      <span class="pulse-metric-delta ${colorDir}"><i class="fa-solid ${arrowIcon}"></i>${sign}${fmtExact(Math.abs(delta))}<span class="pulse-metric-pct">${sign}${Math.abs(pct).toFixed(1)}%</span></span>
+    </div>
+    <div class="pulse-metric-track">${fmtExact(previous)} <i class="fa-solid fa-arrow-right-long"></i> ${fmtExact(current)}</div>
+  </div>`;
+}
+
+// Renders the compact "vs" year picker shown in the Yearly Pulse header.
+// Picking a year re-runs the comparison against (year - 1) without touching
+// the Weekly/Monthly cards or re-fetching anything.
+function pulseYearSelectHtml(years, selectedYear) {
+  return `<select class="pulse-year-select" onchange="onPulseYearChange(this.value)" title="Compare a different year">
+    ${years.map(y => `<option value="${y}"${y === selectedYear ? ' selected' : ''}>${y}</option>`).join('')}
+  </select>`;
+}
+
+function pulseCardHtml(p, opts = {}) {
+  const cardIdAttr = opts.cardId ? ` id="${opts.cardId}"` : '';
+  const headerActions = `<div class="pulse-head-actions">${opts.yearSelect || ''}${p?.partial ? `<span class="pulse-live-badge"><i class="fa-solid fa-hourglass-half"></i>In progress</span>` : ''}</div>`;
+  if (!p || p.empty || !p.metrics) {
+    return `<div class="pulse-card empty"${cardIdAttr}>
+      <div class="pulse-head"><i class="fa-solid ${p?.icon || 'fa-chart-simple'}"></i><span class="pulse-title">${p?.title || 'Pulse'}</span>${headerActions}</div>
+      <div class="pulse-empty-msg">${p?.emptyMsg || 'Not enough history yet for this comparison — check back after another period of data has been entered.'}</div>
+    </div>`;
+  }
+  const { gross, expense, net } = p.metrics;
+  const netDelta = net.current - net.previous;
+  const dir = netDelta > 0 ? 'up' : netDelta < 0 ? 'down' : 'flat';
+  return `<div class="pulse-card ${dir}${p.partial ? ' partial' : ''}"${cardIdAttr}>
+    <div class="pulse-head"><i class="fa-solid ${p.icon}"></i><span class="pulse-title">${p.title}</span>${headerActions}</div>
+    <div class="pulse-values">
+      ${pulsePeriodBlockHtml('Previous', p.previousLabel, false, p.partial)}
+      <i class="fa-solid fa-arrow-right-long pulse-value-arrow"></i>
+      ${pulsePeriodBlockHtml('Current', p.currentLabel, true, p.partial)}
+    </div>
+    <div class="pulse-metrics">
+      ${pulseMetricRowHtml('fa-scale-balanced', 'Net Income', net, { emphasize: true })}
+      ${pulseMetricRowHtml('fa-sack-dollar', 'Gross Income', gross, {})}
+      ${pulseMetricRowHtml('fa-receipt', 'Expenses', expense, { invert: true })}
+    </div>
+    <div class="pulse-caption">${p.metricLabel || ''}</div>
+  </div>`;
+}
+
+async function renderPulseStrip() {
+  const container = document.getElementById('pulseStrip');
+  if (!container) return;
+  const [weekly, monthly] = await Promise.all([
+    computeWeeklyPulse(),
+    Promise.resolve(computeMonthlyPulse()),
+  ]);
+  const years = getSortedYears();
+  const defaultYear = years.length ? years[years.length - 1] : null;
+  const yearly = computeYearlyPulse(defaultYear);
+  const yearOpts = years.length >= 2 ? { yearSelect: pulseYearSelectHtml(years, defaultYear), cardId: 'pulseYearlyCard' } : { cardId: 'pulseYearlyCard' };
+  container.innerHTML = [
+    pulseCardHtml(weekly),
+    pulseCardHtml(monthly),
+    pulseCardHtml(yearly, yearOpts),
+  ].join('');
+}
+
+// Fired by the year <select> inside the Yearly Pulse card. Only that one card
+// re-renders — Weekly/Monthly (and their API calls) are left untouched.
+function onPulseYearChange(yearStr) {
+  const selectedYear = parseInt(yearStr, 10);
+  const years = getSortedYears();
+  const yearly = computeYearlyPulse(selectedYear);
+  const card = document.getElementById('pulseYearlyCard');
+  if (!card) return;
+  card.outerHTML = pulseCardHtml(yearly, { yearSelect: pulseYearSelectHtml(years, selectedYear), cardId: 'pulseYearlyCard' });
+}
+
 // ─── MODALS ───────────────────────────────────────────────────────────────────
 function openModal(id) {
   const modal = document.getElementById(id);
@@ -1465,7 +1789,7 @@ function saveAndRefresh() {
   localStorage.setItem('transport_dashboard_data', JSON.stringify(DATA));
   rebuildAllMonthlyData(); syncExpBreakdownYears(); renderYearTabs(); updateHeaderSubtitle();
   setYear(currentYear); renderYearly(); renderHeatmap(); renderWeeksBreakdown(currentYear);
-  renderBreakeven(currentYear); renderPnL(); populatePnLSelect();
+  renderBreakeven(currentYear); renderPnL(); populatePnLSelect(); renderPulseStrip();
   if (typeof renderBreakEvenChart === 'function') renderBreakEvenChart();
 }
 function showToast(msg, isError) {
@@ -2166,6 +2490,7 @@ function renderAll(year) {
   renderPnL();
   renderTable(year);
   renderWeeksBreakdown(year);
+  renderPulseStrip();
   renderSpreadsheetEditor();
   // Show data management panel for admin on specific year
   const mgmt = document.getElementById('mgmtPanel');

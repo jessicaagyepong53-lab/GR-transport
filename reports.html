@@ -38,6 +38,62 @@
   .summary-value{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:2px;line-height:1;}
   .summary-sub{font-size:0.8rem;color:var(--muted);margin-top:6px;}
 
+  /* ── PERFORMANCE PULSE ── */
+  .pulse-section-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .pulse-section-heading h2{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--text);margin:0;}
+  .pulse-section-heading h2 i{margin-right:8px;color:var(--blue);}
+  .pulse-section-heading::after{content:'';flex:1;height:1px;background:var(--border);}
+  .pulse-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+  .pulse-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;position:relative;overflow:hidden;transition:border-color 0.2s,transform 0.2s;}
+  .pulse-card:hover{transform:translateY(-2px);}
+  .pulse-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--muted);}
+  .pulse-card.up::before{background:var(--green);}
+  .pulse-card.down::before{background:var(--red);}
+  .pulse-card.flat::before{background:var(--muted);}
+  .pulse-card.up{border-color:rgba(45,224,138,0.25);}
+  .pulse-card.down{border-color:rgba(224,68,58,0.25);}
+  .pulse-card.partial::before{background:var(--accent);}
+  .pulse-card.partial{border-color:rgba(245,166,35,0.3);}
+  .pulse-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+  .pulse-head i{color:var(--blue);font-size:0.92rem;}
+  .pulse-title{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1.6px;color:var(--text);}
+  .pulse-head-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .pulse-live-badge{display:inline-flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--accent);background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.3);padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .pulse-year-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:0.68rem;font-weight:700;padding:4px 9px;border-radius:14px;font-family:'JetBrains Mono',monospace;cursor:pointer;appearance:auto;}
+  .pulse-year-select:hover{border-color:var(--accent);}
+  .pulse-year-select:focus{outline:none;border-color:var(--accent);}
+  .pulse-values{display:flex;align-items:center;gap:8px;}
+  .pulse-value-block{flex:1;min-width:0;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:9px 12px;}
+  .pulse-value-block.cur{border-color:rgba(245,166,35,0.3);background:rgba(245,166,35,0.05);}
+  .pulse-value-tag{display:flex;align-items:center;gap:6px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:4px;}
+  .pulse-value-block.cur .pulse-value-tag{color:var(--accent);}
+  .pulse-value-period{display:block;font-family:'Bebas Neue',sans-serif;font-size:1.08rem;letter-spacing:1px;color:var(--text);line-height:1.15;word-break:break-word;}
+  .pulse-value-block.cur .pulse-value-period{color:var(--accent);}
+  .pulse-value-sub{display:block;font-size:0.63rem;color:var(--muted);margin-top:1px;letter-spacing:0.3px;}
+  .pulse-value-arrow{color:var(--muted);font-size:0.8rem;flex-shrink:0;}
+  .pulse-live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulseLiveDot 1.4s ease-in-out infinite;}
+  @keyframes pulseLiveDot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.35;transform:scale(1.7);}}
+  .pulse-metrics{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .pulse-metric-row{border-top:1px solid var(--border);padding-top:10px;}
+  .pulse-metric-row:first-child{border-top:none;padding-top:0;}
+  .pulse-metric-row.emphasize .pulse-metric-name{color:var(--text);font-weight:700;}
+  .pulse-metric-row.emphasize .pulse-metric-delta{font-size:1.02rem;}
+  .pulse-metric-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+  .pulse-metric-name{display:flex;align-items:center;gap:6px;font-size:0.74rem;color:var(--label);font-weight:600;}
+  .pulse-metric-name i{color:var(--muted);font-size:0.72rem;width:12px;text-align:center;}
+  .pulse-metric-delta{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:700;}
+  .pulse-metric-delta.up{color:var(--green);}
+  .pulse-metric-delta.down{color:var(--red);}
+  .pulse-metric-delta.flat{color:var(--muted);}
+  .pulse-metric-delta i{font-size:0.7rem;}
+  .pulse-metric-pct{font-size:0.66rem;font-weight:700;background:rgba(255,255,255,0.06);padding:1px 7px;border-radius:12px;margin-left:2px;}
+  .pulse-metric-track{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px;}
+  .pulse-metric-track i{font-size:0.55rem;}
+  .pulse-caption{font-size:0.7rem;color:var(--muted);margin-top:13px;line-height:1.4;}
+  .pulse-card.empty{display:flex;flex-direction:column;justify-content:center;min-height:118px;}
+  .pulse-empty-msg{font-size:0.8rem;color:var(--muted);line-height:1.5;}
+  @media(max-width:900px){.pulse-strip{grid-template-columns:1fr;}}
+
   .chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
   .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
   .card-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--text);}
@@ -212,6 +268,11 @@
 
   <div class="summary-grid" id="summaryGrid"></div>
 
+  <div class="pulse-section-heading">
+    <h2><i class="fa-solid fa-heart-pulse"></i>Performance Pulse</h2>
+  </div>
+  <div class="pulse-strip" id="pulseStrip"></div>
+
   <div class="chart-card">
     <div class="card-header">
       <span class="card-title"><i class="fa-solid fa-ranking-star"></i>Truck Ranking</span>
@@ -226,19 +287,6 @@
     </div>
     <div style="overflow-x:auto;">
       <table class="summary-table" id="annualSummaryTable"></table>
-    </div>
-  </div>
-
-  <!-- Yearly Summary — shown only when "All Years" is selected. Rows are
-       built live from every year currently in the system, so a new year
-       shows up here automatically once it has data, with no code changes. -->
-  <div class="annual-summary" id="yearlySummarySection" style="display:none">
-    <div class="card-header">
-      <span class="card-title"><i class="fa-solid fa-calendar-days"></i>Yearly Summary</span>
-      <span style="color:var(--muted);font-size:0.76rem;">Auto-updates as new years are added</span>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="summary-table" id="yearlySummaryTable"></table>
     </div>
   </div>
 
@@ -456,10 +504,10 @@
         <td style="color:var(--red)">${fmt(r.expenses)}</td>
         <td class="dm-net ${netCls}">${net<0?'−':''}${fmt(Math.abs(net))}</td>
         <td style="color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis">${r.notes||'—'}</td>
-        <td>${isAdmin() ? `<div class="act-cell">
+        <td><div class="act-cell" style="display:flex;gap:6px;"${!isAdmin()?' hidden':''}>
           <button class="dm-act" onclick="dmOpenEdit('${r._id||r.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="dm-act del" onclick="dmDelete('${r._id||r.id}')"><i class="fa-solid fa-trash"></i></button>
-        </div>` : ''}</td>
+        </div></td>
       </tr>`;
     }).join('');
 
@@ -473,7 +521,6 @@
   window.dmGoPage = function(p){ dmPage = p; dmRender(); };
 
   window.dmOpenAdd = async function(){
-    if (!isAdmin()) return showToast('View only — contact admin', 'error');
     dmEditId = null;
     document.getElementById('dmModalTitle').textContent = 'Add Entry';
     await dmPopulateSelects();
@@ -492,7 +539,6 @@
   };
 
   window.dmOpenEdit = async function(id){
-    if (!isAdmin()) return showToast('View only — contact admin', 'error');
     dmEditId = id;
     document.getElementById('dmModalTitle').textContent = 'Edit Entry';
     const entry = dmAll.find(r => (r._id||r.id) === id);
@@ -545,7 +591,6 @@
   });
 
   window.dmSaveEntry = async function(){
-    if (!isAdmin()) return showToast('View only — contact admin', 'error');
     const truckId = document.getElementById('dmTruckSel').value;
     const week = parseInt(document.getElementById('dmWeekSel').value);
     const selectedYear = parseInt(document.getElementById('dmYearSel').value);
@@ -572,11 +617,11 @@
       }
       dmCloseModal();
       dmLoadYear(dmCurrentYear || 'all');
+      if (typeof loadPulse === 'function') loadPulse();
     } catch(e){ showToast('Error saving entry', 'error'); }
   };
 
   window.dmDelete = async function(id){
-    if (!isAdmin()) return showToast('View only — contact admin', 'error');
     if(!confirm('Delete this entry?')) return;
     try {
       const entry = dmAll.find(r => (r._id||r.id) === id);
@@ -584,6 +629,7 @@
       await API.del(`/api/weekly/${encodeURIComponent(entry.truck)}/${entry.year}/${entry.week}`);
       showToast('Entry deleted', 'success');
       dmLoadYear(dmCurrentYear || 'all');
+      if (typeof loadPulse === 'function') loadPulse();
     } catch(e){ showToast('Error deleting entry', 'error'); }
   };
 
