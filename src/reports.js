@@ -2,6 +2,7 @@
 
 let reportData = null;
 let latestReportRequestId = 0;
+let yearlyMasterData = null;
 
 const TRUCK_COLOR_MAP = {
   'GT 6350-19':  '#f5a623',
@@ -362,12 +363,129 @@ async function loadReport() {
     if (requestId !== latestReportRequestId) return;
     document.getElementById('summaryGrid').innerHTML = '<div class="summary-card"><div class="summary-label">Error</div><div class="summary-sub">' + err.message + '</div></div>';
   }
+  if (year === 'all') {
+    await loadYearlyMasterSummary();
+  }
+  if (requestId !== latestReportRequestId) return;
+  renderYearlyMasterSummary();
   await Promise.all([
     loadQuarterlyTaxBoard(year),
     loadSalaryPayments(year)
   ]);
   if (requestId !== latestReportRequestId) return;
   await renderPurchaseBalance();
+}
+
+// ─── MASTER SUMMARY — YEAR BY YEAR (only shown for 'All Years') ─────────────
+async function loadYearlyMasterSummary() {
+  try {
+    yearlyMasterData = await API.get('/api/dashboard/full');
+  } catch (err) {
+    yearlyMasterData = null;
+  }
+}
+
+function renderYearlyMasterSummary() {
+  const section = document.getElementById('yearlyMasterSummarySection');
+  const table = document.getElementById('yearlyMasterSummaryTable');
+  if (!section || !table) return;
+
+  const isAllYears = document.getElementById('yearSelect').value === 'all';
+  if (!isAllYears || !yearlyMasterData) {
+    section.style.display = 'none';
+    return;
+  }
+
+  const yearlyTotals = yearlyMasterData.yearlyTotals || {};
+  const salaryTotals = yearlyMasterData.salaryTotals || {};
+  const incomeTaxTotals = yearlyMasterData.incomeTaxTotals || {};
+  const trucks = yearlyMasterData.trucks || {};
+
+  // Pulls years straight from the data — a newly added year appears here
+  // automatically the moment it has a yearly total, no code change needed.
+  const years = Object.keys(yearlyTotals)
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+
+  if (!years.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+
+  function activeTruckCount(year) {
+    return Object.values(trucks).filter(t => t && t[year]).length;
+  }
+
+  let html = `<thead><tr>
+    <th style="text-align:left">Year</th>
+    <th>Total Expenditure (GHS)</th>
+    <th>Total Income (GHS)</th>
+    <th>Total Amount (GHS)</th>
+    <th>Avg Expenditure / Truck</th>
+    <th>Avg Income / Truck</th>
+    <th>% Expenditure</th>
+    <th>% Income</th>
+    <th>Ratio</th>
+  </tr></thead><tbody>`;
+
+  let totExp = 0, totIncome = 0, totAmount = 0, totTruckYears = 0;
+
+  years.forEach(y => {
+    const yt = yearlyTotals[y] || { gross: 0, exp: 0, net: 0 };
+    const salary = Number(salaryTotals[y] || 0);
+    const tax = Number(incomeTaxTotals[y] || 0);
+    const amount = Number(yt.gross || 0);
+    // Expenditure = truck-level expenses + fleet overhead (salary + income tax)
+    const exp = Number(yt.exp || 0) + salary + tax;
+    // Income = what's left of the gross after ALL costs, so Exp + Income = Amount always holds
+    const income = amount - exp;
+    const truckCount = activeTruckCount(y);
+    const avgExp = truckCount ? exp / truckCount : 0;
+    const avgIncome = truckCount ? income / truckCount : 0;
+    const pctExp = amount ? Math.round(exp / amount * 100) : 0;
+    const pctIncome = amount ? Math.round(income / amount * 100) : 0;
+    const ratio = income !== 0 ? (exp / income) : 0;
+
+    totExp += exp;
+    totIncome += income;
+    totAmount += amount;
+    totTruckYears += truckCount;
+
+    html += `<tr>
+      <td>${y}</td>
+      <td style="color:var(--red)">${exp.toLocaleString()}</td>
+      <td style="color:var(--green)">${income.toLocaleString()}</td>
+      <td style="color:var(--blue)">${amount.toLocaleString()}</td>
+      <td>${avgExp.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+      <td>${avgIncome.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+      <td style="color:var(--red)">${pctExp}%</td>
+      <td style="color:var(--green)">${pctIncome}%</td>
+      <td>${ratio.toFixed(2)}:1</td>
+    </tr>`;
+  });
+
+  const totPctExp = totAmount ? Math.round(totExp / totAmount * 100) : 0;
+  const totPctIncome = totAmount ? Math.round(totIncome / totAmount * 100) : 0;
+  const totRatio = totIncome !== 0 ? (totExp / totIncome) : 0;
+  const totAvgExp = totTruckYears ? totExp / totTruckYears : 0;
+  const totAvgIncome = totTruckYears ? totIncome / totTruckYears : 0;
+
+  html += `<tr class="totals-row">
+    <td>TOTAL</td>
+    <td>${totExp.toLocaleString()}</td>
+    <td>${totIncome.toLocaleString()}</td>
+    <td>${totAmount.toLocaleString()}</td>
+    <td>${totAvgExp.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+    <td>${totAvgIncome.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+    <td>${totPctExp}%</td>
+    <td>${totPctIncome}%</td>
+    <td>${totRatio.toFixed(2)}:1</td>
+  </tr>`;
+
+  html += '</tbody>';
+  table.innerHTML = html;
 }
 
 function renderSummary() {
@@ -498,11 +616,14 @@ function renderAnnualSummary() {
     </tr>`;
   });
 
-  // Force totals to match the exact fleet salary total (rounding-safe).
+  // Total Expenditure and Total Income stay truck-only here (sum of each
+  // truck's own exp/net from the loop above) — this table is about what the
+  // TRUCKS made and spent, not fleet overhead. Supervisor Salary and Income
+  // Tax are shown in their own dedicated total columns below instead of being
+  // folded into Expenditure/Income, so Amount = Expenditure + Income holds
+  // using truck-only figures, same as every individual row.
   totSalary = totalSupervisorSalary;
   totTax = totalIncomeTax;
-  totExp += (totSalary + totTax);
-  totIncome = reportData.totalNet || 0;
 
   // Totals row
   const totPctExp = totAmount ? Math.round(totExp / totAmount * 100) : 0;

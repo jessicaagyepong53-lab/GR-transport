@@ -280,6 +280,20 @@
     <table class="ranking-table" id="rankingTable"></table>
   </div>
 
+  <!-- Master Summary — year-by-year rollup, only shown when 'All Years' is selected -->
+  <div class="chart-card" id="yearlyMasterSummarySection" style="display:none;">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-layer-group"></i>Master Summary — Year by Year</span>
+      <span class="card-pill"><i class="fa-solid fa-calendar-days"></i>All Years</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="summary-table" id="yearlyMasterSummaryTable"></table>
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-top:10px;">
+      Auto-generated from your yearly totals, salary payments and income tax — a new year with data appears here automatically.
+    </div>
+  </div>
+
   <!-- Annual Summary Table -->
   <div class="annual-summary" id="annualSummarySection">
     <div class="card-header">
@@ -504,10 +518,10 @@
         <td style="color:var(--red)">${fmt(r.expenses)}</td>
         <td class="dm-net ${netCls}">${net<0?'−':''}${fmt(Math.abs(net))}</td>
         <td style="color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis">${r.notes||'—'}</td>
-        <td><div class="act-cell" style="display:flex;gap:6px;"${!isAdmin()?' hidden':''}>
+        <td>${isAdmin() ? `<div class="act-cell" style="display:flex;gap:6px;">
           <button class="dm-act" onclick="dmOpenEdit('${r._id||r.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="dm-act del" onclick="dmDelete('${r._id||r.id}')"><i class="fa-solid fa-trash"></i></button>
-        </div></td>
+        </div>` : ''}</td>
       </tr>`;
     }).join('');
 
