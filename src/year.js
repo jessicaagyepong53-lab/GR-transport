@@ -202,14 +202,16 @@ function addTruckRow() {
   if (!tbody) return;
   const totalRow = tbody.querySelector('.total-row');
   const tr = document.createElement('tr');
+  tr.className = 'new-truck-row';
   tr.innerHTML = `
     <td class="label-cell"><input type="text" value="NEW TRUCK" class="new-truck-id" style="width:100%;background:transparent;border:1px dashed var(--accent);color:var(--accent);padding:6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:0.8rem"></td>
     <td class="label-cell"><input type="text" value="" class="new-truck-driver" placeholder="Driver" style="width:100%;background:transparent;border:1px dashed var(--border);color:var(--label);padding:6px;border-radius:4px;font-size:0.8rem"></td>
     <td><input class="truck-gross" type="number" value="0" onchange="markDirty()"></td>
     <td><input class="truck-exp" type="number" value="0" onchange="markDirty()"></td>
     <td class="computed neutral">GHS 0</td>
-    <td class="computed neutral">—</td>
-    <td class="computed neutral">0</td>
+    <td><input class="new-truck-insurance" type="number" value="0" placeholder="0" onchange="markDirty()"></td>
+    <td><input class="new-truck-weeks" type="number" value="0" min="0" max="53" placeholder="0" onchange="markDirty()"></td>
+    ${isAdmin() ? '<td></td>' : ''}
   `;
   if (totalRow) tbody.insertBefore(tr, totalRow);
   else tbody.appendChild(tr);
@@ -237,19 +239,26 @@ async function saveAll() {
       const gross = parseFloat(tr.querySelector('.truck-gross')?.value) || 0;
       const exp = parseFloat(tr.querySelector('.truck-exp')?.value) || 0;
 
-      // If new truck, create it first
+      // If new truck, create it first — carrying over the insurance figure
+      // entered on this row, since that field has no other home once the
+      // row merges into the regular truck table on reload.
+      let weeks;
       if (newIdInput) {
         const driver = tr.querySelector('.new-truck-driver')?.value?.trim() || '';
+        const insurance = parseFloat(tr.querySelector('.new-truck-insurance')?.value) || 0;
+        weeks = parseFloat(tr.querySelector('.new-truck-weeks')?.value) || 0;
         try {
-          await API.post('/api/trucks', { truckId, driver });
+          await API.post('/api/trucks', { truckId, driver, cost: { insurance } });
         } catch (e) {
-          // Truck might already exist, that's fine
+          // Truck might already exist, that's fine — cost/insurance won't be
+          // overwritten in that case, matching the non-destructive pattern
+          // used elsewhere in this app.
         }
       }
 
-      await API.post(`/api/trucks/${encodeURIComponent(truckId)}/years`, {
-        year: currentYear, gross, exp
-      });
+      const yearPayload = { year: currentYear, gross, exp };
+      if (weeks !== undefined) yearPayload.weeks = weeks;
+      await API.post(`/api/trucks/${encodeURIComponent(truckId)}/years`, yearPayload);
     }
 
     // Save monthly entries

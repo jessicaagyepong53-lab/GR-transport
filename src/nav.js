@@ -8,6 +8,7 @@
     { href: 'reports.html', icon: 'fa-file-export', label: 'Reports' },
     { href: 'recovery.html', icon: 'fa-trash-can-arrow-up', label: 'Recovery' },
     { href: 'settings.html', icon: 'fa-gear', label: 'Settings' },
+    { href: 'mixers.html?dash=1', icon: 'fa-toolbox', label: 'Equipment Hire' },
   ];
 
   function ensureNavBaseStyles() {

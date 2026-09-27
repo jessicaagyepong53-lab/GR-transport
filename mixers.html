@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Equipment Hire Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0c10;--bg2:#111418;--bg3:#181c24;--card:#1a1f2b;--border:#252d3d;
+    --accent:#4a9eff;--accent2:#2d6fe0;--green:#2de08a;--red:#e0443a;--orange:#f5a623;
+    --blue:#4a9eff;--purple:#9b72ff;--text:#e8ecf4;--muted:#6b7a96;--label:#9aa4b8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(74,158,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(74,158,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .wrapper{position:relative;z-index:1;padding:32px;max-width:1300px;margin:0 auto;}
+
+  .header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:16px;}
+  .header-left{display:flex;align-items:center;gap:18px;}
+  .logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .logo-mark i{color:#fff;font-size:22px;}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent) 0%,#fff 60%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+  .page-subtitle{color:var(--muted);font-size:0.8rem;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+  .header-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{padding:9px 18px;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text);transition:all 0.2s;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:7px;}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .btn-primary:hover{background:#6fb4ff;color:#0a0c10;}
+  .btn-danger{background:rgba(224,68,58,0.12);border-color:var(--red);color:var(--red);}
+  .btn-danger:hover{background:rgba(224,68,58,0.25);}
+  .btn-sm{padding:5px 12px;font-size:0.72rem;}
+
+  .notif-banner{display:none;flex-direction:column;gap:8px;margin-bottom:24px;}
+  .notif-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;}
+  .notif-row.warn{background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);color:var(--orange);}
+  .notif-row.danger{background:rgba(224,68,58,0.1);border:1px solid rgba(224,68,58,0.3);color:var(--red);}
+  .notif-row i{font-size:1rem;}
+
+  .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;position:relative;overflow:hidden;}
+  .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--purple));}
+  .kpi-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin-bottom:8px;}
+  .kpi-value{font-family:'Bebas Neue',sans-serif;font-size:2.1rem;letter-spacing:2px;line-height:1;color:var(--accent);}
+  .kpi-sub{font-size:0.78rem;color:var(--muted);margin-top:6px;}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .tab{padding:8px 18px;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted);transition:all 0.2s;}
+  .tab:hover{border-color:var(--accent);color:var(--accent);}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  .year-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;}
+  .year-tab{padding:7px 16px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted);transition:all 0.2s;}
+  .year-tab:hover{border-color:var(--accent);color:var(--accent);}
+  .year-tab.active{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+
+  .section-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px;justify-content:space-between;}
+  .section-heading h2{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;}
+
+  .eq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+  .eq-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;flex-wrap:wrap;gap:10px;background:rgba(74,158,255,0.04);cursor:pointer;}
+  .eq-id{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);font-size:0.95rem;}
+  .eq-meta{font-size:0.76rem;color:var(--muted);margin-top:2px;}
+  .status-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:20px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;}
+  .status-badge.available{background:rgba(45,224,138,0.12);color:var(--green);}
+  .status-badge.on-hire{background:rgba(245,166,35,0.12);color:var(--orange);}
+  .status-badge.maintenance{background:rgba(224,68,58,0.12);color:var(--red);}
+  .status-badge.retired{background:rgba(107,122,150,0.12);color:var(--muted);}
+  .eq-body{padding:16px 18px;display:none;border-top:1px solid var(--border);}
+  .eq-body.open{display:block;}
+
+  table.mini{width:100%;border-collapse:collapse;font-size:0.78rem;margin-bottom:10px;}
+  table.mini th{text-align:left;color:var(--muted);font-weight:600;padding:5px 6px;border-bottom:1px solid var(--border);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.6px;}
+  table.mini td{padding:6px 6px;border-bottom:1px solid rgba(37,45,61,0.5);}
+  table.mini .del-btn{background:none;border:none;color:var(--muted);cursor:pointer;}
+  table.mini .del-btn:hover{color:var(--red);}
+
+  .inline-form{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center;}
+  .inline-form input,.inline-form select,.inline-form textarea{padding:6px 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.78rem;font-family:'DM Sans',sans-serif;}
+  .inline-form input{width:110px;}
+  .inline-form .wide{width:160px;}
+
+  .contract-row{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;}
+  .contract-row.ending{border-left-color:var(--orange);}
+  .contract-row.overdue{border-left-color:var(--red);}
+  .contract-row.done{opacity:0.55;}
+  .contract-top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center;}
+  .contract-client{font-weight:700;font-size:0.92rem;}
+  .contract-dates{font-size:0.76rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .contract-items{font-size:0.78rem;color:var(--label);margin-top:6px;}
+  .contract-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:20px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;}
+  .pill.paid{background:rgba(45,224,138,0.12);color:var(--green);}
+  .pill.partial{background:rgba(245,166,35,0.12);color:var(--orange);}
+  .pill.unpaid{background:rgba(224,68,58,0.12);color:var(--red);}
+  .pill.overpaid{background:rgba(74,158,255,0.12);color:var(--accent);}
+  .contract-balance{font-size:.74rem;color:var(--muted);margin-top:4px}
+  .contract-balance strong{color:var(--text)}
+  .condition-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:14px;font-size:.65rem;font-weight:700;text-transform:uppercase;margin-left:6px}
+  .condition-tag.good{background:rgba(45,224,138,0.12);color:var(--green)}
+  .condition-tag.minor-wear{background:rgba(245,166,35,0.12);color:var(--orange)}
+  .condition-tag.damaged{background:rgba(224,68,58,0.12);color:var(--red)}
+
+  /* -- SHARED MODAL (payment ledger + return flow) -- */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2100;display:none;align-items:center;justify-content:center;padding:16px}
+  .modal-overlay.open{display:flex}
+  .modal-box{background:var(--card);border:1px solid var(--border);border-radius:14px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+  .modal-head h3{margin:0;font-size:.98rem;display:flex;align-items:center;gap:8px}
+  .modal-head h3 i{color:var(--accent)}
+  .modal-close{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:4px 8px}
+  .modal-close:hover{color:var(--text)}
+  .modal-body{padding:18px 20px}
+  .pm-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+  .pm-summary-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+  .pm-summary-label{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+  .pm-summary-value{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.95rem}
+  .pm-section-title{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--border)}
+  .pm-section-title:first-of-type{border-top:none;padding-top:0;margin-top:0}
+  .pm-payment-row{display:grid;grid-template-columns:100px 90px 90px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);margin-bottom:6px;font-size:.78rem}
+  .pm-payment-row .pm-del{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px}
+  .pm-payment-row .pm-del:hover{color:var(--red)}
+  .pm-add-payment-row{display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr auto;gap:8px;margin-top:8px}
+  .pm-add-payment-row input,.pm-add-payment-row select{padding:8px 9px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:.78rem}
+  .pm-empty{color:var(--muted);font-size:.78rem;padding:8px 2px}
+  .pm-return-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pm-return-form label{display:block;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+  .pm-return-form input,.pm-return-form select,.pm-return-form textarea{width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:.82rem;font-family:'DM Sans',sans-serif;box-sizing:border-box}
+  .pm-return-form .full{grid-column:1/-1}
+  .pm-returned-summary{background:rgba(74,158,255,.06);border:1px solid rgba(74,158,255,.2);border-radius:10px;padding:12px 14px;font-size:.8rem;line-height:1.6}
+  .pm-error{color:var(--red);font-size:.76rem;margin-top:10px;min-height:1.1em}
+  .modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border)}
+  @media(max-width:640px){.pm-summary-grid{grid-template-columns:1fr 1fr}.pm-add-payment-row{grid-template-columns:1fr 1fr}.pm-return-form{grid-template-columns:1fr}}
+
+  .empty-state{text-align:center;padding:50px 20px;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:12px;}
+  .empty-state i{font-size:2.2rem;margin-bottom:12px;display:block;opacity:0.2;}
+
+  #mixerPinModal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;}
+  #mixerPinModal.open{display:flex;}
+  #mixerPinModal .pin-card{background:#1a1f2b;border:1px solid #252d3d;border-radius:16px;padding:32px;width:320px;max-width:90vw;text-align:center;}
+  #mixerPinModal h3{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--accent);letter-spacing:2px;margin-bottom:16px;}
+  #mixerPinModal input{width:100%;padding:12px;font-size:1.2rem;text-align:center;letter-spacing:8px;border:1px solid #252d3d;border-radius:8px;background:#0a0c10;color:#e8ecf4;margin-bottom:16px;}
+  #mixerPinModal .pin-btns{display:flex;gap:10px;justify-content:center;}
+  #mixerPinModal .pin-btn{padding:10px 24px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;border:1px solid #252d3d;}
+  #mixerPinModal .pin-submit{background:var(--accent);border-color:var(--accent);color:#0a0c10;}
+  #mixerPinModal .pin-cancel{background:#181c24;color:#9aa4b8;}
+  #mixerPinModal .pin-error{color:var(--red);font-size:0.8rem;margin-top:8px;min-height:1.2em;}
+
+  .toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:0.82rem;font-weight:600;z-index:2000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all 0.3s;color:var(--text);}
+  .toast.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+  .toast.success{border-color:rgba(45,224,138,0.4);color:var(--green);}
+  .toast.error{border-color:rgba(224,68,58,0.4);color:var(--red);}
+
+  .footer-note{text-align:center;color:var(--muted);font-size:0.75rem;margin-top:32px;letter-spacing:0.5px;}
+
+  @media(max-width:900px){
+    .wrapper{padding:20px 14px;}
+    .kpi-strip{grid-template-columns:1fr 1fr;}
+    .header{flex-direction:column;align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark"><i class="fa-solid fa-toolbox"></i></div>
+      <div>
+        <div class="page-title">Equipment Hire Dashboard</div>
+        <div class="page-subtitle" id="mixerHeaderSubtitle">Equipment Hire Business · All Equipment</div>
+        <span id="mixerLastSaved" style="font-size:0.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:5px;margin-top:4px;"></span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="mixerAddBtn" data-admin-only style="display:none" onclick="openAddEquipment()"><i class="fa-solid fa-plus"></i>Add Equipment</button>
+      <button class="btn" id="mixerAddContractBtn" data-admin-only style="display:none" onclick="openAddContract()"><i class="fa-solid fa-file-signature"></i>New Contract</button>
+      <a class="btn" id="allEquipmentLink" href="all-equipment.html"><i class="fa-solid fa-list-check"></i>All Equipment</a>
+    </div>
+  </div>
+
+  <div class="year-tabs" id="mixerYearTabs"></div>
+
+  <div class="notif-banner" id="notifBanner"></div>
+
+  <div class="kpi-strip" id="kpiStrip"></div>
+
+  <div class="tabs" id="categoryTabs"></div>
+
+  <div class="section-heading"><h2 id="equipmentHeading"><i class="fa-solid fa-toolbox" style="color:var(--accent);margin-right:6px"></i>Equipment</h2></div>
+  <div id="equipmentList"></div>
+
+  <div class="eq-card" id="addEquipmentCard" style="display:none">
+    <div class="eq-body open" style="border-top:none;padding:18px;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:700;margin-bottom:8px;">New Equipment</div>
+      <div class="inline-form">
+        <input type="text" id="newEqId" placeholder="ID (e.g. SC-04)">
+        <select id="newEqCategory">
+          <option value="mixer">Concrete Mixer</option>
+          <option value="scaffold">Scaffold</option>
+          <option value="compactor">Compactor</option>
+          <option value="gutter-mould">Gutter Mould</option>
+        </select>
+        <input type="text" class="wide" id="newEqModel" placeholder="Model / description">
+        <input type="number" id="newEqPricePaid" placeholder="Price paid">
+        <input type="number" id="newEqInsurance" placeholder="Insurance">
+        <button class="btn btn-primary btn-sm" onclick="submitAddEquipment()"><i class="fa-solid fa-check"></i>Add</button>
+        <button class="btn btn-sm" onclick="document.getElementById('addEquipmentCard').style.display='none'">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-heading" style="margin-top:32px"><h2><i class="fa-solid fa-file-contract" style="color:var(--accent);margin-right:6px"></i>Contracts</h2></div>
+  <div id="contractList"></div>
+
+  <div class="eq-card" id="addContractCard" style="display:none">
+    <div class="eq-body open" style="border-top:none;padding:18px;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:700;margin-bottom:8px;">New Contract</div>
+      <div class="inline-form">
+        <input type="text" class="wide" id="newCtClient" placeholder="Client name">
+        <input type="text" id="newCtPhone" placeholder="Phone">
+        <input type="text" class="wide" id="newCtAddress" placeholder="Site address">
+      </div>
+      <div class="inline-form">
+        <select id="newCtCategory">
+          <option value="mixer">Concrete Mixer</option>
+          <option value="scaffold">Scaffold</option>
+          <option value="compactor">Compactor</option>
+          <option value="gutter-mould">Gutter Mould</option>
+        </select>
+        <input type="text" id="newCtEquipmentId" placeholder="Equipment ID (optional)">
+        <input type="number" id="newCtQty" placeholder="Qty" value="1">
+      </div>
+      <div class="inline-form">
+        <label style="font-size:0.7rem;color:var(--muted)">Start</label>
+        <input type="date" id="newCtStart">
+        <label style="font-size:0.7rem;color:var(--muted)">End</label>
+        <input type="date" id="newCtEnd">
+        <select id="newCtRateUnit">
+          <option value="daily">Daily rate</option>
+          <option value="weekly" selected>Weekly rate</option>
+          <option value="monthly">Monthly rate</option>
+        </select>
+        <input type="number" id="newCtRate" placeholder="Rate">
+        <input type="number" id="newCtTotal" placeholder="Total value">
+        <input type="number" id="newCtDeposit" placeholder="Deposit">
+        <label style="font-size:0.7rem;color:var(--muted)">Payment due</label>
+        <input type="date" id="newCtPaymentDue" title="Payment due date (used for overdue flagging in Client History)">
+      </div>
+      <div class="inline-form">
+        <textarea class="wide" id="newCtNotes" placeholder="Notes (optional)" rows="2"></textarea>
+        <button class="btn btn-primary btn-sm" onclick="submitAddContract()"><i class="fa-solid fa-check"></i>Save Contract</button>
+        <button class="btn btn-sm" onclick="document.getElementById('addContractCard').style.display='none'">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note"><i class="fa-regular fa-copyright"></i>Copyright 2026 All rights reserved.</div>
+</div>
+
+<!-- PAYMENT LEDGER + RETURN MODAL -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3><i class="fa-solid fa-file-invoice-dollar"></i><span id="pmClientName">Contract</span></h3><button class="modal-close" onclick="closePaymentModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="pm-summary-grid" id="pmSummaryGrid"></div>
+
+      <div class="pm-section-title">Payment Ledger</div>
+      <div id="pmPaymentsList"></div>
+      <div class="pm-add-payment-row">
+        <input type="date" id="pmNewDate">
+        <input type="number" id="pmNewAmount" min="0" placeholder="Amount">
+        <select id="pmNewMethod">
+          <option value="">Method</option>
+          <option value="cash">Cash</option>
+          <option value="cheque">Cheque</option>
+          <option value="transfer">Transfer</option>
+          <option value="other">Other</option>
+        </select>
+        <input type="text" id="pmNewNote" placeholder="Note (optional)">
+        <button class="btn btn-primary btn-sm" onclick="addPaymentEntry()"><i class="fa-solid fa-plus"></i>Add</button>
+      </div>
+
+      <div id="pmReturnSection"></div>
+      <div class="pm-error" id="pmError"></div>
+    </div>
+  </div>
+</div>
+
+<div id="mixerPinModal">
+  <div class="pin-card">
+    <h3><i class="fa-solid fa-lock" style="margin-right:8px"></i>Equipment PIN</h3>
+    <input type="password" id="mixerPinInput" maxlength="20" placeholder="Enter PIN" autocomplete="off">
+    <div class="pin-btns">
+      <button class="pin-btn pin-submit" onclick="submitMixerPin()">Unlock</button>
+      <button class="pin-btn pin-cancel" onclick="closeMixerPinModal()">Cancel</button>
+    </div>
+    <div class="pin-error" id="mixerPinError"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="src/mixer-frontend.js"></script>
+<script src="src/mixer-nav.js"></script>
+</body>
+</html>

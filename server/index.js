@@ -60,6 +60,11 @@ app.use('/api/recovery', require('./routes/recovery'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/drivers', require('./routes/drivers'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/mixer-auth', require('./routes/mixerAuth'));
+app.use('/api/mixer-settings', require('./routes/mixer-settings'));
+app.use('/api/equipment', require('./routes/equipment-routes'));
+app.use('/api/contracts', require('./routes/contract-routes'));
+app.use('/api/mixer-recovery', require('./routes/mixer-recovery'));
 
 // Any /api/* request that didn't match a route above → consistent JSON 404
 // instead of falling through to the SPA fallback and returning index.html.

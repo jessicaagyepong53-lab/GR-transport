@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixer Recovery Bin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080b10;--card:#111a26;--border:#1e3550;--blue:#4a9eff;--green:#2de08a;--orange:#f5a623;--red:#e0443a;--text:#e8ecf4;--muted:#7890aa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans',sans-serif}.wrapper{max-width:1150px;margin:0 auto;padding:32px;position:relative;z-index:1}.header{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;padding-bottom:24px;border-bottom:1px solid var(--border);margin-bottom:24px}.header-left{display:flex;align-items:center;gap:16px}.logo{width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#1e5bb7);display:flex;align-items:center;justify-content:center}.logo i{font-size:22px;color:#fff}.title{font:2.45rem 'Bebas Neue',sans-serif;letter-spacing:3px;color:var(--blue)}.subtitle{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:1px;margin-top:4px}.info-banner{display:flex;align-items:flex-start;gap:12px;background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.3);border-radius:10px;padding:15px 18px;margin-bottom:24px;color:#a8c7e8;font-size:.84rem;line-height:1.5}.info-banner i{color:var(--blue);margin-top:2px}.info-banner p{margin:0}.top-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.count{color:var(--muted);font-size:.82rem}.empty-state{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:34px;text-align:center;color:var(--muted)}.empty-state i{display:block;color:var(--blue);font-size:2rem;margin-bottom:12px;opacity:.65}.section{margin-top:24px}.section-title{font:1.25rem 'Bebas Neue',sans-serif;letter-spacing:2px;margin-bottom:12px}.trash-card{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:16px;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:10px;padding:15px 18px;margin-bottom:10px}.trash-type{color:var(--blue);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px}.trash-label{font-weight:600;margin-top:4px}.trash-detail{color:var(--muted);font-size:.76rem;margin-top:5px}.trash-meta{color:var(--muted);font-size:.72rem;text-align:right;white-space:nowrap}.days-left{color:var(--orange);margin-top:5px}.trash-actions{display:flex;gap:7px}.btn{border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:6px;padding:8px 12px;cursor:pointer;font-weight:600}.btn-recover{border-color:rgba(45,224,138,.4);color:var(--green);background:rgba(45,224,138,.08)}.btn-danger{border-color:rgba(224,68,58,.4);color:var(--red);background:rgba(224,68,58,.08)}.btn:disabled{opacity:.45;cursor:not-allowed}.error{color:var(--red)}
+@media(max-width:800px){.wrapper{padding:22px 14px}.header{align-items:flex-start;flex-direction:column}.trash-card{grid-template-columns:1fr}.trash-meta{text-align:left}.trash-actions{flex-wrap:wrap}}
+</style>
+<style>
+body{background:radial-gradient(circle at 75% 0%,rgba(74,158,255,.1),transparent 34%),var(--bg)}
+.recovery-panel{padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(17,26,38,.72);box-shadow:0 18px 45px rgba(0,0,0,.18)}
+.recovery-panel.equipment-panel{border-top:3px solid var(--blue)}
+.recovery-panel.contract-panel{border-top:3px solid var(--orange)}
+.recovery-panel .section-title{display:flex;align-items:center;gap:10px;margin-bottom:4px;font-family:'Space Grotesk',sans-serif;font-size:1rem;letter-spacing:.2px}
+.recovery-panel>span{display:block;color:var(--muted);font:400 .72rem 'Space Grotesk',sans-serif;letter-spacing:0;margin:3px 0 14px 29px}
+.equipment-panel .section-title{color:var(--blue)}
+.contract-panel .section-title{color:var(--orange)}
+.contract-panel .trash-card{border-left-color:var(--orange)}
+.contract-panel .trash-type{color:var(--orange)}
+.trash-card{background:linear-gradient(105deg,rgba(26,39,56,.92),rgba(17,26,38,.94));transition:transform .2s,border-color .2s,box-shadow .2s}
+.trash-card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,.2);border-color:rgba(74,158,255,.45)}
+.contract-panel .trash-card:hover{border-color:rgba(245,166,35,.45)}
+.trash-label{font-size:.95rem}.trash-meta{font-family:'Space Grotesk',sans-serif}.trash-actions .btn{font-family:'Space Grotesk',sans-serif}
+.empty-state{background:rgba(8,11,16,.35);border-style:dashed}
+@media(max-width:800px){.recovery-panel{padding:14px}}
+/* -- PHONE -- */
+@media(max-width:480px){
+  .wrapper{padding:14px 8px}
+  .logo{width:42px;height:42px}
+  .title{font-size:1.9rem}
+  .info-banner{flex-direction:column;padding:12px 14px}
+  .top-bar{flex-direction:column;align-items:stretch;gap:10px}
+  .trash-actions{flex-direction:column;align-items:stretch}
+  .trash-actions .btn{width:100%;justify-content:center}
+  .recovery-panel{padding:12px}
+  .recovery-panel>span{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header"><div class="header-left"><div class="logo"><i class="fa-solid fa-trash-can-arrow-up"></i></div><div><div class="title">Recovery Bin</div><div class="subtitle">Equipment Hire System · Deleted Data · 30-Day Retention</div></div></div></div>
+  <div class="info-banner"><i class="fa-solid fa-circle-info"></i><p><strong>Deleted equipment and contracts are kept here for 30 days.</strong> After that they are permanently and automatically removed. You can restore an item or permanently delete it immediately after entering the mixer PIN.</p></div>
+  <div class="top-bar"><span class="count" id="trashCount"><i class="fa-solid fa-trash"></i> Loading...</span><button class="btn btn-danger" id="purgeBtn" style="display:none"><i class="fa-solid fa-trash"></i> Empty Recovery Bin</button></div>
+  <section class="section recovery-panel equipment-panel"><div class="section-title"><i class="fa-solid fa-toolbox"></i>Deleted Equipment</div><span>Mixers, scaffold, compactors, and moulds removed from the equipment register.</span><div id="equipmentList"></div></section>
+  <section class="section recovery-panel contract-panel"><div class="section-title"><i class="fa-solid fa-file-signature"></i>Deleted Contracts</div><span>Hire agreements removed from the Equipment Hire dashboard.</span><div id="contractList"></div></section>
+</div>
+<script src="src/mixer-nav.js"></script>
+<script>
+const request=async(path,options={})=>{const response=await fetch(path,{credentials:'include',...options});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||'Request failed');return data};let mixerAdmin=false;
+const daysLeft=date=>Math.max(0,30-Math.floor((Date.now()-new Date(date).getTime())/86400000));
+function card(label,detail,date,restore,remove){return `<div class="trash-card"><div><div class="trash-type">Mixer Record</div><div class="trash-label">${label}</div><div class="trash-detail">${detail}</div></div><div class="trash-meta">Deleted: ${new Date(date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}<div class="days-left"><i class="fa-solid fa-clock"></i> ${daysLeft(date)} days left</div></div><div class="trash-actions"><button class="btn btn-recover" ${mixerAdmin?'':'disabled'} onclick="${restore}"><i class="fa-solid fa-rotate-left"></i> Restore</button><button class="btn btn-danger" ${mixerAdmin?'':'disabled'} onclick="${remove}"><i class="fa-solid fa-trash"></i> Delete</button></div></div>`}
+async function load(){const data=await request('/api/mixer-recovery');const total=data.equipment.length+data.contracts.length;document.getElementById('trashCount').innerHTML=`<i class="fa-solid fa-trash"></i> ${total} deleted item${total===1?'':'s'}`;document.getElementById('purgeBtn').style.display=mixerAdmin&&total?'':'none';document.getElementById('equipmentList').innerHTML=data.equipment.length?data.equipment.map(e=>card(e.equipmentId,`${e.model||'No model'} · ${e.category}`,e.deletedAt,`restoreEquipment('${e.equipmentId}')`,`deleteEquipment('${e.equipmentId}')`)).join(''):'<div class="empty-state"><i class="fa-solid fa-check-circle"></i><p>Recovery bin is empty for equipment.</p></div>';document.getElementById('contractList').innerHTML=data.contracts.length?data.contracts.map(c=>card(c.clientName,`${c.startDate} → ${c.endDate}`,c.deletedAt,`restoreContract('${c._id}')`,`deleteContract('${c._id}')`)).join(''):'<div class="empty-state"><i class="fa-solid fa-check-circle"></i><p>Recovery bin is empty for contracts.</p></div>'}
+async function action(path,method){await request(path,{method});await load()}function restoreEquipment(id){return action('/api/mixer-recovery/equipment/'+encodeURIComponent(id)+'/restore','POST')}function deleteEquipment(id){if(confirm('Permanently delete this equipment? This cannot be undone.'))return action('/api/mixer-recovery/equipment/'+encodeURIComponent(id),'DELETE')}function restoreContract(id){return action('/api/mixer-recovery/contracts/'+id+'/restore','POST')}function deleteContract(id){if(confirm('Permanently delete this contract? This cannot be undone.'))return action('/api/mixer-recovery/contracts/'+id,'DELETE')}
+document.getElementById('purgeBtn').onclick=async()=>{if(confirm('Permanently delete ALL items in the mixer recovery bin? This cannot be undone.'))await action('/api/mixer-recovery','DELETE')};(async()=>{try{mixerAdmin=(await request('/api/mixer-auth/status')).isAdmin===true;await load()}catch(error){document.getElementById('trashCount').innerHTML=`<span class="error">${error.message}</span>`}})();
+</script>
+</body>
+</html>

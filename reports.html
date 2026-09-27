@@ -612,6 +612,22 @@
     const expenses = parseFloat(document.getElementById('dmExpIn').value) || 0;
     const notes = document.getElementById('dmNotesIn').value;
     const remarks = document.getElementById('dmRemarksIn').value;
+
+    // Adding a brand-new entry (not editing one): /api/weekly/.../:week is an
+    // upsert, so picking a truck+year+week that already has data would
+    // silently overwrite it with no warning. Catch that here first.
+    if (!dmEditId) {
+      const clash = dmAll.find(r => r.truck === truckId && r.year === selectedYear && r.week === week);
+      if (clash) {
+        const proceed = confirm(
+          `${truckId} already has an entry for Week ${week}, ${selectedYear} ` +
+          `(Gross GHS ${Number(clash.gross||0).toLocaleString()}). ` +
+          `Saving will overwrite it. Continue?`
+        );
+        if (!proceed) return;
+      }
+    }
+
     try {
       if(dmEditId){
         // Find the original entry to get its truckId+week for the URL

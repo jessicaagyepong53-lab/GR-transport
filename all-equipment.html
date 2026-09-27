@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All Equipment · Equipment Hire</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080b10;--card:#111a26;--border:#1e3550;--blue:#4a9eff;--green:#2de08a;--orange:#f5a623;--red:#e0443a;--text:#e8ecf4;--muted:#7890aa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}.wrapper{max-width:1400px;margin:0 auto;padding:32px;position:relative;z-index:1}.header{display:flex;justify-content:space-between;align-items:end;gap:20px;padding-bottom:24px;border-bottom:1px solid var(--border);margin-bottom:24px;flex-wrap:wrap}.title{font:2.5rem 'Bebas Neue',sans-serif;letter-spacing:3px;color:var(--blue)}.subtitle{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:1px;margin-top:4px}.header-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.back{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border);border-radius:7px;color:var(--blue);text-decoration:none;background:var(--card)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .15s}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#06101c}
+.btn-primary:hover{background:#70b5ff;color:#06101c}
+.btn-sm{padding:6px 11px;font-size:.72rem}
+.btn-danger{border-color:rgba(224,68,58,.4);color:var(--red);background:rgba(224,68,58,.08)}
+.btn-danger:hover{background:rgba(224,68,58,.22)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center}.controls input,.controls select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:7px}.count{color:var(--muted);font-size:.8rem;margin-left:auto;align-self:center}.table-wrap{overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:10px}table{width:100%;border-collapse:collapse;font-size:.8rem}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid rgba(30,53,80,.7);white-space:nowrap}th{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.7px}td:first-child{color:var(--blue);font-family:'JetBrains Mono',monospace;font-weight:700}.status{display:inline-flex;border-radius:16px;padding:3px 9px;font-size:.65rem;text-transform:uppercase;font-weight:700}.available{background:rgba(45,224,138,.12);color:var(--green)}.on-hire{background:rgba(245,166,35,.12);color:var(--orange)}.maintenance{background:rgba(224,68,58,.12);color:var(--red)}.retired{background:rgba(120,144,170,.12);color:var(--muted)}.empty{color:var(--muted);padding:24px;text-align:center}
+.row-actions{display:flex;gap:6px}
+.icon-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.72rem;transition:all .15s}
+.icon-btn:hover{border-color:var(--blue);color:var(--blue)}
+.icon-btn.danger:hover{border-color:var(--red);color:var(--red)}
+.admin-banner{display:none;align-items:center;gap:10px;background:rgba(45,224,138,.08);border:1px solid rgba(45,224,138,.3);border-radius:8px;padding:10px 16px;margin-bottom:18px;color:var(--green);font-size:.8rem}
+.admin-banner.show{display:flex}
+.readonly-banner{display:flex;align-items:center;gap:10px;background:rgba(74,158,255,.06);border:1px solid rgba(74,158,255,.25);border-radius:8px;padding:10px 16px;margin-bottom:18px;color:var(--muted);font-size:.8rem}
+.readonly-banner.hide{display:none}
+.readonly-banner a,.readonly-banner button{color:var(--blue);background:none;border:none;cursor:pointer;font-weight:600;padding:0;font-size:.8rem;font-family:inherit}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:14px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-head h3{margin:0;font-size:.95rem;display:flex;align-items:center;gap:8px}
+.modal-head h3 i{color:var(--blue)}
+.modal-close{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:4px 8px}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:18px 20px}
+.modal-body label{display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin:14px 0 6px}
+.modal-body label:first-child{margin-top:0}
+.modal-body input,.modal-body select,.modal-body textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:.85rem;font-family:'DM Sans',sans-serif}
+.modal-body input:focus,.modal-body select:focus,.modal-body textarea:focus{outline:none;border-color:var(--blue)}
+.modal-body .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border)}
+.field-error{color:var(--red);font-size:.74rem;margin-top:10px;min-height:1.1em}
+.toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px 22px;font-size:.82rem;font-weight:600;z-index:3000;transform:translateY(12px);opacity:0;pointer-events:none;transition:all .3s;color:var(--text)}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{border-color:rgba(45,224,138,.4);color:var(--green)}
+.toast.error{border-color:rgba(224,68,58,.4);color:var(--red)}
+@media(max-width:700px){.modal-body .row2{grid-template-columns:1fr}.header-actions{width:100%}.header-actions .btn{flex:1;justify-content:center}}
+</style>
+</head>
+<body><div class="wrapper">
+<div class="header"><div><div class="title"><i class="fa-solid fa-list-check"></i> All Equipment</div><div class="subtitle">Equipment Hire · Mixers · Scaffold · Compactors · Gutter Moulds</div></div>
+<div class="header-actions">
+  <button class="btn btn-primary" id="addEquipmentBtn" style="display:none" onclick="openAddModal()"><i class="fa-solid fa-plus"></i>Add Equipment</button>
+  <a class="back" id="hubBack" href="mixers.html"><i class="fa-solid fa-arrow-left"></i> Equipment Hire Dashboard</a>
+</div>
+</div>
+
+<div class="readonly-banner" id="readonlyBanner"><i class="fa-solid fa-circle-info"></i><span>You're viewing in read-only mode. Log in with the Equipment Hire PIN (sidebar) to add or edit equipment.</span></div>
+<div class="admin-banner" id="adminBanner"><i class="fa-solid fa-circle-check"></i><span>Logged in — you can add, edit, and remove equipment below.</span></div>
+
+<div class="controls"><input id="search" type="search" placeholder="Search ID or model"><select id="category"><option value="all">All equipment</option><option value="mixer">Concrete Mixers</option><option value="scaffold">Scaffold</option><option value="compactor">Compactors</option><option value="gutter-mould">Gutter Moulds</option></select><select id="status"><option value="all">All statuses</option><option value="available">Available</option><option value="on-hire">On hire</option><option value="maintenance">Maintenance</option><option value="retired">Retired</option></select><span class="count" id="count"></span></div>
+<div class="table-wrap"><table><thead><tr><th>Equipment ID</th><th>Category</th><th>Model / Description</th><th>Status</th><th>Price Paid</th><th>Insurance</th><th>Maintenance</th><th>Added</th><th>Notes</th><th id="actionsHead" style="display:none">Actions</th></tr></thead><tbody id="rows"></tbody></table></div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="eqModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3><i class="fa-solid fa-toolbox"></i><span id="eqModalTitle">Add Equipment</span></h3><button class="modal-close" onclick="closeEqModal()">&times;</button></div>
+    <div class="modal-body">
+      <label>Equipment ID</label>
+      <input type="text" id="eqId" placeholder="e.g. MX-05">
+      <label>Category</label>
+      <select id="eqCategory">
+        <option value="mixer">Concrete Mixer</option>
+        <option value="scaffold">Scaffold</option>
+        <option value="compactor">Compactor</option>
+        <option value="gutter-mould">Gutter Mould</option>
+      </select>
+      <label>Model / Description</label>
+      <input type="text" id="eqModel" placeholder="e.g. Belle Mini Mix 150">
+      <label>Status</label>
+      <select id="eqStatus">
+        <option value="available">Available</option>
+        <option value="on-hire">On Hire</option>
+        <option value="maintenance">Maintenance</option>
+        <option value="retired">Retired</option>
+      </select>
+      <div class="row2">
+        <div><label>Price Paid (GHS)</label><input type="number" id="eqPricePaid" min="0" placeholder="0"></div>
+        <div><label>Insurance (GHS)</label><input type="number" id="eqInsurance" min="0" placeholder="0"></div>
+      </div>
+      <label>Maintenance Cost So Far (GHS)</label>
+      <input type="number" id="eqMaintCost" min="0" placeholder="0">
+      <label>Notes</label>
+      <textarea id="eqNotes" rows="3" placeholder="Optional notes"></textarea>
+      <div class="field-error" id="eqError"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeEqModal()">Cancel</button>
+      <button class="btn btn-primary" id="eqSaveBtn" onclick="submitEqModal()"><i class="fa-solid fa-check"></i>Save</button>
+    </div>
+  </div>
+</div>
+
+</div><script src="src/mixer-nav.js"></script><script>
+const labels={mixer:'Concrete Mixer',scaffold:'Scaffold',compactor:'Compactor','gutter-mould':'Gutter Mould'};
+let records=[];
+let isAdminUser=false;
+let editingId=null; // null = adding a new one
+const money=n=>Number(n||0).toLocaleString();
+
+const mixerApi={
+  async get(path){const r=await fetch(path,{credentials:'include'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||r.statusText);return d;},
+  async post(path,body){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||r.statusText);return d;},
+  async put(path,body){const r=await fetch(path,{method:'PUT',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||r.statusText);return d;},
+  async del(path){const r=await fetch(path,{method:'DELETE',credentials:'include'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||r.statusText);return d;},
+};
+
+function showToast(msg,type){
+  const t=document.createElement('div');
+  t.className='toast'+(type?' '+type:'');
+  t.textContent=msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},2600);
+}
+
+function render(){
+  const q=document.getElementById('search').value.trim().toLowerCase(),cat=document.getElementById('category').value,st=document.getElementById('status').value;
+  const data=records.filter(e=>(cat==='all'||e.category===cat)&&(st==='all'||e.status===st)&&(!q||`${e.equipmentId} ${e.model||''} ${e.notes||''}`.toLowerCase().includes(q)));
+  document.getElementById('count').textContent=`${data.length} of ${records.length} equipment`;
+  document.getElementById('rows').innerHTML=data.length?data.map(e=>`<tr>
+    <td>${e.equipmentId}</td>
+    <td>${labels[e.category]||e.category}</td>
+    <td>${e.model||'—'}</td>
+    <td><span class="status ${e.status}">${String(e.status||'available').replace('-', ' ')}</span></td>
+    <td>${money(e.cost?.pricePaid)}</td>
+    <td>${money(e.cost?.insurance)}</td>
+    <td>${money(e.cost?.maintenanceCost)}</td>
+    <td>${e.createdAt?new Date(e.createdAt).toLocaleDateString():'—'}</td>
+    <td>${e.notes||'—'}</td>
+    ${isAdminUser?`<td><div class="row-actions">
+      <button class="icon-btn" title="Edit" onclick="openEditModal('${e.equipmentId}')"><i class="fa-solid fa-pencil"></i></button>
+      <button class="icon-btn danger" title="Delete" onclick="deleteEquipmentRow('${e.equipmentId}')"><i class="fa-solid fa-trash"></i></button>
+    </div></td>`:''}
+  </tr>`).join(''):`<tr><td colspan="${isAdminUser?10:9}" class="empty">No equipment matches this view.</td></tr>`;
+}
+
+['search','category','status'].forEach(id=>document.getElementById(id).addEventListener(id==='search'?'input':'change',render));
+
+if(new URLSearchParams(window.location.search).get('dash')==='1')document.getElementById('hubBack').href='mixers.html?dash=1';else document.getElementById('hubBack').style.display='none';
+
+function loadEquipment(){
+  return mixerApi.get('/api/equipment').then(data=>{records=Array.isArray(data)?data:[];render();})
+    .catch(()=>{document.getElementById('rows').innerHTML='<tr><td colspan="9" class="empty">Could not load the equipment list.</td></tr>';});
+}
+
+async function refreshAdminState(){
+  try{
+    const status=await mixerApi.get('/api/mixer-auth/status');
+    isAdminUser=status.isAdmin===true;
+  }catch{isAdminUser=false;}
+  document.getElementById('addEquipmentBtn').style.display=isAdminUser?'':'none';
+  document.getElementById('actionsHead').style.display=isAdminUser?'':'none';
+  document.getElementById('adminBanner').classList.toggle('show',isAdminUser);
+  document.getElementById('readonlyBanner').classList.toggle('hide',isAdminUser);
+  render();
+}
+
+// ── ADD / EDIT MODAL ───────────────────────────────────────────────────────
+function openAddModal(){
+  editingId=null;
+  document.getElementById('eqModalTitle').textContent='Add Equipment';
+  document.getElementById('eqId').value='';
+  document.getElementById('eqId').disabled=false;
+  document.getElementById('eqCategory').value='mixer';
+  document.getElementById('eqModel').value='';
+  document.getElementById('eqStatus').value='available';
+  document.getElementById('eqPricePaid').value='';
+  document.getElementById('eqInsurance').value='';
+  document.getElementById('eqMaintCost').value='';
+  document.getElementById('eqNotes').value='';
+  document.getElementById('eqError').textContent='';
+  document.getElementById('eqModal').classList.add('open');
+  setTimeout(()=>document.getElementById('eqId').focus(),80);
+}
+
+function openEditModal(equipmentId){
+  if(!equipmentId)return;
+  const e=records.find(r=>r.equipmentId===equipmentId);
+  if(!e)return;
+  editingId=equipmentId;
+  document.getElementById('eqModalTitle').textContent='Edit '+equipmentId;
+  document.getElementById('eqId').value=e.equipmentId;
+  document.getElementById('eqId').disabled=true; // equipment ID is immutable once created
+  document.getElementById('eqCategory').value=e.category;
+  document.getElementById('eqModel').value=e.model||'';
+  document.getElementById('eqStatus').value=e.status||'available';
+  document.getElementById('eqPricePaid').value=e.cost?.pricePaid||0;
+  document.getElementById('eqInsurance').value=e.cost?.insurance||0;
+  document.getElementById('eqMaintCost').value=e.cost?.maintenanceCost||0;
+  document.getElementById('eqNotes').value=e.notes||'';
+  document.getElementById('eqError').textContent='';
+  document.getElementById('eqModal').classList.add('open');
+}
+
+function closeEqModal(){
+  document.getElementById('eqModal').classList.remove('open');
+}
+
+document.getElementById('eqModal').addEventListener('click',e=>{if(e.target.id==='eqModal')closeEqModal();});
+
+async function submitEqModal(){
+  const errorEl=document.getElementById('eqError');
+  errorEl.textContent='';
+  const equipmentId=document.getElementById('eqId').value.trim();
+  const category=document.getElementById('eqCategory').value;
+  const model=document.getElementById('eqModel').value.trim();
+  const status=document.getElementById('eqStatus').value;
+  const pricePaid=parseFloat(document.getElementById('eqPricePaid').value)||0;
+  const insurance=parseFloat(document.getElementById('eqInsurance').value)||0;
+  const maintenanceCost=parseFloat(document.getElementById('eqMaintCost').value)||0;
+  const notes=document.getElementById('eqNotes').value.trim();
+
+  if(!equipmentId){errorEl.textContent='Equipment ID is required.';return;}
+  if(!editingId && records.some(r=>r.equipmentId.toLowerCase()===equipmentId.toLowerCase())){
+    errorEl.textContent='That equipment ID already exists.';return;
+  }
+
+  const saveBtn=document.getElementById('eqSaveBtn');
+  saveBtn.disabled=true;
+  try{
+    if(editingId){
+      await mixerApi.put(`/api/equipment/${encodeURIComponent(editingId)}`,{
+        category,model,status,notes,
+        cost:{pricePaid,insurance,maintenanceCost}
+      });
+      showToast('Equipment updated','success');
+    }else{
+      await mixerApi.post('/api/equipment',{
+        equipmentId,category,model,notes,
+        cost:{pricePaid,insurance,maintenanceCost:0}
+      });
+      // Status defaults to 'available' on create; if a different status was
+      // chosen, apply it as a follow-up update.
+      if(status!=='available'){
+        await mixerApi.put(`/api/equipment/${encodeURIComponent(equipmentId)}`,{status});
+      }
+      showToast('Equipment added','success');
+    }
+    closeEqModal();
+    await loadEquipment();
+  }catch(err){
+    errorEl.textContent=err.message||'Could not save equipment.';
+  }finally{
+    saveBtn.disabled=false;
+  }
+}
+
+async function deleteEquipmentRow(equipmentId){
+  if(!confirm(`Delete ${equipmentId}? It will be recoverable from the Recovery Bin for 30 days.`))return;
+  try{
+    await mixerApi.del(`/api/equipment/${encodeURIComponent(equipmentId)}`);
+    showToast('Equipment deleted','success');
+    await loadEquipment();
+  }catch(err){
+    showToast(err.message||'Could not delete equipment','error');
+  }
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+(async function init(){
+  await Promise.all([loadEquipment(),refreshAdminState()]);
+})();
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){refreshAdminState();loadEquipment();}
+});
+</script></body></html>
