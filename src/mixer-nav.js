@@ -146,19 +146,19 @@
         #mixerQuickPinModal .mixer-quick-submit { border-color:#4a9eff; background:#4a9eff; color:#06101c; font-weight:700; }
         #mixerQuickPinModal .mixer-quick-error { min-height:18px; margin-top:8px; color:#e0443a; font-size:.75rem; }
         #mixerNav .mixer-nav-footer { padding: 10px 18px 0; font-size: 0.66rem; color: #4e6680; text-align: center; }
-        body.mixer-nav-collapsed #mixerNav { transform: translateX(-100%); }
-        body.mixer-nav-collapsed #mixerNavToggle { display: flex; }
-        @media (max-width: 900px) {
-          body.has-mixer-nav .wrapper { margin-left: 0; }
-          #mixerNav { transform: translateX(-100%); }
-          #mixerNav.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.55); }
-          #mixerNavToggle { display: flex; }
-        }
         #mixerNavToggle {
           display: none; position: fixed; top: 12px; left: 12px; z-index: 1001;
           width: 40px; height: 40px; border-radius: 8px; background: #111a26;
           border: 1px solid #1e3550; color: #4a9eff; font-size: 1.1rem; cursor: pointer;
           align-items: center; justify-content: center;
+        }
+        body.mixer-nav-collapsed #mixerNav { transform: translateX(-100%); }
+        body.mixer-nav-collapsed #mixerNavToggle { display: flex; }
+        @media (max-width: 900px) {
+          body.has-mixer-nav .wrapper { margin-left: 0; padding-top: 64px; }
+          #mixerNav { transform: translateX(-100%); }
+          #mixerNav.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.55); }
+          #mixerNavToggle { display: flex; }
         }
       </style>
       <div class="mixer-nav-brand"><i class="fa-solid fa-toolbox" title="Close equipment navigation"></i>GR Equipment</div>
