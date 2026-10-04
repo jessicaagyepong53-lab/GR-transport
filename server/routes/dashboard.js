@@ -104,10 +104,12 @@ router.get('/full', asyncHandler(async (req, res) => {
   const driversObj = {};
   const truckCostObj = {};
   const endOfTermObj = {};
+  const purchaseYearsObj = {};
 
   trucks.forEach(t => {
     trucksObj[t.truckId] = {};
     driversObj[t.truckId] = t.driver || '';
+    if (t.purchaseYear) purchaseYearsObj[t.truckId] = t.purchaseYear;
     if (t.cost) {
       truckCostObj[t.truckId] = {
         ...(t.cost.toObject ? t.cost.toObject() : t.cost),
@@ -209,6 +211,7 @@ router.get('/full', asyncHandler(async (req, res) => {
     drivers: driversObj,
     truckCost: truckCostObj,
     endOfTerm: endOfTermObj,
+    purchaseYears: purchaseYearsObj,
     weeksWorked: weeksWorkedMap,
     monthly,
     yearlyTotals,

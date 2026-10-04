@@ -55,6 +55,20 @@
   .driver-card-truck input{font-family:'JetBrains Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--accent);background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 10px;text-transform:uppercase;width:170px;}
   .driver-card-truck input:focus{border-color:var(--accent);outline:none;}
   .driver-card-eot{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .driver-card-delete{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);cursor:pointer;font-size:0.85rem;transition:all 0.2s;padding:0;flex-shrink:0;}
+  .driver-card-delete:hover{border-color:var(--red);color:var(--red);background:rgba(224,68,58,0.12);}
+  .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:3000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+  .confirm-overlay.show{opacity:1;pointer-events:auto;}
+  .confirm-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:400px;width:90%;text-align:center;}
+  .confirm-box h3{margin-bottom:8px;font-size:1rem;color:var(--text);}
+  .confirm-box h3 strong{color:var(--red);font-family:'JetBrains Mono',monospace;}
+  .confirm-box p{font-size:0.82rem;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+  .confirm-box .confirm-actions{display:flex;gap:10px;justify-content:center;}
+  .confirm-box .cbtn{padding:8px 20px;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;border:1px solid var(--border);transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .confirm-box .cbtn.cancel{background:var(--bg3);color:var(--text);}
+  .confirm-box .cbtn.cancel:hover{border-color:var(--accent);color:var(--accent);}
+  .confirm-box .cbtn.danger{background:rgba(224,68,58,0.15);border-color:var(--red);color:var(--red);}
+  .confirm-box .cbtn.danger:hover{background:rgba(224,68,58,0.3);}
   .driver-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .driver-card-field label{display:block;font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:5px;font-weight:600;}
   .driver-card-field input,.driver-card-field textarea{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.85rem;font-family:'DM Sans',sans-serif;}
@@ -259,6 +273,16 @@
       </div>
       <div class="form-row">
         <div class="form-group">
+          <label class="form-label">Purchase Year</label>
+          <input type="number" class="form-input" id="newTruckYear" min="2000" max="2100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Start Date (optional)</label>
+          <input type="date" class="form-input" id="newTruckStart">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
           <label class="form-label">Initial Value (GHS)</label>
           <input type="number" class="form-input" id="newTruckInit" value="0" oninput="updateNewTruckTotal()">
         </div>
@@ -378,6 +402,17 @@
 
 
   <div class="footer-note"><i class="fa-regular fa-copyright"></i>Copyright 2026 All rights reserved.</div>
+</div>
+
+<div class="confirm-overlay" id="deleteTruckOverlay">
+  <div class="confirm-box">
+    <h3>Delete <strong id="deleteTruckName"></strong>?</h3>
+    <p>The truck, its yearly sheets and weekly entries are moved to Recovery. You can restore them within 30 days.</p>
+    <div class="confirm-actions">
+      <button class="cbtn cancel" onclick="closeDeleteTruck()">Cancel</button>
+      <button class="cbtn danger" id="deleteTruckConfirmBtn" onclick="confirmDeleteTruck()">Delete truck</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

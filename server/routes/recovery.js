@@ -56,6 +56,8 @@ router.post('/:id/restore', requireAdmin, asyncHandler(async (req, res) => {
         startDates: truckData.startDates || {},
         purchaseYear: truckData.purchaseYear,
         cost: truckData.cost,
+        paymentEntries: truckData.paymentEntries || [],
+        sheetNotes: truckData.sheetNotes || [],
         endOfTerm: truckData.endOfTerm
       },
       { upsert: true }

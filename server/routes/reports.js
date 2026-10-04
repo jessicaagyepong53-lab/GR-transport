@@ -106,12 +106,16 @@ router.get('/summary', asyncHandler(async (req, res) => {
       const avgIncome = s.weeks ? parseFloat((s.net / s.weeks).toFixed(2)) : 0;
       const cost = truckCostMap[id] || null;
       const eot = !!truckEOTMap[id];
-      return { truckId: id, ...s, totalAmount, pctExp, pctIncome, ratio, avgIncome, cost, eot };
+      // A truck with no income or expenses yet (e.g. just added) is listed in
+      // the table but must not be ranked — otherwise its 0 ratio makes it #1.
+      const hasData = (s.gross || 0) !== 0 || (s.exp || 0) !== 0;
+      return { truckId: id, ...s, totalAmount, pctExp, pctIncome, ratio, avgIncome, cost, eot, hasData };
     })
-    .sort((a, b) => a.ratio - b.ratio);
+    .sort((a, b) => (b.hasData - a.hasData) || (a.ratio - b.ratio));
 
-  // Assign ranks — all trucks get ranked (EOT trucks still contributed data)
-  ranked.forEach((t, i) => { t.rank = i + 1; });
+  // Assign ranks — every truck with data gets ranked (EOT trucks still contributed data)
+  let nextRank = 1;
+  ranked.forEach(t => { t.rank = t.hasData ? nextRank++ : null; });
 
   // Compute fleet totals including ALL trucks (EOT trucks still have real data)
   ranked.forEach(t => {
@@ -122,6 +126,7 @@ router.get('/summary', asyncHandler(async (req, res) => {
 
   const eotCount = ranked.filter(t => t.eot).length;
   const activeCount = ranked.length - eotCount;
+  const rankedWithData = ranked.filter(t => t.hasData);
 
   // Expense breakdown (fleet-wide)
   let totalMaint = 0, totalOther = 0, totalSupervisorSalary = 0, totalIncomeTax = 0;
@@ -170,8 +175,8 @@ router.get('/summary', asyncHandler(async (req, res) => {
     truckCount: trucks.length,
     activeCount,
     eotCount,
-    topPerformer: ranked[0] || null,
-    bottomPerformer: ranked[ranked.length - 1] || null,
+    topPerformer: rankedWithData[0] || null,
+    bottomPerformer: rankedWithData[rankedWithData.length - 1] || null,
     truckRanking: ranked,
     expBreakdown: {
       maint: totalMaint,

@@ -6,7 +6,7 @@ const WeeklyEntry = require('../models/WeeklyEntry');
 const ExpenseBreakdown = require('../models/ExpenseBreakdown');
 const Trash = require('../models/Trash');
 const { requireAdmin, touchLastSaved } = require('../middleware/auth');
-const { asyncHandler, AppError, requireFields, toYear, toTruckId, toNumber } = require('../utils/errors');
+const { asyncHandler, AppError, requireFields, toYear, toTruckId, toNumber, toDateString } = require('../utils/errors');
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -73,6 +73,23 @@ router.get('/', asyncHandler(async (req, res) => {
   const trucks = await Truck.find().sort('truckId');
   const yearEntries = await YearEntry.find();
 
+  // Self-heal: a truck that was added the old way (no purchase year and no year
+  // sheet at all) is registered now, so it shows up everywhere without any manual steps.
+  const currentYear = new Date().getFullYear();
+  for (const t of trucks) {
+    const hasEntries = yearEntries.some(ye => ye.truckId === t.truckId);
+    if (!t.purchaseYear && !hasEntries && !(t.endOfTerm && t.endOfTerm.active)) {
+      t.purchaseYear = currentYear;
+      await t.save();
+      const created = await YearEntry.findOneAndUpdate(
+        { truckId: t.truckId, year: currentYear },
+        { $setOnInsert: { gross: 0, exp: 0, net: 0, weeks: 0 } },
+        { upsert: true, new: true }
+      );
+      yearEntries.push(created);
+    }
+  }
+
   const result = trucks.map(t => {
     const years = {};
     yearEntries
@@ -111,15 +128,42 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const existing = await Truck.findOne({ truckId });
   if (existing) throw new AppError('A truck with that ID already exists', 409);
 
-  const truck = await Truck.create({ truckId, driver, cost, endOfTerm });
+  // ── Work out the purchase year + start date ──
+  const currentYear = new Date().getFullYear();
+  const hasYearEntry = !!(yearEntry && yearEntry.year);
+  const startDate = req.body.startDate ? toDateString(req.body.startDate, 'startDate') : '';
+  const purchaseYear = req.body.purchaseYear
+    ? toYear(req.body.purchaseYear)
+    : hasYearEntry ? toYear(yearEntry.year)
+    : startDate ? Number(startDate.slice(0, 4))
+    : currentYear;
+  const startDates = startDate ? { [startDate.slice(0, 4)]: startDate } : {};
 
-  // Optionally create initial year entry
-  if (yearEntry && yearEntry.year) {
-    const year = toYear(yearEntry.year);
-    const gross = toNumber(yearEntry.gross, 'yearEntry.gross', { allowNegative: false });
-    const exp = toNumber(yearEntry.exp, 'yearEntry.exp', { allowNegative: false });
-    const weeks = toNumber(yearEntry.weeks, 'yearEntry.weeks', { allowNegative: false, max: 53 });
-    await YearEntry.create({ truckId, year, gross, exp, net: gross - exp, weeks });
+  // ── Starter notes, so the Truck Notes panel on the weekly sheet isn't empty ──
+  const ghs = n => 'GHS ' + Number(n || 0).toLocaleString('en-US');
+  const sheetNotes = [];
+  if (cost.pricePaid || cost.insurance || cost.maintenanceCost) {
+    sheetNotes.push(`Purchased ${purchaseYear}: price paid ${ghs(cost.pricePaid)}, insurance ${ghs(cost.insurance)}, repairs & maintenance ${ghs(cost.maintenanceCost)}.`);
+  }
+  if (driver) sheetNotes.push(`Driver: ${driver}${startDate ? ` (started ${startDate})` : ''}.`);
+
+  const truck = await Truck.create({ truckId, driver, cost, endOfTerm, purchaseYear, startDates, sheetNotes });
+
+  // ── Always create the year sheet(s) so the truck shows up in Weekly Entry,
+  //    the Year Spreadsheet, Reports and the dashboard from day one. ──
+  const entryYear = hasYearEntry ? toYear(yearEntry.year) : purchaseYear;
+  const yearsToCreate = new Set([entryYear]);
+  if (!(endOfTerm && endOfTerm.active) && currentYear > entryYear) yearsToCreate.add(currentYear);
+  for (const year of yearsToCreate) {
+    const given = hasYearEntry && year === entryYear;
+    const gross = given ? toNumber(yearEntry.gross, 'yearEntry.gross', { allowNegative: false }) : 0;
+    const exp = given ? toNumber(yearEntry.exp, 'yearEntry.exp', { allowNegative: false }) : 0;
+    const weeks = given ? toNumber(yearEntry.weeks, 'yearEntry.weeks', { allowNegative: false, max: 53 }) : 0;
+    await YearEntry.findOneAndUpdate(
+      { truckId, year },
+      { $setOnInsert: { gross, exp, net: gross - exp, weeks } },
+      { upsert: true }
+    );
   }
 
   await touchLastSaved();

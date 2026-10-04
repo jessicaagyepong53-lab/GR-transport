@@ -11,10 +11,16 @@ const TRUCK_COLOR_MAP = {
   'GN 1674-21':  '#9b72ff',
   'GN 4394-25':  '#e0443a',
   'GX 4502-22 NEW':  '#22d3ee',
-  'GN 626-26':  '#f472b6',
-  'GN 4107-26':  '#ff8c42',
+  'GN 626-26 BLUE':  '#f472b6',
+  'GN 4107-26 GREEN':  '#ff8c42',
 };
-function getTruckColor(id) { return TRUCK_COLOR_MAP[id] || '#6b7a96'; }
+const TRUCK_COLOR_FALLBACK = ['#f472b6','#ff8c42','#36cfc9','#b8b8ff','#ffd666','#95de64','#ff7a9c','#5ad1c0'];
+function getTruckColor(id) {
+  if (TRUCK_COLOR_MAP[id]) return TRUCK_COLOR_MAP[id];
+  // Same hash as the dashboard so a new truck keeps one colour everywhere
+  let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return TRUCK_COLOR_FALLBACK[h % TRUCK_COLOR_FALLBACK.length];
+}
 
 function fmt(n) {
   if (n >= 1000000) return 'GHS ' + (n/1000000).toFixed(2) + 'M';
@@ -658,18 +664,19 @@ async function renderPurchaseBalance() {
   if (!section || !grid) return;
 
   const year = document.getElementById('yearSelect').value;
-  if (year !== 'all' && year !== '2026') {
-    section.style.display = 'none';
-    return;
-  }
 
   let trucks = [];
   try {
     trucks = await API.get('/api/trucks');
   } catch { return; }
 
-  const trucks26 = trucks.filter(t => t.purchaseYear === 2026);
+  // Every truck bought from 2026 on is tracked, including ones added later
+  const trucks26 = trucks.filter(t => Number(t.purchaseYear) >= 2026 && (year === 'all' || Number(t.purchaseYear) <= Number(year)));
   if (!trucks26.length) { section.style.display = 'none'; return; }
+
+  const yrs = [...new Set(trucks26.map(t => Number(t.purchaseYear)))];
+  const titleEl = document.getElementById('pbalTitleText');
+  if (titleEl) titleEl.textContent = (yrs.length === 1 ? `${String(yrs[0]).slice(-2)} Trucks` : 'New Trucks') + ' Purchase Balance';
 
   section.style.display = '';
   grid.innerHTML = trucks26.map(t => {

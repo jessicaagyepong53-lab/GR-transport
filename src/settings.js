@@ -358,6 +358,46 @@ function setLocalData(data) {
   localStorage.setItem('transport_dashboard_data', JSON.stringify(data));
 }
 
+// ─── DELETE TRUCK ────────────────────────────────────────────────────────────
+let _truckToDelete = null;
+
+function openDeleteTruck(truckId) {
+  _truckToDelete = truckId;
+  document.getElementById('deleteTruckName').textContent = truckId;
+  document.getElementById('deleteTruckOverlay').classList.add('show');
+}
+
+function closeDeleteTruck() {
+  _truckToDelete = null;
+  document.getElementById('deleteTruckOverlay').classList.remove('show');
+}
+
+async function confirmDeleteTruck() {
+  const id = _truckToDelete;
+  if (!id) return;
+  const btn = document.getElementById('deleteTruckConfirmBtn');
+  btn.disabled = true;
+  try {
+    // Same call the Truck Detail page uses: moves the truck to Recovery for 30 days
+    await API.del('/api/trucks/' + encodeURIComponent(id));
+    closeDeleteTruck();
+    showToast(`${id} deleted — recoverable for 30 days`, 'success');
+    // Drop it from the browser's offline copy so no page still lists it
+    const DATA = getLocalData();
+    ['trucks', 'drivers', 'truckCost', 'endOfTerm', 'weekly', 'entryMeta', 'purchaseYears'].forEach(k => {
+      if (DATA[k] && DATA[k][id] !== undefined) delete DATA[k][id];
+    });
+    setLocalData(DATA);
+    await loadSettings();
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDeleteTruck(); });
+
 // ─── DRIVER TABLE ────────────────────────────────────────────────────────────
 let _driverSaveTimer = null;
 function autoSaveDriverRow(truckId) {
@@ -439,10 +479,16 @@ async function renameTruck(input) {
 
 function renderDriverTable() {
   const container = document.getElementById('driverCards');
-  // Collect all years across all trucks
-  const allYears = new Set();
-  trucksData.forEach(t => { Object.keys(t.years || {}).forEach(y => allYears.add(y)); });
-  const years = [...allYears].sort();
+  // Each truck only shows the years that apply to it: years it has data or a
+  // saved start date for, plus the current year (unless it ended before then).
+  const currentYear = new Date().getFullYear();
+  const getTruckYears = (t) => {
+    const set = new Set(Object.keys(t.years || {}).map(Number));
+    Object.keys(t.startDates || {}).forEach(y => { if (t.startDates[y]) set.add(Number(y)); });
+    const eotYear = t.endOfTerm && t.endOfTerm.active && t.endOfTerm.date ? parseInt(t.endOfTerm.date.slice(0, 4)) : null;
+    if (!eotYear || currentYear <= eotYear) set.add(currentYear);
+    return [...set].filter(Number.isFinite).sort((a, b) => a - b);
+  };
 
   let html = '';
   trucksData.forEach(t => {
@@ -460,6 +506,7 @@ function renderDriverTable() {
             <span class="eot-label">${eot.active ? 'End of Term' : 'Active'}</span>
           </label>
           <input type="date" value="${eot.date || ''}" data-truck="${t.truckId}" class="eot-date" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:0.8rem;${!eot.active ? 'opacity:0.3;pointer-events:none;' : ''}">
+          <button type="button" class="driver-card-delete" data-admin-only data-truck="${t.truckId}" onclick="openDeleteTruck(this.dataset.truck)" title="Delete truck" aria-label="Delete ${t.truckId}"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
       <div class="driver-card-fields">
@@ -474,13 +521,13 @@ function renderDriverTable() {
       </div>`;
 
     // Start dates
+    const years = getTruckYears(t);
     if (years.length) {
       html += `<div class="driver-card-dates">`;
       years.forEach(y => {
-        const hasYear = t.years && t.years[y];
         html += `<div class="date-chip">
           <label>Started ${y}</label>
-          <input type="date" value="${sd[y] || ''}" data-truck="${t.truckId}" data-year="${y}" class="start-date-input"${!hasYear ? ' disabled' : ''}>
+          <input type="date" value="${sd[y] || ''}" data-truck="${t.truckId}" data-year="${y}" class="start-date-input">
         </div>`;
       });
       html += `</div>`;
@@ -642,18 +689,40 @@ async function addNewTruck() {
   const pricePaid = parseFloat(document.getElementById('newTruckPaid').value) || 0;
   const insurance = parseFloat(document.getElementById('newTruckInsurance').value) || 0;
   const maintenanceCost = parseFloat(document.getElementById('newTruckMaint').value) || 0;
+  const purchaseYear = parseInt(document.getElementById('newTruckYear').value) || new Date().getFullYear();
+  const startDate = document.getElementById('newTruckStart').value || '';
 
   if (!truckId) return showToast('Enter a Truck ID', 'error');
 
   try {
-    await API.post('/api/trucks', {
+    const created = await API.post('/api/trucks', {
       truckId,
       driver,
+      purchaseYear,
+      startDate,
       cost: { initialValue, pricePaid, insurance, maintenanceCost }
     });
     showToast(`Truck ${truckId} added successfully`, 'success');
+
+    // Keep the browser's offline copy in step so every page knows about the new truck
+    try {
+      const id = (created && created.truckId) || truckId;
+      const local = getLocalData();
+      const yr = String(purchaseYear);
+      local.trucks = local.trucks || {};
+      local.trucks[id] = local.trucks[id] || {};
+      local.trucks[id][yr] = local.trucks[id][yr] || { gross: 0, exp: 0, net: 0, weeks: 0 };
+      local.drivers = local.drivers || {};
+      local.drivers[id] = driver;
+      local.truckCost = local.truckCost || {};
+      local.truckCost[id] = { initialValue, pricePaid, insurance, maintenanceCost };
+      local.purchaseYears = local.purchaseYears || {};
+      local.purchaseYears[id] = purchaseYear;
+      setLocalData(local);
+    } catch (e) { /* cache is optional */ }
     document.getElementById('newTruckId').value = '';
     document.getElementById('newTruckDriver').value = '';
+    document.getElementById('newTruckStart').value = '';
     document.getElementById('newTruckInit').value = '0';
     document.getElementById('newTruckPaid').value = '0';
     document.getElementById('newTruckInsurance').value = '0';
@@ -738,6 +807,10 @@ async function saveSecurityQuestion() {
 
 document.addEventListener('DOMContentLoaded', loadSettings);
 document.addEventListener('DOMContentLoaded', loadSecurityQuestion);
+document.addEventListener('DOMContentLoaded', () => {
+  const y = document.getElementById('newTruckYear');
+  if (y && !y.value) y.value = new Date().getFullYear();
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   const uploadBtn = document.getElementById('uploadReferenceBtn');

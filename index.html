@@ -502,8 +502,8 @@
   <div class="payment-tracker-section">
     <div class="chart-card wide">
       <div class="card-header">
-        <span class="card-title"><i class="fa-solid fa-money-bill-transfer"></i>New 26 Trucks — Payment Tracker</span>
-        <span class="card-pill"><i class="fa-solid fa-truck-moving"></i>GN 626-26 &amp; GN 4107-26</span>
+        <span class="card-title"><i class="fa-solid fa-money-bill-transfer"></i><span id="pmtTitleText">New 26 Trucks — Payment Tracker</span></span>
+        <span class="card-pill"><i class="fa-solid fa-truck-moving"></i><span id="pmtPillText">GN 626-26 &amp; GN 4107-26</span></span>
       </div>
       <div class="pmt-cards-wrap" id="paymentTrackerCards"></div>
     </div>
@@ -769,7 +769,13 @@ const TRUCK_COLOR_MAP = {
   'GN 626-26 BLUE':  '#f472b6',
   'GN 4107-26 GREEN':  '#ff8c42',
 };
-function getTruckColor(id) { return TRUCK_COLOR_MAP[id] || '#6b7a96'; }
+const TRUCK_COLOR_FALLBACK = ['#f472b6','#ff8c42','#36cfc9','#b8b8ff','#ffd666','#95de64','#ff7a9c','#5ad1c0'];
+function getTruckColor(id) {
+  if (TRUCK_COLOR_MAP[id]) return TRUCK_COLOR_MAP[id];
+  // New trucks get a stable palette colour (same on every page) instead of grey
+  let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return TRUCK_COLOR_FALLBACK[h % TRUCK_COLOR_FALLBACK.length];
+}
 const TRUCK_COLORS = ['#f5a623','#4a9eff','#2de08a','#9b72ff','#e0443a','#22d3ee','#f472b6','#ff8c42'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -2325,7 +2331,27 @@ DATA.drivers = DATA.drivers || {
 rebuildAllMonthlyData();
 
 // ─── NEW 26 TRUCKS PAYMENT TRACKER ──────────────────────────────────────────
-const NEW_26_TRUCKS = ['GN 626-26 BLUE', 'GN 4107-26 GREEN'];
+// Any truck bought from this year on is tracked here automatically.
+const PAYMENT_TRACK_FROM_YEAR = 2026;
+const LEGACY_NEW_TRUCKS = ['GN 626-26 BLUE', 'GN 4107-26 GREEN'];
+
+function getPaymentTrackedTrucks(year) {
+  const py = DATA.purchaseYears || {};
+  return Object.keys(DATA.trucks).filter(id => {
+    const y = py[id] ? Number(py[id]) : (LEGACY_NEW_TRUCKS.includes(id) ? 2026 : NaN);
+    if (!Number.isFinite(y) || y < PAYMENT_TRACK_FROM_YEAR) return false;
+    return year === 'all' || y <= Number(year);
+  });
+}
+
+function updatePaymentTrackerHeading(ids) {
+  const py = DATA.purchaseYears || {};
+  const years = [...new Set(ids.map(id => Number(py[id]) || 2026))];
+  const title = document.getElementById('pmtTitleText');
+  const pill = document.getElementById('pmtPillText');
+  if (title) title.textContent = (years.length === 1 ? `New ${String(years[0]).slice(-2)} Trucks` : 'New Trucks') + ' — Payment Tracker';
+  if (pill) pill.textContent = ids.join(' & ');
+}
 
 function buildPmtRowHtml(safeId, idx, label, amount, rowNotes, admin) {
   const dis = admin ? '' : ' disabled';
@@ -2348,14 +2374,15 @@ function renderPaymentTracker(year) {
   const wrap = document.getElementById('paymentTrackerCards');
   if (!wrap || !section) return;
 
-  const show = (year === 'all' || year === 2026 || year === '2026');
-  section.style.display = show ? '' : 'none';
-  if (!show) return;
+  const tracked = getPaymentTrackedTrucks(year);
+  section.style.display = tracked.length ? '' : 'none';
+  if (!tracked.length) return;
+  updatePaymentTrackerHeading(tracked);
 
   let html = '';
   const admin = isAdmin();
 
-  NEW_26_TRUCKS.forEach(id => {
+  tracked.forEach(id => {
     const cost = DATA.truckCost?.[id] || {};
     const driver = DATA.drivers?.[id] || '—';
     const totalCost = (cost.pricePaid || 0) + (cost.insurance || 0) + (cost.maintenanceCost || 0);
@@ -2506,6 +2533,7 @@ async function syncFromAPI() {
     DATA.drivers = fresh.drivers || {};
     DATA.truckCost = fresh.truckCost || {};
     DATA.endOfTerm = fresh.endOfTerm || {};
+    DATA.purchaseYears = fresh.purchaseYears || {};
 
     if (fresh.monthly) DATA.monthly = fresh.monthly;
     if (fresh.expBreakdown) DATA.expBreakdown = fresh.expBreakdown;

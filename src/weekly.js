@@ -93,13 +93,23 @@ async function init() {
   if (!hadSavedState) autoSelectNextWeek();
 }
 
+// A truck is selectable for a year if it already has data for it, OR it was bought
+// in/before that year and hasn't ended — so a brand-new truck shows up here
+// before its first weekly entry is saved.
+function truckHasYear(t, year) {
+  if (truckYearMap[t.truckId] && truckYearMap[t.truckId][year]) return true;
+  const y = Number(year), py = Number(t.purchaseYear);
+  const eotYear = t.endOfTerm && t.endOfTerm.active && t.endOfTerm.date ? parseInt(t.endOfTerm.date.slice(0, 4)) : null;
+  return Number.isFinite(py) && py <= y && y <= new Date().getFullYear() && (!eotYear || y <= eotYear);
+}
+
 function populateTruckSelect() {
   const sel = document.getElementById('truckSelect');
   const selectedYear = document.getElementById('yearSelect')?.value;
   const prevTruck = sel.value;
   let filtered = allTrucks;
   if (selectedYear && Object.keys(truckYearMap).length) {
-    filtered = allTrucks.filter(t => truckYearMap[t.truckId] && truckYearMap[t.truckId][selectedYear]);
+    filtered = allTrucks.filter(t => truckHasYear(t, selectedYear));
   }
   if (!filtered.length) {
     sel.innerHTML = '<option value="">No trucks for this year</option>';
@@ -466,7 +476,7 @@ function renderTruckBalance() {
   if (!card) return;
 
   const truck = allTrucks.find(t => t.truckId === truckId);
-  if (!truck || truck.purchaseYear !== 2026) {
+  if (!truck || !(Number(truck.purchaseYear) >= 2026)) {
     card.style.display = 'none';
     return;
   }
