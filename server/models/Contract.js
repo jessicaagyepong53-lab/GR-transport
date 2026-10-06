@@ -42,7 +42,7 @@ const contractSchema = new mongoose.Schema({
   conditionStatus: { type: String, enum: ['good', 'minor-wear', 'damaged', ''], default: '' },
   depositRefund: { type: Number, default: 0 },
   notes: { type: String, default: '' },
-  deletedAt: { type: Date, default: null, index: true },
+  deletedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 // Recovered contracts are retained for 30 days, then MongoDB removes them automatically.

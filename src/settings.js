@@ -401,6 +401,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDeleteT
 // ─── DRIVER TABLE ────────────────────────────────────────────────────────────
 let _driverSaveTimer = null;
 function autoSaveDriverRow(truckId) {
+  if (window._isAdminCached !== true) return; // view-only unless logged in
   clearTimeout(_driverSaveTimer);
   _driverSaveTimer = setTimeout(async () => {
     const driverInput = document.querySelector(`.driver-input[data-truck="${truckId}"]`);
@@ -437,6 +438,7 @@ function autoSaveDriverRow(truckId) {
 // ─── RENAME TRUCK ────────────────────────────────────────────────────────────
 async function renameTruck(input) {
   const oldId = input.dataset.truck;
+  if (window._isAdminCached !== true) { input.value = oldId; return; }
   const newId = input.value.trim().toUpperCase();
   if (!newId || newId === oldId) { input.value = oldId; return; }
   // Check for duplicate in current data
@@ -571,6 +573,7 @@ function renderDriverTable() {
 }
 
 async function saveDrivers() {
+  if (window._isAdminCached !== true) return showToast('Log in with your PIN to make changes', 'error');
   const inputs = document.querySelectorAll('.driver-input');
   try {
     for (const input of inputs) {
@@ -599,6 +602,7 @@ async function saveDrivers() {
 // ─── COST TABLE ──────────────────────────────────────────────────────────────
 let _costSaveTimer = null;
 function autoSaveCostRow(truckId) {
+  if (window._isAdminCached !== true) return; // view-only unless logged in
   clearTimeout(_costSaveTimer);
   _costSaveTimer = setTimeout(async () => {
     const row = document.querySelector(`.cost-init[data-truck="${truckId}"]`)?.closest('tr');
@@ -661,6 +665,7 @@ function updateNewTruckTotal() {
 }
 
 async function saveCosts() {
+  if (window._isAdminCached !== true) return showToast('Log in with your PIN to make changes', 'error');
   const rows = document.querySelectorAll('#costTable tbody tr');
   try {
     for (const row of rows) {
@@ -880,3 +885,59 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') loadSettings();
 });
+
+// ─── VIEW-ONLY LOCK (Driver Assignments + Truck Costs) ───────────────────────
+// Locked by default; unlocked only while an admin session is active.
+// Watches both sections so rows rebuilt by renderDriverTable()/renderCostTable()
+// are locked straight away, and re-applies whenever login state changes.
+(function () {
+  const TARGETS = '#driverCards, #costTable';
+  const FLAG = 'lockedByAuth';
+
+  function applyViewOnlyLock() {
+    const admin = window._isAdminCached === true;
+    document.querySelectorAll(TARGETS).forEach(container => {
+      container.querySelectorAll('input, textarea, select, button').forEach(el => {
+        if (admin) {
+          if (el.dataset[FLAG]) {
+            el.disabled = false;
+            el.style.opacity = el.dataset[FLAG + 'Opacity'] || '';
+            el.style.display = el.dataset[FLAG + 'Display'] || '';
+            delete el.dataset[FLAG];
+            delete el.dataset[FLAG + 'Opacity'];
+            delete el.dataset[FLAG + 'Display'];
+          }
+        } else if (!el.dataset[FLAG]) {
+          el.dataset[FLAG] = '1';
+          el.disabled = true;
+          if (el.tagName === 'BUTTON') {
+            el.dataset[FLAG + 'Display'] = el.style.display || '';
+            el.style.display = 'none';
+          } else {
+            el.dataset[FLAG + 'Opacity'] = el.style.opacity || '';
+            el.style.opacity = '0.6';
+          }
+        }
+      });
+    });
+  }
+  window.applyViewOnlyLock = applyViewOnlyLock;
+
+  // Re-apply after login/logout status refreshes
+  const originalUpdateAdminUI = window.updateAdminUI;
+  if (typeof originalUpdateAdminUI === 'function') {
+    window.updateAdminUI = function () {
+      const result = originalUpdateAdminUI.apply(this, arguments);
+      applyViewOnlyLock();
+      return result;
+    };
+  }
+
+  function start() {
+    const observer = new MutationObserver(applyViewOnlyLock); // childList only: no feedback loop
+    document.querySelectorAll(TARGETS).forEach(c => observer.observe(c, { childList: true, subtree: true }));
+    applyViewOnlyLock();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
